@@ -1,4 +1,5 @@
 use crate::models::{AppSettings, CreateSkillInput, SkillDetail, SkillSummary, UpdateSkillInput};
+use crate::skill_scanner;
 
 #[tauri::command]
 pub fn app_version() -> &'static str {
@@ -7,7 +8,7 @@ pub fn app_version() -> &'static str {
 
 #[tauri::command]
 pub fn scan_skills() -> Result<Vec<SkillSummary>, String> {
-    Ok(Vec::new())
+    skill_scanner::scan_default_skill_roots()
 }
 
 #[tauri::command]
@@ -56,8 +57,8 @@ mod tests {
     }
 
     #[test]
-    fn scan_skills_starts_with_empty_placeholder_result() {
-        assert!(scan_skills().expect("scan placeholder returns an empty list").is_empty());
+    fn scan_skills_returns_a_real_scan_result() {
+        assert!(scan_skills().is_ok());
     }
 
     #[test]

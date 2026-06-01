@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod models;
+pub mod skill_scanner;
 
 use commands::{
     app_version, create_skill, delete_skill, load_app_settings, open_skill_folder, read_skill,
