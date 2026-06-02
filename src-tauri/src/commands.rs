@@ -65,16 +65,16 @@ mod tests {
     #[test]
     fn settings_commands_define_the_settings_boundary() {
         let default_settings = load_app_settings().expect("settings placeholder returns defaults");
-        assert_eq!(default_settings.language, Language::ZhCn);
+        assert_eq!(default_settings.language, Language::System);
 
         let saved = save_app_settings(AppSettings {
-            language: Language::EnUs,
+            language: Language::System,
             custom_scan_directories: vec!["/tmp/skills".to_string()],
             show_default_scan_directories: false,
         })
         .expect("settings placeholder returns saved settings");
 
-        assert_eq!(saved.language, Language::EnUs);
+        assert_eq!(saved.language, Language::System);
         assert_eq!(saved.custom_scan_directories, vec!["/tmp/skills"]);
         assert!(!saved.show_default_scan_directories);
     }

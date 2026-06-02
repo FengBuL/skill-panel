@@ -1,25 +1,84 @@
-import { useMemo, useState } from 'react';
-import { defaultLanguage, getText, isLanguage, languageOptions, type Language } from './i18n';
+import { invoke } from '@tauri-apps/api/core';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  defaultLanguage,
+  getSystemLanguages,
+  getText,
+  isLanguage,
+  languageOptions,
+  resolveLocale,
+  type Language,
+} from './i18n';
+import type { AppSettings } from './types/skill';
+
+const defaultSettings: AppSettings = {
+  language: defaultLanguage,
+  customScanDirectories: [],
+  showDefaultScanDirectories: true,
+};
+
+function normalizeSettings(settings: AppSettings): AppSettings {
+  return {
+    ...defaultSettings,
+    ...settings,
+    language: isLanguage(settings.language) ? settings.language : defaultLanguage,
+  };
+}
 
 export function App() {
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [language, setLanguage] = useState<Language>(defaultLanguage);
-  const t = useMemo(() => (key: Parameters<typeof getText>[1]) => getText(language, key), [language]);
+  const [systemLanguages] = useState(() => getSystemLanguages(window.navigator));
+  const locale = useMemo(() => resolveLocale(language, systemLanguages), [language, systemLanguages]);
+  const t = useMemo(() => (key: Parameters<typeof getText>[1]) => getText(locale, key), [locale]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    invoke<AppSettings>('load_app_settings')
+      .then((loadedSettings) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const normalizedSettings = normalizeSettings(loadedSettings);
+        setSettings(normalizedSettings);
+        setLanguage(normalizedSettings.language);
+      })
+      .catch(() => {
+        // Settings persistence is optional while the command remains a placeholder.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function updateLanguage(nextLanguage: Language) {
+    const nextSettings = { ...settings, language: nextLanguage };
+    setLanguage(nextLanguage);
+    setSettings(nextSettings);
+
+    invoke<AppSettings>('save_app_settings', { settings: nextSettings }).catch(() => {
+      // Keep the optimistic local language when persistence is unavailable.
+    });
+  }
 
   return (
     <main className="app-shell">
       <header className="top-bar">
         <div>
-          <p className="eyebrow">{t("app.subtitle")}</p>
-          <h1>{t("app.title")}</h1>
+          <p className="eyebrow">{t('app.subtitle')}</p>
+          <h1>{t('app.title')}</h1>
         </div>
         <label className="locale-switcher">
-          <span>{t("language.label")}</span>
+          <span>{t('language.label')}</span>
           <select
-            aria-label={t("language.label")}
+            aria-label={t('language.label')}
             value={language}
             onChange={(event) => {
               if (isLanguage(event.target.value)) {
-                setLanguage(event.target.value);
+                updateLanguage(event.target.value);
               }
             }}
           >
@@ -32,45 +91,45 @@ export function App() {
         </label>
       </header>
 
-      <section className="dashboard-grid" aria-label={t("layout.dashboard")}>
+      <section className="dashboard-grid" aria-label={t('layout.dashboard')}>
         <aside className="panel sidebar">
-          <h2>{t("sources.title")}</h2>
-          <button type="button">{t("actions.scan")}</button>
-          <button type="button">{t("actions.newSkill")}</button>
-          <nav aria-label={t("sources.title")}>
-            <a href="#codex">{t("sources.codex")}</a>
-            <a href="#agents">{t("sources.agents")}</a>
-            <a href="#plugins">{t("sources.plugins")}</a>
+          <h2>{t('sources.title')}</h2>
+          <button type="button">{t('actions.scan')}</button>
+          <button type="button">{t('actions.newSkill')}</button>
+          <nav aria-label={t('sources.title')}>
+            <a href="#codex">{t('sources.codex')}</a>
+            <a href="#agents">{t('sources.agents')}</a>
+            <a href="#plugins">{t('sources.plugins')}</a>
           </nav>
         </aside>
 
         <section className="panel list-panel">
           <div className="section-heading">
-            <h2>{t("skills.title")}</h2>
-            <input aria-label={t("search.label")} placeholder={t("search.placeholder")} />
+            <h2>{t('skills.title')}</h2>
+            <input aria-label={t('search.label')} placeholder={t('search.placeholder')} />
           </div>
           <div className="empty-state">
-            <strong>{t("skills.emptyTitle")}</strong>
-            <p>{t("skills.emptyDescription")}</p>
+            <strong>{t('skills.emptyTitle')}</strong>
+            <p>{t('skills.emptyDescription')}</p>
           </div>
         </section>
 
         <aside className="panel detail-panel">
-          <h2>{t("details.title")}</h2>
+          <h2>{t('details.title')}</h2>
           <dl>
             <div>
-              <dt>{t("details.name")}</dt>
-              <dd>{t("details.placeholder")}</dd>
+              <dt>{t('details.name')}</dt>
+              <dd>{t('details.placeholder')}</dd>
             </div>
             <div>
-              <dt>{t("details.path")}</dt>
-              <dd>{t("details.placeholder")}</dd>
+              <dt>{t('details.path')}</dt>
+              <dd>{t('details.placeholder')}</dd>
             </div>
           </dl>
           <div className="detail-actions">
-            <button type="button">{t("actions.save")}</button>
-            <button type="button">{t("actions.delete")}</button>
-            <button type="button">{t("actions.openFolder")}</button>
+            <button type="button">{t('actions.save')}</button>
+            <button type="button">{t('actions.delete')}</button>
+            <button type="button">{t('actions.openFolder')}</button>
           </div>
         </aside>
       </section>

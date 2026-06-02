@@ -3,6 +3,8 @@ use serde_json::Map;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Language {
+    #[serde(rename = "system")]
+    System,
     #[serde(rename = "zh-CN")]
     ZhCn,
     #[serde(rename = "en-US")]
@@ -70,7 +72,7 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            language: Language::ZhCn,
+            language: Language::System,
             custom_scan_directories: Vec::new(),
             show_default_scan_directories: true,
         }
