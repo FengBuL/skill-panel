@@ -54,6 +54,8 @@ pub struct SkillDetail {
     #[serde(flatten)]
     pub summary: SkillSummary,
     pub markdown: String,
+    pub body_markdown: String,
+    pub raw_content: String,
     pub frontmatter: Map<String, serde_json::Value>,
 }
 
