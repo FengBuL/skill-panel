@@ -66,7 +66,7 @@ describe('skill type contracts', () => {
       }
     >();
     expectTypeOf<AppSettings>().toEqualTypeOf<{
-      language: 'zh-CN' | 'en-US';
+      language: 'system' | 'zh-CN' | 'en-US';
       customScanDirectories: string[];
       showDefaultScanDirectories: boolean;
     }>();

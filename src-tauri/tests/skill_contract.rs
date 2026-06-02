@@ -75,7 +75,7 @@ fn skill_detail_and_inputs_round_trip_through_json() {
 #[test]
 fn app_settings_serializes_skill_roots_and_default_source() {
     let settings = AppSettings {
-        language: Language::ZhCn,
+        language: Language::System,
         custom_scan_directories: vec!["C:/Users/example/skills".to_string()],
         show_default_scan_directories: true,
     };
@@ -83,7 +83,7 @@ fn app_settings_serializes_skill_roots_and_default_source() {
     assert_eq!(
         serde_json::to_value(settings).unwrap(),
         json!({
-            "language": "zh-CN",
+            "language": "system",
             "customScanDirectories": ["C:/Users/example/skills"],
             "showDefaultScanDirectories": true
         })

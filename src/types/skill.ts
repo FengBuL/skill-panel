@@ -34,7 +34,7 @@ export interface SkillDetail extends SkillSummary {
 }
 
 export interface AppSettings {
-  language: 'zh-CN' | 'en-US';
+  language: 'system' | 'zh-CN' | 'en-US';
   customScanDirectories: string[];
   showDefaultScanDirectories: boolean;
 }
