@@ -1,5 +1,6 @@
 use crate::models::{AppSettings, CreateSkillInput, SkillDetail, SkillSummary, UpdateSkillInput};
 use crate::skill_scanner;
+use crate::skill_store;
 
 #[tauri::command]
 pub fn app_version() -> &'static str {
@@ -13,27 +14,27 @@ pub fn scan_skills() -> Result<Vec<SkillSummary>, String> {
 
 #[tauri::command]
 pub fn read_skill(path: String) -> Result<SkillDetail, String> {
-    Err(format!("read_skill is not implemented for {path}"))
+    skill_store::read_skill(path)
 }
 
 #[tauri::command]
 pub fn create_skill(input: CreateSkillInput) -> Result<SkillDetail, String> {
-    Err(format!("create_skill is not implemented for {}", input.name))
+    skill_store::create_skill(input)
 }
 
 #[tauri::command]
 pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
-    Err(format!("update_skill is not implemented for {}", input.path))
+    skill_store::update_skill(input)
 }
 
 #[tauri::command]
 pub fn delete_skill(path: String) -> Result<(), String> {
-    Err(format!("delete_skill is not implemented for {path}"))
+    skill_store::delete_skill(path)
 }
 
 #[tauri::command]
 pub fn open_skill_folder(path: String) -> Result<(), String> {
-    Err(format!("open_skill_folder is not implemented for {path}"))
+    skill_store::open_skill_folder(path)
 }
 
 #[tauri::command]

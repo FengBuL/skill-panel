@@ -57,6 +57,14 @@ describe('skill type contracts', () => {
       modifiedAt: string | null;
     }>();
     expectTypeOf<SkillDetail>().toMatchTypeOf<SkillSummary>();
+    expectTypeOf<SkillDetail>().toMatchTypeOf<
+      SkillSummary & {
+        markdown: string;
+        bodyMarkdown: string;
+        rawContent: string;
+        frontmatter: Record<string, unknown>;
+      }
+    >();
     expectTypeOf<AppSettings>().toEqualTypeOf<{
       language: 'zh-CN' | 'en-US';
       customScanDirectories: string[];

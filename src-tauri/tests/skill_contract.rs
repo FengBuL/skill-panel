@@ -40,12 +40,19 @@ fn skill_detail_and_inputs_round_trip_through_json() {
             modified_at: None,
         },
         markdown: "# Demo".to_string(),
+        body_markdown: "# Demo".to_string(),
+        raw_content: "---\nname: Demo\ndescription: Demo skill\n---\n# Demo".to_string(),
         frontmatter: serde_json::Map::new(),
     };
 
     let value = serde_json::to_value(&detail).unwrap();
     assert_eq!(value["parseStatus"], "read-error");
     assert_eq!(value["modifiedAt"], serde_json::Value::Null);
+    assert_eq!(value["bodyMarkdown"], "# Demo");
+    assert_eq!(
+        value["rawContent"],
+        "---\nname: Demo\ndescription: Demo skill\n---\n# Demo"
+    );
 
     let create: CreateSkillInput = serde_json::from_value(json!({
         "name": "Demo",

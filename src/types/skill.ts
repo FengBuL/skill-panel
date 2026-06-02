@@ -28,6 +28,8 @@ export interface SkillSummary {
 
 export interface SkillDetail extends SkillSummary {
   markdown: string;
+  bodyMarkdown: string;
+  rawContent: string;
   frontmatter: Record<string, unknown>;
 }
 
