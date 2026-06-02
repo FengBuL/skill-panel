@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import type { AppSettings } from './types/skill';
 
 const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
@@ -20,6 +21,14 @@ function mockNavigatorLanguages(languages: readonly string[]) {
     configurable: true,
     value: languages[0],
   });
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
 }
 
 describe('App shell', () => {
@@ -83,6 +92,37 @@ describe('App shell', () => {
 
     await user.selectOptions(await screen.findByLabelText('语言'), 'en-US');
 
+    expect(screen.getByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Language')).toHaveValue('en-US');
+  });
+
+  it('keeps a user-selected language when settings load returns late', async () => {
+    const user = userEvent.setup();
+    const loadSettings = deferred<AppSettings>();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return loadSettings.promise;
+      }
+
+      return Promise.resolve({
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+      });
+    });
+
+    render(<App />);
+
+    await user.selectOptions(screen.getByLabelText('语言'), 'en-US');
+    expect(screen.getByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
+
+    loadSettings.resolve({
+      language: 'zh-CN',
+      customScanDirectories: [],
+      showDefaultScanDirectories: true,
+    });
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('load_app_settings'));
     expect(screen.getByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
     expect(screen.getByLabelText('Language')).toHaveValue('en-US');
   });

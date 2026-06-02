@@ -1,68 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useMemo, useState } from 'react';
-import {
-  defaultLanguage,
-  getSystemLanguages,
-  getText,
-  isLanguage,
-  languageOptions,
-  resolveLocale,
-  type Language,
-} from './i18n';
-import type { AppSettings } from './types/skill';
-
-const defaultSettings: AppSettings = {
-  language: defaultLanguage,
-  customScanDirectories: [],
-  showDefaultScanDirectories: true,
-};
-
-function normalizeSettings(settings: AppSettings): AppSettings {
-  return {
-    ...defaultSettings,
-    ...settings,
-    language: isLanguage(settings.language) ? settings.language : defaultLanguage,
-  };
-}
+import { isLanguage, useI18nRuntime } from './i18n';
 
 export function App() {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [language, setLanguage] = useState<Language>(defaultLanguage);
-  const [systemLanguages] = useState(() => getSystemLanguages(window.navigator));
-  const locale = useMemo(() => resolveLocale(language, systemLanguages), [language, systemLanguages]);
-  const t = useMemo(() => (key: Parameters<typeof getText>[1]) => getText(locale, key), [locale]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    invoke<AppSettings>('load_app_settings')
-      .then((loadedSettings) => {
-        if (!isMounted) {
-          return;
-        }
-
-        const normalizedSettings = normalizeSettings(loadedSettings);
-        setSettings(normalizedSettings);
-        setLanguage(normalizedSettings.language);
-      })
-      .catch(() => {
-        // Settings persistence is optional while the command remains a placeholder.
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  function updateLanguage(nextLanguage: Language) {
-    const nextSettings = { ...settings, language: nextLanguage };
-    setLanguage(nextLanguage);
-    setSettings(nextSettings);
-
-    invoke<AppSettings>('save_app_settings', { settings: nextSettings }).catch(() => {
-      // Keep the optimistic local language when persistence is unavailable.
-    });
-  }
+  const { language, languageOptions, t, updateLanguage } = useI18nRuntime();
 
   return (
     <main className="app-shell">
