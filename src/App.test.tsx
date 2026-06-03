@@ -75,6 +75,31 @@ describe('App shell', () => {
     );
   });
 
+  it('renders the management console regions and key controls after switching to English', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.selectOptions(await screen.findByRole('combobox'), 'en-US');
+
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Sources' })).toBeInTheDocument();
+    expect(screen.getByText('Source status')).toBeInTheDocument();
+    expect(screen.getByText('Filters')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All sources' })).toBeInTheDocument();
+
+    expect(screen.getByRole('region', { name: 'Skills' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search skills' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enabled' })).toBeInTheDocument();
+
+    expect(screen.getByRole('complementary', { name: 'Skill details' })).toBeInTheDocument();
+    expect(screen.getByText('Metadata')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByText('Tools')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open path' })).toBeInTheDocument();
+  });
+
   it('keeps local language state when saving settings fails', async () => {
     const user = userEvent.setup();
     invokeMock.mockImplementation((command: string) => {
