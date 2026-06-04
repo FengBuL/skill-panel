@@ -211,7 +211,7 @@ a:focus-visible {
   gap: 8px;
 }
 
-.sidebar a {
+.sidebar nav button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -220,15 +220,14 @@ a:focus-visible {
   border-radius: 6px;
   color: #243943;
   padding: 0 10px;
-  text-decoration: none;
 }
 
-.sidebar a:hover,
-.sidebar a.active {
+.sidebar nav button:hover,
+.sidebar nav button.active {
   background: #e9f0f2;
 }
 
-.sidebar a span:first-child {
+.sidebar nav button span:first-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,11 +294,12 @@ a:focus-visible {
 
 .list-controls {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(132px, auto) minmax(132px, auto);
   gap: 8px;
 }
 
-.list-controls input {
+.list-controls input,
+.list-controls select {
   min-width: 0;
   width: 100%;
 }
@@ -324,6 +324,124 @@ a:focus-visible {
 .empty-state p {
   max-width: 360px;
   margin: 8px 0 0;
+}
+
+.error-state {
+  border-color: #e1b4aa;
+  background: #fff8f6;
+}
+
+.error-state strong {
+  color: #8f3324;
+}
+
+.skill-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #d9e1e6;
+  border-radius: 8px;
+}
+
+.skill-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.86rem;
+}
+
+.skill-table th,
+.skill-table td {
+  border-bottom: 1px solid #e6ecef;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.skill-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f9fa;
+  color: #41515c;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.skill-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.skill-table th:nth-child(1),
+.skill-table td:nth-child(1) {
+  width: 16%;
+}
+
+.skill-table th:nth-child(2),
+.skill-table td:nth-child(2) {
+  width: 24%;
+}
+
+.skill-table th:nth-child(3),
+.skill-table td:nth-child(3),
+.skill-table th:nth-child(4),
+.skill-table td:nth-child(4) {
+  width: 13%;
+}
+
+.skill-table th:nth-child(5),
+.skill-table td:nth-child(5) {
+  width: 14%;
+}
+
+.skill-table th:nth-child(6),
+.skill-table td:nth-child(6) {
+  width: 20%;
+}
+
+.skill-table td {
+  color: #253945;
+  overflow-wrap: anywhere;
+}
+
+.skill-table td strong {
+  display: block;
+  color: #17202a;
+  font-size: 0.92rem;
+}
+
+.parse-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid #cfd8de;
+  border-radius: 999px;
+  background: #f4f7f8;
+  color: #4a5b65;
+  padding: 0 9px;
+  font-size: 0.76rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.parse-status-parsed {
+  border-color: #a8c7b0;
+  background: #eef7f0;
+  color: #2f6a3d;
+}
+
+.parse-status-invalid-frontmatter,
+.parse-status-missing-skill-file,
+.parse-status-read-error {
+  border-color: #e1b4aa;
+  background: #fff4f2;
+  color: #8f3324;
+}
+
+.path-cell {
+  display: block;
+  color: #52646f;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
 }
 
 .detail-panel {
@@ -424,7 +542,7 @@ a:focus-visible {
 
   .toolbar-actions button,
   .locale-switcher select,
-  .list-controls button,
+  .list-controls select,
   .detail-actions button {
     width: 100%;
   }
@@ -432,5 +550,9 @@ a:focus-visible {
   .panel {
     min-height: auto;
     padding: 14px;
+  }
+
+  .skill-table {
+    min-width: 760px;
   }
 }
