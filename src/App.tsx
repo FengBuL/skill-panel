@@ -1,10 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
-import { parseStatuses, skillSources, type ParseStatus, type SkillSource, type SkillSummary } from './types/skill';
+import {
+  parseStatuses,
+  skillSources,
+  type ParseStatus,
+  type SkillDetail,
+  type SkillSource,
+  type SkillSummary,
+} from './types/skill';
 
 type SourceFilter = 'all' | SkillSource;
 type StatusFilter = 'all' | ParseStatus;
+type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 
 const sourceLabelKeys: Record<SkillSource, TranslationKey> = {
   'agents-user': 'sources.agentsUser',
@@ -47,9 +55,36 @@ function filterSkills(skills: SkillSummary[], query: string, sourceFilter: Sourc
   });
 }
 
+function PathCell({ path }: { path: string }) {
+  const fragments = path.split(/([\\/])/);
+
+  return (
+    <span className="path-cell" title={path}>
+      {fragments.map((fragment, index) => (
+        <span key={`${fragment}-${index}`}>{fragment}</span>
+      ))}
+    </span>
+  );
+}
+
 export function App() {
   const { language, languageOptions, t, updateLanguage } = useI18nRuntime();
   const [skills, setSkills] = useState<SkillSummary[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<SkillDetail | null>(null);
+  const [detailName, setDetailName] = useState('');
+  const [detailDescription, setDetailDescription] = useState('');
+  const [detailMarkdown, setDetailMarkdown] = useState('');
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
+  const [isSavingDetail, setIsSavingDetail] = useState(false);
+  const [isDeletingDetail, setIsDeletingDetail] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmPath, setDeleteConfirmPath] = useState<string | null>(null);
+  const detailRequestIdRef = useRef(0);
+  const selectedPathRef = useRef<string | null>(null);
+  const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -96,6 +131,134 @@ export function App() {
   useEffect(() => {
     void scanSkills();
   }, []);
+
+  useEffect(() => {
+    if (showDeleteConfirm) {
+      confirmDeleteButtonRef.current?.focus();
+    }
+  }, [showDeleteConfirm]);
+
+  const syncDetailForm = (detail: SkillDetail) => {
+    setSelectedDetail(detail);
+    setDetailName(detail.name);
+    setDetailDescription(detail.description);
+    setDetailMarkdown(detail.bodyMarkdown);
+  };
+
+  const mergeDetailIntoSkills = (detail: SkillDetail) => {
+    setSkills((currentSkills) =>
+      currentSkills.map((skill) =>
+        skill.path === detail.path
+          ? {
+              path: detail.path,
+              name: detail.name,
+              description: detail.description,
+              source: detail.source,
+              parseStatus: detail.parseStatus,
+              modifiedAt: detail.modifiedAt,
+            }
+          : skill,
+      ),
+    );
+  };
+
+  const selectSkill = async (skill: SkillSummary) => {
+    const requestId = detailRequestIdRef.current + 1;
+    detailRequestIdRef.current = requestId;
+    selectedPathRef.current = skill.path;
+    setSelectedPath(skill.path);
+    setSelectedDetail(null);
+    setDetailError(null);
+    setIsLoadingDetail(true);
+
+    try {
+      const detail = await invoke<SkillDetail>('read_skill', { path: skill.path });
+      if (detailRequestIdRef.current === requestId) {
+        syncDetailForm(detail);
+      }
+    } catch (error) {
+      if (detailRequestIdRef.current === requestId) {
+        setDetailErrorTitleKey('details.errorTitle');
+        setDetailError(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      if (detailRequestIdRef.current === requestId) {
+        setIsLoadingDetail(false);
+      }
+    }
+  };
+
+  const saveSelectedSkill = async () => {
+    if (!selectedDetail) {
+      return;
+    }
+
+    setIsSavingDetail(true);
+    setDetailError(null);
+
+    try {
+      const updatedDetail = await invoke<SkillDetail>('update_skill', {
+        input: {
+          path: selectedDetail.path,
+          name: detailName,
+          description: detailDescription,
+          markdown: detailMarkdown,
+        },
+      });
+      if (selectedPathRef.current === updatedDetail.path) {
+        syncDetailForm(updatedDetail);
+      }
+      mergeDetailIntoSkills(updatedDetail);
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
+
+  const deleteSelectedSkill = async () => {
+    const targetPath = deleteConfirmPath ?? selectedDetail?.path;
+
+    if (!targetPath) {
+      return;
+    }
+
+    setIsDeletingDetail(true);
+    setDetailError(null);
+
+    try {
+      await invoke('delete_skill', { path: targetPath });
+      setShowDeleteConfirm(false);
+      setDeleteConfirmPath(null);
+      if (selectedPathRef.current === targetPath) {
+        selectedPathRef.current = null;
+        setSelectedPath(null);
+        setSelectedDetail(null);
+      }
+      await scanSkills();
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsDeletingDetail(false);
+    }
+  };
+
+  const openSelectedSkillFolder = async () => {
+    if (!selectedDetail) {
+      return;
+    }
+
+    setDetailError(null);
+
+    try {
+      await invoke('open_skill_folder', { path: selectedDetail.path });
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const listState = (() => {
     if (isLoadingSkills) {
@@ -250,7 +413,19 @@ export function App() {
                 </thead>
                 <tbody>
                   {filteredSkills.map((skill) => (
-                    <tr key={skill.path}>
+                    <tr
+                      key={skill.path}
+                      className={selectedPath === skill.path ? 'selected-row' : undefined}
+                      aria-selected={selectedPath === skill.path}
+                      tabIndex={0}
+                      onClick={() => void selectSkill(skill)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          void selectSkill(skill);
+                        }
+                      }}
+                    >
                       <td>
                         <strong>{skill.name}</strong>
                       </td>
@@ -265,7 +440,7 @@ export function App() {
                       </td>
                       <td>{skill.modifiedAt ?? t('skills.modifiedUnknown')}</td>
                       <td>
-                        <span className="path-cell">{skill.path}</span>
+                        <PathCell path={skill.path} />
                       </td>
                     </tr>
                   ))}
@@ -299,54 +474,141 @@ export function App() {
         <aside className="panel detail-panel" aria-label={t('details.ariaLabel')}>
           <div className="panel-heading">
             <h2>{t('details.title')}</h2>
-            <span className="status-pill">{t('details.placeholderStatus')}</span>
+            <span className="status-pill">
+              {selectedDetail ? t(parseStatusLabelKeys[selectedDetail.parseStatus]) : t('details.placeholderStatus')}
+            </span>
           </div>
-          <section className="detail-section" aria-label={t('details.metadata')}>
-            <h3>{t('details.metadata')}</h3>
-            <dl>
-              <div>
-                <dt>{t('details.name')}</dt>
-                <dd>{t('details.placeholder')}</dd>
-              </div>
-              <div>
-                <dt>{t('details.source')}</dt>
-                <dd>{t('details.placeholder')}</dd>
-              </div>
-              <div>
-                <dt>{t('details.modified')}</dt>
-                <dd>{t('details.placeholder')}</dd>
-              </div>
-            </dl>
-          </section>
-          <section className="detail-section" aria-label={t('details.path')}>
-            <h3>{t('details.path')}</h3>
-            <p className="path-placeholder">{t('details.placeholder')}</p>
-          </section>
-          <section className="detail-section" aria-label={t('details.description')}>
-            <h3>{t('details.description')}</h3>
-            <p>{t('details.descriptionPlaceholder')}</p>
-          </section>
-          <section className="detail-section split-section">
-            <div>
-              <h3>{t('details.tools')}</h3>
-              <p className="muted">{t('details.noTools')}</p>
-            </div>
-            <div>
-              <h3>{t('details.tags')}</h3>
-              <div className="tag-row">
-                {detailTagKeys.map((tagKey) => (
-                  <span key={tagKey}>{t(tagKey)}</span>
-                ))}
-              </div>
-            </div>
-          </section>
+          {detailError ? (
+            <section className="detail-section error-state" aria-label={t(detailErrorTitleKey)}>
+              <strong>{t(detailErrorTitleKey)}</strong>
+              <p>{detailError}</p>
+            </section>
+          ) : null}
+          {selectedDetail ? (
+            <>
+              <section className="detail-section" aria-label={t('details.metadata')}>
+                <h3>{t('details.metadata')}</h3>
+                <label className="field-stack">
+                  <span>{t('details.name')}</span>
+                  <input value={detailName} onChange={(event) => setDetailName(event.target.value)} />
+                </label>
+                <label className="field-stack">
+                  <span>{t('details.description')}</span>
+                  <input value={detailDescription} onChange={(event) => setDetailDescription(event.target.value)} />
+                </label>
+                <dl>
+                  <div>
+                    <dt>{t('details.source')}</dt>
+                    <dd>{t(sourceLabelKeys[selectedDetail.source])}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('details.modified')}</dt>
+                    <dd>{selectedDetail.modifiedAt ?? t('skills.modifiedUnknown')}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section className="detail-section" aria-label={t('details.path')}>
+                <h3>{t('details.path')}</h3>
+                <p className="path-placeholder">{selectedDetail.path}</p>
+              </section>
+              <section className="detail-section">
+                <label className="field-stack">
+                  <span>{t('details.markdownBody')}</span>
+                  <textarea value={detailMarkdown} onChange={(event) => setDetailMarkdown(event.target.value)} />
+                </label>
+              </section>
+            </>
+          ) : (
+            <>
+              <section className="detail-section" aria-label={t('details.metadata')}>
+                <h3>{t('details.metadata')}</h3>
+                <dl>
+                  <div>
+                    <dt>{t('details.name')}</dt>
+                    <dd>{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('details.source')}</dt>
+                    <dd>{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('details.modified')}</dt>
+                    <dd>{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section className="detail-section" aria-label={t('details.path')}>
+                <h3>{t('details.path')}</h3>
+                <p className="path-placeholder">{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</p>
+              </section>
+              <section className="detail-section" aria-label={t('details.description')}>
+                <h3>{t('details.description')}</h3>
+                <p>{t('details.descriptionPlaceholder')}</p>
+              </section>
+              <section className="detail-section split-section">
+                <div>
+                  <h3>{t('details.tools')}</h3>
+                  <p className="muted">{t('details.noTools')}</p>
+                </div>
+                <div>
+                  <h3>{t('details.tags')}</h3>
+                  <div className="tag-row">
+                    {detailTagKeys.map((tagKey) => (
+                      <span key={tagKey}>{t(tagKey)}</span>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
           <div className="detail-actions">
-            <button type="button">{t('actions.save')}</button>
-            <button type="button">{t('actions.delete')}</button>
-            <button type="button">{t('actions.openPath')}</button>
+            <button type="button" disabled={!selectedDetail || isSavingDetail} onClick={() => void saveSelectedSkill()}>
+              {t('actions.save')}
+            </button>
+            <button
+              type="button"
+              disabled={!selectedDetail}
+              onClick={() => {
+                setDeleteConfirmPath(selectedDetail?.path ?? null);
+                setShowDeleteConfirm(true);
+              }}
+            >
+              {t('actions.delete')}
+            </button>
+            <button type="button" disabled={!selectedDetail} onClick={() => void openSelectedSkillFolder()}>
+              {selectedDetail ? t('actions.openFolder') : t('actions.openPath')}
+            </button>
           </div>
         </aside>
       </section>
+      {showDeleteConfirm && deleteConfirmPath ? (
+        <div className="dialog-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="delete-skill-title" className="confirm-dialog">
+            <h2 id="delete-skill-title">{t('actions.delete')}</h2>
+            <p>{t('details.deleteConfirm')}</p>
+            <div className="dialog-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmPath(null);
+                }}
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                type="button"
+                ref={confirmDeleteButtonRef}
+                className="danger-action"
+                disabled={isDeletingDetail}
+                onClick={() => void deleteSelectedSkill()}
+              >
+                {t('actions.confirmDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

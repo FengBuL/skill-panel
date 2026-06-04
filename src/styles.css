@@ -20,13 +20,15 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 button,
 select,
-input {
+input,
+textarea {
   min-height: 40px;
   border: 1px solid #c3ccd3;
   border-radius: 6px;
@@ -48,9 +50,15 @@ button:hover {
   background: #f6f8f9;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible {
   outline: 3px solid #9db6c5;
   outline-offset: 2px;
@@ -371,6 +379,20 @@ a:focus-visible {
   border-bottom: 0;
 }
 
+.skill-table tbody tr {
+  cursor: pointer;
+}
+
+.skill-table tbody tr:hover,
+.skill-table tbody tr.selected-row {
+  background: #f2f6f8;
+}
+
+.skill-table tbody tr:focus-visible {
+  outline: 3px solid #9db6c5;
+  outline-offset: -3px;
+}
+
 .skill-table th:nth-child(1),
 .skill-table td:nth-child(1) {
   width: 16%;
@@ -457,6 +479,32 @@ a:focus-visible {
   padding-top: 14px;
 }
 
+.field-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.field-stack span {
+  color: #63727b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.field-stack input,
+.field-stack textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.field-stack textarea {
+  min-height: 220px;
+  resize: vertical;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .detail-panel dl {
   display: grid;
   gap: 12px;
@@ -498,6 +546,56 @@ a:focus-visible {
 
 .detail-actions button {
   justify-content: flex-start;
+}
+
+.danger-action {
+  border-color: #9d3d31;
+  background: #9d3d31;
+  color: #fff;
+}
+
+.danger-action:hover {
+  border-color: #7f3027;
+  background: #7f3027;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(23 32 42 / 38%);
+  padding: 20px;
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  border: 1px solid #d6dee4;
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 18px 48px rgb(23 32 42 / 20%);
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+}
+
+.confirm-dialog h2 {
+  font-size: 1rem;
+}
+
+.confirm-dialog p {
+  margin-top: 8px;
+  color: #52646f;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
 }
 
 @media (max-width: 1100px) {
