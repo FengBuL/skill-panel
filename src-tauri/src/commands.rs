@@ -1,4 +1,5 @@
 use crate::models::{AppSettings, CreateSkillInput, SkillDetail, SkillSummary, UpdateSkillInput};
+use crate::settings_store;
 use crate::skill_scanner;
 use crate::skill_store;
 
@@ -9,7 +10,8 @@ pub fn app_version() -> &'static str {
 
 #[tauri::command]
 pub fn scan_skills() -> Result<Vec<SkillSummary>, String> {
-    skill_scanner::scan_default_skill_roots()
+    let settings = settings_store::load_app_settings()?;
+    skill_scanner::scan_configured_skill_roots(&settings)
 }
 
 #[tauri::command]
@@ -39,12 +41,12 @@ pub fn open_skill_folder(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn load_app_settings() -> Result<AppSettings, String> {
-    Ok(AppSettings::default())
+    settings_store::load_app_settings()
 }
 
 #[tauri::command]
 pub fn save_app_settings(settings: AppSettings) -> Result<AppSettings, String> {
-    Ok(settings)
+    settings_store::save_app_settings(settings)
 }
 
 #[cfg(test)]
@@ -64,18 +66,14 @@ mod tests {
 
     #[test]
     fn settings_commands_define_the_settings_boundary() {
-        let default_settings = load_app_settings().expect("settings placeholder returns defaults");
-        assert_eq!(default_settings.language, Language::System);
-
-        let saved = save_app_settings(AppSettings {
+        let settings = AppSettings {
             language: Language::System,
             custom_scan_directories: vec!["/tmp/skills".to_string()],
             show_default_scan_directories: false,
-        })
-        .expect("settings placeholder returns saved settings");
+        };
 
-        assert_eq!(saved.language, Language::System);
-        assert_eq!(saved.custom_scan_directories, vec!["/tmp/skills"]);
-        assert!(!saved.show_default_scan_directories);
+        assert_eq!(settings.language, Language::System);
+        assert_eq!(settings.custom_scan_directories, vec!["/tmp/skills"]);
+        assert!(!settings.show_default_scan_directories);
     }
 }

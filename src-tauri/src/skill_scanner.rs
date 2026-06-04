@@ -1,4 +1,4 @@
-use crate::models::{ParseStatus, SkillSource, SkillSummary};
+use crate::models::{AppSettings, ParseStatus, SkillSource, SkillSummary};
 
 use std::{
     collections::HashSet,
@@ -27,6 +27,23 @@ impl ScanRoot {
 pub fn scan_default_skill_roots() -> Result<Vec<SkillSummary>, String> {
     let home = home_dir().ok_or_else(|| "Unable to resolve user home directory".to_string())?;
     Ok(scan_skill_roots(&default_scan_roots_for_home(&home)))
+}
+
+pub fn scan_configured_skill_roots(settings: &AppSettings) -> Result<Vec<SkillSummary>, String> {
+    let home = home_dir().ok_or_else(|| "Unable to resolve user home directory".to_string())?;
+    Ok(scan_configured_skill_roots_for_home(settings, &home))
+}
+
+pub fn scan_configured_skill_roots_for_home(settings: &AppSettings, home: &Path) -> Vec<SkillSummary> {
+    let mut roots = default_scan_roots_for_home(home);
+    roots.extend(
+        settings
+            .custom_scan_directories
+            .iter()
+            .map(|path| ScanRoot::new(path, SkillSource::Custom)),
+    );
+
+    scan_skill_roots(&roots)
 }
 
 pub fn default_scan_roots_for_home(home: &Path) -> Vec<ScanRoot> {
@@ -273,8 +290,10 @@ mod tests {
     use crate::models::{ParseStatus, SkillSource};
 
     use super::{
-        default_scan_roots_for_home, scan_skill_roots, summarize_skill_file, ScanRoot,
+        default_scan_roots_for_home, scan_configured_skill_roots_for_home, scan_skill_roots,
+        summarize_skill_file, ScanRoot,
     };
+    use crate::models::{AppSettings, Language};
 
     use std::{
         fs,
@@ -350,6 +369,31 @@ mod tests {
             .iter()
             .all(|skill| skill.parse_status == ParseStatus::Parsed));
 
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
+    fn configured_scan_includes_custom_directories_from_settings() {
+        let custom_root = temp_home("configured-custom");
+        let skill_dir = custom_root.join("team-skill");
+        write_skill(&skill_dir, "Team", "Team skill");
+
+        let settings = AppSettings {
+            language: Language::System,
+            custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+            show_default_scan_directories: true,
+        };
+        let home = temp_home("configured-home");
+
+        let skills = scan_configured_skill_roots_for_home(&settings, &home);
+
+        let custom_skill = skills
+            .iter()
+            .find(|skill| skill.name == "Team")
+            .expect("custom skill should be scanned");
+        assert_eq!(custom_skill.source, SkillSource::Custom);
+
+        fs::remove_dir_all(custom_root).ok();
         fs::remove_dir_all(home).ok();
     }
 

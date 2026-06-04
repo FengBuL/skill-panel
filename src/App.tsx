@@ -4,6 +4,7 @@ import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import {
   parseStatuses,
   skillSources,
+  type AppSettings,
   type ParseStatus,
   type SkillDetail,
   type SkillSource,
@@ -39,6 +40,17 @@ const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey }> =
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
 
+const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }> = [
+  {
+    labelKey: 'settings.windowsDefaultPaths',
+    paths: ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'],
+  },
+  {
+    labelKey: 'settings.macosDefaultPaths',
+    paths: ['~/.codex/skills', '~/.agents/skills'],
+  },
+];
+
 function getSkillSearchText(skill: SkillSummary) {
   return `${skill.name} ${skill.description} ${skill.path}`.toLocaleLowerCase();
 }
@@ -68,7 +80,17 @@ function PathCell({ path }: { path: string }) {
 }
 
 export function App() {
-  const { language, languageOptions, t, updateLanguage } = useI18nRuntime();
+  const {
+    language,
+    languageOptions,
+    saveSettings,
+    settings,
+    settingsLoadError,
+    settingsSaveError,
+    settingsSaveStatus,
+    t,
+    updateLanguage,
+  } = useI18nRuntime();
   const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<SkillDetail | null>(null);
@@ -90,6 +112,9 @@ export function App() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState<AppSettings>(settings);
+  const [customDirectoryInput, setCustomDirectoryInput] = useState('');
 
   const filteredSkills = useMemo(
     () => filterSkills(skills, searchQuery, sourceFilter, statusFilter),
@@ -131,6 +156,10 @@ export function App() {
   useEffect(() => {
     void scanSkills();
   }, []);
+
+  useEffect(() => {
+    setSettingsDraft(settings);
+  }, [settings]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -260,6 +289,35 @@ export function App() {
     }
   };
 
+  const addCustomDirectory = () => {
+    const nextDirectory = customDirectoryInput.trim();
+
+    if (!nextDirectory || settingsDraft.customScanDirectories.includes(nextDirectory)) {
+      return;
+    }
+
+    setSettingsDraft((currentSettings) => ({
+      ...currentSettings,
+      customScanDirectories: [...currentSettings.customScanDirectories, nextDirectory],
+    }));
+    setCustomDirectoryInput('');
+  };
+
+  const removeCustomDirectory = (directory: string) => {
+    setSettingsDraft((currentSettings) => ({
+      ...currentSettings,
+      customScanDirectories: currentSettings.customScanDirectories.filter((currentDirectory) => currentDirectory !== directory),
+    }));
+  };
+
+  const saveSettingsDraft = async () => {
+    try {
+      await saveSettings(settingsDraft);
+    } catch {
+      // Error state is stored by the i18n runtime for the settings panel.
+    }
+  };
+
   const listState = (() => {
     if (isLoadingSkills) {
       return 'loading';
@@ -292,7 +350,9 @@ export function App() {
             {t('actions.scan')}
           </button>
           <button type="button">{t('actions.newSkill')}</button>
-          <button type="button">{t('actions.settings')}</button>
+          <button type="button" className={showSettings ? 'active-action' : undefined} onClick={() => setShowSettings((current) => !current)}>
+            {t('actions.settings')}
+          </button>
           <label className="locale-switcher">
             <span>{t('language.label')}</span>
             <select
@@ -313,6 +373,141 @@ export function App() {
           </label>
         </div>
       </header>
+
+      {showSettings ? (
+        <section className="settings-panel" aria-label={t('settings.ariaLabel')}>
+          <div className="settings-heading">
+            <div>
+              <h2>{t('settings.title')}</h2>
+              <p>{t('settings.description')}</p>
+            </div>
+            <button type="button" onClick={() => setShowSettings(false)}>
+              {t('actions.close')}
+            </button>
+          </div>
+
+          {settingsLoadError ? (
+            <div className="settings-message error-state" role="status">
+              <strong>{t('settings.loadErrorTitle')}</strong>
+              <p>{settingsLoadError}</p>
+            </div>
+          ) : null}
+          {settingsSaveError ? (
+            <div className="settings-message error-state" role="status">
+              <strong>{t('settings.saveErrorTitle')}</strong>
+              <p>{settingsSaveError}</p>
+            </div>
+          ) : null}
+          {settingsSaveStatus === 'saved' && !settingsSaveError ? (
+            <div className="settings-message success-state" role="status">
+              <strong>{t('settings.savedTitle')}</strong>
+            </div>
+          ) : null}
+
+          <div className="settings-grid">
+            <section className="settings-card" aria-label={t('settings.languageSection')}>
+              <h3>{t('settings.languageSection')}</h3>
+              <label className="field-stack">
+                <span>{t('settings.languageLabel')}</span>
+                <select
+                  aria-label={t('settings.languageLabel')}
+                  value={settingsDraft.language}
+                  onChange={(event) => {
+                    const nextLanguage = event.currentTarget.value;
+                    if (isLanguage(nextLanguage)) {
+                      setSettingsDraft((currentSettings) => ({ ...currentSettings, language: nextLanguage }));
+                    }
+                  }}
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </section>
+
+            <section className="settings-card" aria-label={t('settings.defaultPathsSection')}>
+              <h3>{t('settings.defaultPathsSection')}</h3>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={settingsDraft.showDefaultScanDirectories}
+                  onChange={(event) =>
+                    setSettingsDraft((currentSettings) => ({
+                      ...currentSettings,
+                      showDefaultScanDirectories: event.target.checked,
+                    }))
+                  }
+                />
+                <span>{t('settings.showDefaultScanDirectories')}</span>
+              </label>
+              {settingsDraft.showDefaultScanDirectories ? (
+                <div className="default-path-grid">
+                  {defaultScanPathGroups.map((group) => (
+                    <section key={group.labelKey} className="default-path-group" aria-label={t(group.labelKey)}>
+                      <h4>{t(group.labelKey)}</h4>
+                      <ul>
+                        {group.paths.map((path) => (
+                          <li key={path}>{path}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+
+            <section className="settings-card custom-directory-card" aria-label={t('settings.customDirectoriesSection')}>
+              <h3>{t('settings.customDirectoriesSection')}</h3>
+              <div className="custom-directory-form">
+                <label className="field-stack">
+                  <span>{t('settings.customDirectoryPath')}</span>
+                  <input
+                    aria-label={t('settings.customDirectoryPath')}
+                    value={customDirectoryInput}
+                    onChange={(event) => setCustomDirectoryInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addCustomDirectory();
+                      }
+                    }}
+                  />
+                </label>
+                <button type="button" onClick={addCustomDirectory}>
+                  {t('settings.addDirectory')}
+                </button>
+              </div>
+              {settingsDraft.customScanDirectories.length > 0 ? (
+                <ul className="custom-directory-list">
+                  {settingsDraft.customScanDirectories.map((directory) => (
+                    <li key={directory}>
+                      <span>{directory}</span>
+                      <button
+                        type="button"
+                        aria-label={t('settings.removeDirectory', { directory })}
+                        onClick={() => removeCustomDirectory(directory)}
+                      >
+                        {t('settings.removeDirectoryButton')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">{t('settings.noCustomDirectories')}</p>
+              )}
+            </section>
+          </div>
+
+          <div className="settings-actions">
+            <button type="button" className="primary-action" disabled={settingsSaveStatus === 'saving'} onClick={() => void saveSettingsDraft()}>
+              {settingsSaveStatus === 'saving' ? t('settings.saving') : t('settings.save')}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="dashboard-grid" aria-label={t('layout.dashboard')}>
         <aside className="panel sidebar" aria-label={t('sources.title')}>

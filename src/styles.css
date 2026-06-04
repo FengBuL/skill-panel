@@ -120,6 +120,12 @@ a:focus-visible {
   background: #244a5b;
 }
 
+.active-action {
+  border-color: #315f72;
+  background: #e9f0f2;
+  color: #244a5b;
+}
+
 .locale-switcher {
   display: grid;
   grid-template-columns: auto minmax(128px, 160px);
@@ -144,6 +150,165 @@ a:focus-visible {
   margin: 0 auto;
   max-width: 1360px;
   align-items: stretch;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto 16px;
+  max-width: 1360px;
+  border: 1px solid #d6dee4;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+.settings-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-heading h2,
+.settings-heading p,
+.settings-message p,
+.default-path-group h4,
+.default-path-group ul {
+  margin: 0;
+}
+
+.settings-heading h2 {
+  font-size: 1rem;
+}
+
+.settings-heading p {
+  color: #64737c;
+  font-size: 0.86rem;
+}
+
+.settings-message {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d9e1e6;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.success-state {
+  border-color: #a8c7b0;
+  background: #eef7f0;
+}
+
+.success-state strong {
+  color: #2f6a3d;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.1fr) minmax(300px, 1.4fr);
+  gap: 12px;
+}
+
+.settings-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid #edf1f3;
+  border-radius: 8px;
+  background: #fbfcfd;
+  padding: 14px;
+}
+
+.settings-card h3 {
+  margin: 0;
+  color: #41515c;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.settings-card select,
+.settings-card input[type="text"],
+.settings-card input:not([type]) {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #243943;
+  font-size: 0.88rem;
+}
+
+.toggle-row input {
+  min-height: auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.default-path-grid,
+.custom-directory-list {
+  display: grid;
+  gap: 10px;
+}
+
+.default-path-group {
+  display: grid;
+  gap: 6px;
+}
+
+.default-path-group h4 {
+  color: #52646f;
+  font-size: 0.82rem;
+}
+
+.default-path-group ul,
+.custom-directory-list {
+  padding: 0;
+  list-style: none;
+}
+
+.default-path-group li,
+.custom-directory-list li {
+  border: 1px solid #d9e1e6;
+  border-radius: 6px;
+  background: #fff;
+  color: #344752;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.custom-directory-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.custom-directory-list {
+  margin: 0;
+}
+
+.custom-directory-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-directory-list button {
+  min-height: 32px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .panel {
@@ -603,6 +768,14 @@ a:focus-visible {
     grid-template-columns: minmax(180px, 220px) minmax(320px, 1fr);
   }
 
+  .settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .custom-directory-card {
+    grid-column: 1 / -1;
+  }
+
   .detail-panel {
     grid-column: 1 / -1;
     min-height: auto;
@@ -629,9 +802,18 @@ a:focus-visible {
   .dashboard-grid,
   .section-heading,
   .list-controls,
+  .settings-grid,
+  .custom-directory-form,
+  .custom-directory-list li,
   .split-section,
   .detail-actions {
     grid-template-columns: 1fr;
+  }
+
+  .settings-heading,
+  .settings-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .toolbar-actions {
@@ -641,6 +823,7 @@ a:focus-visible {
   .toolbar-actions button,
   .locale-switcher select,
   .list-controls select,
+  .settings-actions button,
   .detail-actions button {
     width: 100%;
   }

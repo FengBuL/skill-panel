@@ -18,8 +18,14 @@ export interface MissingTranslationKey {
 
 type DictionarySet = Record<string, Record<string, string>>;
 
-export function getText(locale: Locale, key: TranslationKey): string {
-  return dictionaries[locale][key];
+export function getText(locale: Locale, key: TranslationKey, replacements: Record<string, string> = {}): string {
+  let text: string = dictionaries[locale][key];
+
+  for (const [name, value] of Object.entries(replacements)) {
+    text = text.replaceAll(`{{${name}}}`, value);
+  }
+
+  return text;
 }
 
 export function isLanguage(value: string): value is Language {

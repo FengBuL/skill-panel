@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod models;
+pub mod settings_store;
 pub mod skill_scanner;
 pub mod skill_store;
 

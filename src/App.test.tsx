@@ -323,4 +323,116 @@ describe('App shell', () => {
     expect(await screen.findByText('扫描失败')).toBeInTheDocument();
     expect(screen.getByText('scan failed')).toBeInTheDocument();
   });
+  it('opens settings and renders language, default paths, and custom directories', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      settings: {
+        language: 'en-US',
+        customScanDirectories: ['D:\\Team\\skills'],
+        showDefaultScanDirectories: true,
+      },
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }));
+
+    expect(screen.getByRole('region', { name: 'Application settings' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Settings language' })).toHaveValue('en-US');
+    expect(screen.getByText('Windows default paths')).toBeInTheDocument();
+    expect(screen.getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
+    expect(screen.getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
+    expect(screen.getByText('macOS default paths')).toBeInTheDocument();
+    expect(screen.getByText('~/.codex/skills')).toBeInTheDocument();
+    expect(screen.getByText('~/.agents/skills')).toBeInTheDocument();
+    expect(screen.getByText('D:\\Team\\skills')).toBeInTheDocument();
+  });
+
+  it('adds and removes custom directories before saving settings', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      settings: {
+        language: 'en-US',
+        customScanDirectories: ['D:\\Team\\skills'],
+        showDefaultScanDirectories: true,
+      },
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }));
+    await user.type(screen.getByRole('textbox', { name: 'Custom directory path' }), 'E:\\AI\\skills');
+    await user.click(screen.getByRole('button', { name: 'Add directory' }));
+    await user.click(screen.getByRole('button', { name: 'Remove D:\\Team\\skills' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Show default scan directories' }));
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: {
+          language: 'en-US',
+          customScanDirectories: ['E:\\AI\\skills'],
+          showDefaultScanDirectories: false,
+        },
+      }),
+    );
+    expect(screen.getByText('Settings saved')).toBeInTheDocument();
+  });
+
+  it('shows a settings load failure inside the settings panel', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.reject(new Error('load failed'));
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve([]);
+      }
+
+      return Promise.reject(new Error('unexpected command'));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }));
+
+    expect(screen.getByText('Settings load failed')).toBeInTheDocument();
+    expect(screen.getByText('load failed')).toBeInTheDocument();
+  });
+
+  it('shows a settings save failure inside the settings panel', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve([]);
+      }
+
+      if (command === 'save_app_settings') {
+        return Promise.reject(new Error('save failed'));
+      }
+
+      return Promise.reject(new Error('unexpected command'));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    expect(await screen.findByText('Settings save failed')).toBeInTheDocument();
+    expect(screen.getByText('save failed')).toBeInTheDocument();
+  });
 });

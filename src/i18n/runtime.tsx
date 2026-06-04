@@ -17,26 +17,43 @@ const defaultSettings: AppSettings = {
   showDefaultScanDirectories: true,
 };
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function normalizeSettings(settings: AppSettings): AppSettings {
   return {
     ...defaultSettings,
     ...settings,
     language: isLanguage(settings.language) ? settings.language : defaultLanguage,
+    customScanDirectories: Array.isArray(settings.customScanDirectories) ? settings.customScanDirectories : [],
+    showDefaultScanDirectories:
+      typeof settings.showDefaultScanDirectories === 'boolean'
+        ? settings.showDefaultScanDirectories
+        : defaultSettings.showDefaultScanDirectories,
   };
 }
 
 export function useI18nRuntime() {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [language, setLanguage] = useState<Language>(defaultLanguage);
+  const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null);
+  const [settingsSaveError, setSettingsSaveError] = useState<string | null>(null);
+  const [settingsSaveStatus, setSettingsSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [systemLanguages] = useState(() => getSystemLanguages(window.navigator));
   const hasUserSelectedLanguage = useRef(false);
 
   const locale = useMemo(() => resolveLocale(language, systemLanguages), [language, systemLanguages]);
-  const t = useCallback((key: Parameters<typeof getText>[1]) => getText(locale, key), [locale]);
+  const t = useCallback(
+    (key: Parameters<typeof getText>[1], replacements?: Parameters<typeof getText>[2]) =>
+      getText(locale, key, replacements),
+    [locale],
+  );
 
   useEffect(() => {
     let isMounted = true;
 
+    setSettingsLoadError(null);
     invoke<AppSettings>('load_app_settings')
       .then((loadedSettings) => {
         if (!isMounted || hasUserSelectedLanguage.current) {
@@ -47,13 +64,33 @@ export function useI18nRuntime() {
         setSettings(normalizedSettings);
         setLanguage(normalizedSettings.language);
       })
-      .catch(() => {
-        // The settings command is a persistence boundary and the UI can run without it.
+      .catch((error) => {
+        if (isMounted) {
+          setSettingsLoadError(getErrorMessage(error));
+        }
       });
 
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  const saveSettings = useCallback(async (nextSettings: AppSettings) => {
+    const normalizedSettings = normalizeSettings(nextSettings);
+    setSettingsSaveError(null);
+    setSettingsSaveStatus('saving');
+
+    try {
+      await invoke<AppSettings>('save_app_settings', { settings: normalizedSettings });
+      setSettings(normalizedSettings);
+      setLanguage(normalizedSettings.language);
+      setSettingsSaveStatus('saved');
+      return normalizedSettings;
+    } catch (error) {
+      setSettingsSaveError(getErrorMessage(error));
+      setSettingsSaveStatus('idle');
+      throw error;
+    }
   }, []);
 
   const updateLanguage = useCallback(
@@ -67,11 +104,11 @@ export function useI18nRuntime() {
       setLanguage(nextLanguage);
       setSettings(nextSettings);
 
-      invoke<AppSettings>('save_app_settings', { settings: nextSettings }).catch(() => {
+      saveSettings(nextSettings).catch(() => {
         // Keep the optimistic local language if persistence is unavailable.
       });
     },
-    [settings],
+    [saveSettings, settings],
   );
 
   return {
@@ -80,6 +117,10 @@ export function useI18nRuntime() {
     t,
     languageOptions,
     updateLanguage,
+    saveSettings,
     settings,
+    settingsLoadError,
+    settingsSaveError,
+    settingsSaveStatus,
   };
 }
