@@ -1,6 +1,7 @@
 export { dictionaries } from './resources';
 export {
   defaultLanguage,
+  findMismatchedTranslationPlaceholders,
   findMissingTranslationKeys,
   getSystemLanguages,
   getText,
@@ -10,4 +11,10 @@ export {
   resolveLocale,
 } from './core';
 export { useI18nRuntime } from './runtime';
-export type { Language, Locale, MissingTranslationKey, TranslationKey } from './core';
+export type {
+  Language,
+  Locale,
+  MismatchedTranslationPlaceholders,
+  MissingTranslationKey,
+  TranslationKey,
+} from './core';

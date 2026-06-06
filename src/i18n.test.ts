@@ -3,6 +3,7 @@ import {
   defaultLanguage,
   dictionaries,
   findMissingTranslationKeys,
+  findMismatchedTranslationPlaceholders,
   getText,
   languageOptions,
   resolveLocale,
@@ -17,6 +18,54 @@ describe('i18n dictionaries', () => {
     expect(locales.sort()).toEqual(['en-US', 'zh-CN']);
     expect(keySets[0]).toEqual(keySets[1]);
     expect(findMissingTranslationKeys(dictionaries)).toEqual([]);
+  });
+
+  it('keeps placeholder names aligned for translated strings', () => {
+    expect(findMismatchedTranslationPlaceholders(dictionaries)).toEqual([]);
+  });
+
+  it('keeps critical runtime translation keys present in every locale', () => {
+    const referencedKeys = [
+      'app.title',
+      'language.label',
+      'language.system',
+      'language.zhCN',
+      'language.enUS',
+      'settings.removeDirectory',
+      'skills.tableLabel',
+      'status.invalidFrontmatter',
+    ];
+
+    for (const locale of Object.keys(dictionaries) as Locale[]) {
+      const dictionaryKeys = new Set(Object.keys(dictionaries[locale]));
+      expect(
+        referencedKeys
+          .filter((key) => !dictionaryKeys.has(key))
+          .sort()
+          .map((key) => ({ locale, key })),
+      ).toEqual([]);
+    }
+  });
+
+  it('detects mismatched translation placeholders in a dictionary set', () => {
+    expect(
+      findMismatchedTranslationPlaceholders({
+        'zh-CN': {
+          'settings.removeDirectory': 'Remove {{directory}}',
+        },
+        'en-US': {
+          'settings.removeDirectory': 'Remove {{path}}',
+        },
+      }),
+    ).toEqual([
+      {
+        key: 'settings.removeDirectory',
+        locale: 'en-US',
+        placeholders: ['path'],
+        referenceLocale: 'zh-CN',
+        referencePlaceholders: ['directory'],
+      },
+    ]);
   });
 
   it('detects missing translation keys in a dictionary set', () => {

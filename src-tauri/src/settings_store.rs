@@ -110,6 +110,32 @@ mod tests {
     }
 
     #[test]
+    fn saving_settings_creates_parent_directories() {
+        let path = temp_settings_path("creates-parent").join("nested").join("settings.json");
+        let settings = AppSettings {
+            language: Language::ZhCn,
+            custom_scan_directories: vec!["/team/skills".to_string()],
+            show_default_scan_directories: true,
+        };
+
+        save_app_settings_to_path(&path, settings.clone()).expect("settings should save");
+
+        assert!(path.exists());
+        assert_eq!(
+            load_app_settings_from_path(&path).expect("settings should load"),
+            settings
+        );
+
+        let root = path
+            .parent()
+            .and_then(|parent| parent.parent())
+            .and_then(|parent| parent.parent());
+        if let Some(root) = root {
+            fs::remove_dir_all(root).ok();
+        }
+    }
+
+    #[test]
     fn invalid_settings_file_reports_parse_error() {
         let path = temp_settings_path("invalid");
         fs::create_dir_all(path.parent().expect("path should have parent"))

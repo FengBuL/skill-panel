@@ -39,14 +39,32 @@ npm run build
 Run frontend tests:
 
 ```bash
-npm test
+npm.cmd test
 ```
 
 Run Rust tests:
 
 ```bash
-npm run cargo:test
+npm.cmd run cargo:test
 ```
+
+## Test Commands
+
+Use these commands from the repository root when validating a development slice:
+
+```bash
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+```
+
+Run Rust tests from `src-tauri`:
+
+```bash
+C:\Users\12925\.cargo\bin\cargo.exe test
+```
+
+The Rust command depends on the local Rust toolchain metadata. If `cargo.exe test` fails before compiling because the stable toolchain manifest cannot be read or synced, treat that as an environment risk and rerun after the local toolchain is repaired.
 
 ## Project Layout
 

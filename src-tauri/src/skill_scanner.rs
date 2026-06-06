@@ -290,8 +290,8 @@ mod tests {
     use crate::models::{ParseStatus, SkillSource};
 
     use super::{
-        default_scan_roots_for_home, scan_configured_skill_roots_for_home, scan_skill_roots,
-        summarize_skill_file, ScanRoot,
+        default_scan_roots_for_home, discover_plugin_skill_roots,
+        scan_configured_skill_roots_for_home, scan_skill_roots, summarize_skill_file, ScanRoot,
     };
     use crate::models::{AppSettings, Language};
 
@@ -398,6 +398,60 @@ mod tests {
     }
 
     #[test]
+    fn configured_scan_merges_default_roots_with_custom_directories() {
+        let home = temp_home("configured-merged-home");
+        let custom_root = temp_home("configured-merged-custom");
+        write_skill(
+            &home.join(".codex").join("skills").join("codex-local"),
+            "Codex Local",
+            "Default codex skill",
+        );
+        write_skill(
+            &home.join(".agents").join("skills").join("agent-local"),
+            "Agent Local",
+            "Default agents skill",
+        );
+        write_skill(
+            &custom_root.join("team"),
+            "Team Custom",
+            "Custom directory skill",
+        );
+
+        let settings = AppSettings {
+            language: Language::System,
+            custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+            show_default_scan_directories: true,
+        };
+
+        let skills = scan_configured_skill_roots_for_home(&settings, &home);
+
+        assert_eq!(
+            skills
+                .iter()
+                .find(|skill| skill.name == "Codex Local")
+                .map(|skill| skill.source),
+            Some(SkillSource::CodexUser)
+        );
+        assert_eq!(
+            skills
+                .iter()
+                .find(|skill| skill.name == "Agent Local")
+                .map(|skill| skill.source),
+            Some(SkillSource::AgentsUser)
+        );
+        assert_eq!(
+            skills
+                .iter()
+                .find(|skill| skill.name == "Team Custom")
+                .map(|skill| skill.source),
+            Some(SkillSource::Custom)
+        );
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+    }
+
+    #[test]
     fn scanned_skills_keep_the_source_from_the_root_that_found_them() {
         let home = temp_home("sources");
         let codex = home.join(".codex").join("skills").join("local");
@@ -490,6 +544,26 @@ mod tests {
     }
 
     #[test]
+    fn frontmatter_parser_unquotes_name_and_description_values() {
+        let home = temp_home("frontmatter-quotes");
+        let skill_dir = home.join("quoted");
+        fs::create_dir_all(&skill_dir).expect("skill dir should be created");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: \"Quoted Skill\"\ndescription: 'Quoted description'\n---\n# Body\n",
+        )
+        .expect("quoted skill file should be written");
+
+        let summary = summarize_skill_file(&skill_dir.join("SKILL.md"), SkillSource::Custom);
+
+        assert_eq!(summary.name, "Quoted Skill");
+        assert_eq!(summary.description, "Quoted description");
+        assert_eq!(summary.parse_status, ParseStatus::Parsed);
+
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
     fn frontmatter_parser_ignores_extra_yaml_sections_while_reading_name_and_description() {
         let home = temp_home("frontmatter-extra-yaml");
         let skill_dir = home.join("extra");
@@ -520,6 +594,34 @@ mod tests {
 
         assert_eq!(summary.name, "unreadable");
         assert_eq!(summary.parse_status, ParseStatus::ReadError);
+
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
+    fn plugin_skill_root_discovery_ignores_symlinked_directories() {
+        let home = temp_home("plugin-symlink");
+        let cache = home.join(".codex").join("plugins").join("cache");
+        let real_skills = cache.join("vendor").join("plugin").join("skills");
+        fs::create_dir_all(&real_skills).expect("real skills dir should be created");
+
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(&real_skills, cache.join("linked-skills"))
+                .expect("symlink should be created");
+        }
+        #[cfg(windows)]
+        {
+            std::os::windows::fs::symlink_dir(&real_skills, cache.join("linked-skills"))
+                .ok();
+        }
+
+        let roots = discover_plugin_skill_roots(&cache);
+
+        assert!(roots.contains(&real_skills));
+        assert!(!roots.iter().any(|path| {
+            path.file_name().and_then(|name| name.to_str()) == Some("linked-skills")
+        }));
 
         fs::remove_dir_all(home).ok();
     }

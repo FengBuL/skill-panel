@@ -529,15 +529,13 @@ fn ensure_existing_path_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), S
 fn ensure_target_directory_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), String> {
     if roots.iter().any(|root| {
         if let Ok(root_path) = root.path.canonicalize() {
-            let existing = if path.exists() {
-                path
+            if path.exists() {
+                path.canonicalize()
+                    .map(|existing_path| existing_path.starts_with(&root_path))
+                    .unwrap_or(false)
             } else {
-                path.parent().unwrap_or(path)
-            };
-            existing
-                .canonicalize()
-                .map(|existing_path| existing_path.starts_with(root_path))
-                .unwrap_or(false)
+                normalize_absolute(path).starts_with(normalize_absolute(&root_path))
+            }
         } else {
             normalize_absolute(path).starts_with(normalize_absolute(&root.path))
         }
@@ -701,6 +699,50 @@ mod tests {
     }
 
     #[test]
+    fn create_skill_accepts_new_nested_target_directory_inside_allowed_root() {
+        let root = temp_root("nested-target");
+        let target = root.join("team").join("skills");
+
+        let created = create_skill_in_roots(
+            CreateSkillInput {
+                name: "Nested Skill".to_string(),
+                description: "Created in a nested target".to_string(),
+                source: WritableSkillSource::Custom,
+                target_directory: target.to_string_lossy().to_string(),
+                markdown: "# Nested\n".to_string(),
+            },
+            &roots(&root),
+        )
+        .expect("skill should be created in nested target");
+
+        assert!(PathBuf::from(&created.path).starts_with(&target));
+        assert_eq!(created.summary.source, SkillSource::Custom);
+        assert!(target.join("Nested-Skill").join("SKILL.md").exists());
+
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn read_skill_accepts_a_skill_folder_path() {
+        let root = temp_root("read-folder");
+        let skill_dir = root.join("folder-input");
+        fs::create_dir_all(&skill_dir).expect("skill dir should be created");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Folder Input\ndescription: Read by directory\n---\n# Body\n",
+        )
+        .expect("skill file should be written");
+
+        let detail = read_skill_in_roots(skill_dir.to_string_lossy().to_string(), &roots(&root))
+            .expect("skill folder should read");
+
+        assert_eq!(detail.summary.name, "Folder Input");
+        assert_eq!(detail.body_markdown, "# Body\n");
+
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
     fn update_roundtrips_common_frontmatter_fields() {
         let root = temp_root("roundtrip");
         let skill_dir = root.join("rich");
@@ -791,5 +833,25 @@ mod tests {
 
         fs::remove_dir_all(root).ok();
         fs::remove_dir_all(outside).ok();
+    }
+
+    #[test]
+    fn delete_refuses_to_remove_the_allowed_root_itself() {
+        let root = temp_root("delete-root");
+        let root_skill = root.join("SKILL.md");
+        fs::write(
+            &root_skill,
+            "---\nname: Root Skill\ndescription: Root level skill\n---\n# Root\n",
+        )
+        .expect("root skill should be written");
+
+        let error = delete_skill_in_roots(root.to_string_lossy().to_string(), &roots(&root))
+            .expect_err("allowed root should not be deleted");
+
+        assert!(error.contains("Refusing to delete an allowed skill root"));
+        assert!(root.exists());
+        assert!(root_skill.exists());
+
+        fs::remove_dir_all(root).ok();
     }
 }

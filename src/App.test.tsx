@@ -263,6 +263,28 @@ describe('App shell', () => {
     expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
   });
 
+  it('combines sidebar source filtering, text search, and status filtering', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /imagegen/i });
+    await user.click(screen.getByRole('button', { name: /Plugin Cache/i }));
+    await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'control');
+
+    expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /standup report/i })).not.toBeInTheDocument();
+    expect(screen.getByText('1 skills')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status filter' }), 'parsed');
+
+    expect(screen.getByText('No matching skills')).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /browser control/i })).not.toBeInTheDocument();
+  });
+
   it('shows an empty filtered state when no skill matches filters', async () => {
     const user = userEvent.setup();
     mockInvoke({ skills: scanResults });
@@ -379,6 +401,36 @@ describe('App shell', () => {
       }),
     );
     expect(screen.getByText('Settings saved')).toBeInTheDocument();
+  });
+
+  it('saves the language selected inside the settings panel', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      settings: {
+        language: 'en-US',
+        customScanDirectories: ['D:\\Team\\skills'],
+        showDefaultScanDirectories: true,
+      },
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Settings language' }), 'zh-CN');
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: {
+          language: 'zh-CN',
+          customScanDirectories: ['D:\\Team\\skills'],
+          showDefaultScanDirectories: true,
+        },
+      }),
+    );
+    expect(screen.getByRole('heading', { name: 'Skill 面板' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '语言' })).toHaveValue('zh-CN');
   });
 
   it('shows a settings load failure inside the settings panel', async () => {

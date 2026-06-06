@@ -16,6 +16,14 @@ export interface MissingTranslationKey {
   key: string;
 }
 
+export interface MismatchedTranslationPlaceholders {
+  key: string;
+  locale: string;
+  placeholders: string[];
+  referenceLocale: string;
+  referencePlaceholders: string[];
+}
+
 type DictionarySet = Record<string, Record<string, string>>;
 
 export function getText(locale: Locale, key: TranslationKey, replacements: Record<string, string> = {}): string {
@@ -67,4 +75,45 @@ export function findMissingTranslationKeys(dictionarySet: DictionarySet): Missin
   }
 
   return missing;
+}
+
+export function findMismatchedTranslationPlaceholders(
+  dictionarySet: DictionarySet,
+): MismatchedTranslationPlaceholders[] {
+  const locales = Object.keys(dictionarySet).sort();
+  const referenceLocale = locales.includes('zh-CN') ? 'zh-CN' : locales[0];
+  if (!referenceLocale) {
+    return [];
+  }
+
+  const allKeys = [...new Set(locales.flatMap((locale) => Object.keys(dictionarySet[locale])))].sort();
+  const mismatches: MismatchedTranslationPlaceholders[] = [];
+
+  for (const key of allKeys) {
+    const referencePlaceholders = extractPlaceholders(dictionarySet[referenceLocale][key] ?? '');
+
+    for (const locale of locales.filter((locale) => locale !== referenceLocale)) {
+      const placeholders = extractPlaceholders(dictionarySet[locale][key] ?? '');
+      if (!sameStringSet(placeholders, referencePlaceholders)) {
+        mismatches.push({
+          key,
+          locale,
+          placeholders,
+          referenceLocale,
+          referencePlaceholders,
+        });
+      }
+    }
+  }
+
+  return mismatches;
+}
+
+function extractPlaceholders(text: string): string[] {
+  const placeholders = [...text.matchAll(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g)].map((match) => match[1]);
+  return [...new Set(placeholders)].sort();
+}
+
+function sameStringSet(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
