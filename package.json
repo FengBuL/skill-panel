@@ -12,6 +12,10 @@
     "typecheck": "tsc --noEmit",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "tauri:build:windows": "tauri build --bundles nsis,msi",
+    "tauri:build:macos": "tauri build --bundles app,dmg",
+    "tauri:icons": "tauri icon src-tauri/icons/source.png",
+    "packaging:check": "vitest run src/packaging.config.test.ts",
     "cargo:test": "cd src-tauri && cargo test"
   },
   "dependencies": {
