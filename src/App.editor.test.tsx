@@ -73,6 +73,24 @@ const skillDetails: Record<string, SkillDetail> = {
   },
 };
 
+const createdSkill: SkillDetail = {
+  path: 'D:\\Team\\skills\\review-helper\\SKILL.md',
+  name: 'review-helper',
+  description: 'Review pull request feedback',
+  source: 'codex-user',
+  parseStatus: 'parsed',
+  modifiedAt: '2026-06-11T12:00:00Z',
+  markdown:
+    '---\nname: review-helper\ndescription: Review pull request feedback\n---\n\n# Review helper\n\nSummarize review comments.',
+  bodyMarkdown: '# Review helper\n\nSummarize review comments.',
+  rawContent:
+    '---\nname: review-helper\ndescription: Review pull request feedback\n---\n\n# Review helper\n\nSummarize review comments.',
+  frontmatter: {
+    name: 'review-helper',
+    description: 'Review pull request feedback',
+  },
+};
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -400,5 +418,134 @@ describe('App skill editor', () => {
 
     expect(await screen.findByText('Action failed')).toBeInTheDocument();
     expect(screen.getByText('save failed')).toBeInTheDocument();
+  });
+
+  it('opens and cancels the new skill dialog without creating a skill', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+
+    expect(screen.getByRole('dialog', { name: 'New Skill' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Target directory'), 'D:\\Team\\skills');
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'review-helper');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog', { name: 'New Skill' })).not.toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalledWith('create_skill', expect.anything());
+  });
+
+  it('creates a skill, refreshes the list, and selects the created detail', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: ['D:\\Team\\skills'],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+
+      if (command === 'create_skill') {
+        return Promise.resolve(createdSkill);
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+    await user.type(screen.getByLabelText('Target directory'), 'D:\\Team\\skills');
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'review-helper');
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Review pull request feedback');
+    await user.type(screen.getByRole('textbox', { name: 'Markdown body' }), '# Review helper\n\nSummarize review comments.');
+    await user.click(screen.getByRole('button', { name: 'Create Skill' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('create_skill', {
+        input: {
+          name: 'review-helper',
+          description: 'Review pull request feedback',
+          source: 'codex-user',
+          targetDirectory: 'D:\\Team\\skills',
+          markdown: '# Review helper\n\nSummarize review comments.',
+        },
+      }),
+    );
+    expect(screen.queryByRole('dialog', { name: 'New Skill' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('row', { name: /review-helper/i })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('review-helper')).toBeInTheDocument();
+    expect(screen.getByText(createdSkill.path)).toBeInTheDocument();
+  });
+
+  it('shows create errors inside the dialog and keeps the draft intact', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve(settings);
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+
+      if (command === 'create_skill') {
+        return Promise.reject(new Error('directory is not writable'));
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+    await user.type(screen.getByLabelText('Target directory'), 'D:\\Locked\\skills');
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'locked-skill');
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Cannot write here');
+    await user.type(screen.getByRole('textbox', { name: 'Markdown body' }), '# Locked');
+    await user.click(screen.getByRole('button', { name: 'Create Skill' }));
+
+    expect(await screen.findByText('Create failed')).toBeInTheDocument();
+    expect(screen.getByText('directory is not writable')).toBeInTheDocument();
+    expect(screen.getByLabelText('Target directory')).toHaveValue('D:\\Locked\\skills');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('locked-skill');
+    expect(screen.getByRole('textbox', { name: 'Markdown body' })).toHaveValue('# Locked');
+  });
+
+  it('keeps the create dialog open and locked while create is in progress', async () => {
+    const user = userEvent.setup();
+    const createRequest = deferred<SkillDetail>();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve(settings);
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+
+      if (command === 'create_skill') {
+        return createRequest.promise;
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+    await user.type(screen.getByLabelText('Target directory'), 'D:\\Team\\skills');
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'review-helper');
+    await user.click(screen.getByRole('button', { name: 'Create Skill' }));
+
+    expect(screen.getByRole('dialog', { name: 'New Skill' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled();
   });
 });

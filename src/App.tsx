@@ -14,6 +14,12 @@ import {
 type SourceFilter = 'all' | SkillSource;
 type StatusFilter = 'all' | ParseStatus;
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
+type CreateSkillDraft = {
+  targetDirectory: string;
+  name: string;
+  description: string;
+  markdown: string;
+};
 
 const sourceLabelKeys: Record<SkillSource, TranslationKey> = {
   'agents-user': 'sources.agentsUser',
@@ -39,6 +45,13 @@ const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey }> =
 ];
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
+
+const emptyCreateSkillDraft: CreateSkillDraft = {
+  targetDirectory: '',
+  name: '',
+  description: '',
+  markdown: '',
+};
 
 const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }> = [
   {
@@ -107,6 +120,7 @@ export function App() {
   const detailRequestIdRef = useRef(0);
   const selectedPathRef = useRef<string | null>(null);
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
+  const createTargetDirectoryRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -115,6 +129,10 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(settings);
   const [customDirectoryInput, setCustomDirectoryInput] = useState('');
+  const [showCreateSkill, setShowCreateSkill] = useState(false);
+  const [createSkillDraft, setCreateSkillDraft] = useState<CreateSkillDraft>(emptyCreateSkillDraft);
+  const [createSkillError, setCreateSkillError] = useState<string | null>(null);
+  const [isCreatingSkill, setIsCreatingSkill] = useState(false);
 
   const filteredSkills = useMemo(
     () => filterSkills(skills, searchQuery, sourceFilter, statusFilter),
@@ -167,6 +185,12 @@ export function App() {
     }
   }, [showDeleteConfirm]);
 
+  useEffect(() => {
+    if (showCreateSkill) {
+      createTargetDirectoryRef.current?.focus();
+    }
+  }, [showCreateSkill]);
+
   const syncDetailForm = (detail: SkillDetail) => {
     setSelectedDetail(detail);
     setDetailName(detail.name);
@@ -189,6 +213,49 @@ export function App() {
           : skill,
       ),
     );
+  };
+
+  const upsertDetailIntoSkills = (detail: SkillDetail) => {
+    const summary: SkillSummary = {
+      path: detail.path,
+      name: detail.name,
+      description: detail.description,
+      source: detail.source,
+      parseStatus: detail.parseStatus,
+      modifiedAt: detail.modifiedAt,
+    };
+
+    setSkills((currentSkills) => {
+      const existingIndex = currentSkills.findIndex((skill) => skill.path === detail.path);
+      if (existingIndex === -1) {
+        return [...currentSkills, summary];
+      }
+
+      return currentSkills.map((skill) => (skill.path === detail.path ? summary : skill));
+    });
+  };
+
+  const openCreateSkillDialog = () => {
+    setCreateSkillDraft(emptyCreateSkillDraft);
+    setCreateSkillError(null);
+    setShowCreateSkill(true);
+  };
+
+  const closeCreateSkillDialog = () => {
+    if (isCreatingSkill) {
+      return;
+    }
+
+    setShowCreateSkill(false);
+    setCreateSkillError(null);
+    setIsCreatingSkill(false);
+  };
+
+  const updateCreateSkillDraft = (field: keyof CreateSkillDraft, value: string) => {
+    setCreateSkillDraft((currentDraft) => ({
+      ...currentDraft,
+      [field]: value,
+    }));
   };
 
   const selectSkill = async (skill: SkillSummary) => {
@@ -243,6 +310,36 @@ export function App() {
       setDetailError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSavingDetail(false);
+    }
+  };
+
+  const createSkill = async () => {
+    setIsCreatingSkill(true);
+    setCreateSkillError(null);
+
+    try {
+      const createdDetail = await invoke<SkillDetail>('create_skill', {
+        input: {
+          name: createSkillDraft.name.trim(),
+          description: createSkillDraft.description.trim(),
+          source: 'codex-user',
+          targetDirectory: createSkillDraft.targetDirectory.trim(),
+          markdown: createSkillDraft.markdown,
+        },
+      });
+      selectedPathRef.current = createdDetail.path;
+      setSelectedPath(createdDetail.path);
+      setDetailError(null);
+      setDetailErrorTitleKey('details.errorTitle');
+      setIsLoadingDetail(false);
+      syncDetailForm(createdDetail);
+      setShowCreateSkill(false);
+      await scanSkills();
+      upsertDetailIntoSkills(createdDetail);
+    } catch (error) {
+      setCreateSkillError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsCreatingSkill(false);
     }
   };
 
@@ -349,7 +446,9 @@ export function App() {
           <button type="button" className="primary-action" onClick={() => void scanSkills()}>
             {t('actions.scan')}
           </button>
-          <button type="button">{t('actions.newSkill')}</button>
+          <button type="button" onClick={openCreateSkillDialog}>
+            {t('actions.newSkill')}
+          </button>
           <button type="button" className={showSettings ? 'active-action' : undefined} onClick={() => setShowSettings((current) => !current)}>
             {t('actions.settings')}
           </button>
@@ -799,6 +898,66 @@ export function App() {
                 onClick={() => void deleteSelectedSkill()}
               >
                 {t('actions.confirmDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {showCreateSkill ? (
+        <div className="dialog-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="create-skill-title" className="create-dialog">
+            <div className="dialog-heading">
+              <h2 id="create-skill-title">{t('actions.newSkill')}</h2>
+              <button type="button" disabled={isCreatingSkill} onClick={closeCreateSkillDialog}>
+                {t('actions.close')}
+              </button>
+            </div>
+            {createSkillError ? (
+              <div className="settings-message error-state" role="alert">
+                <strong>{t('create.errorTitle')}</strong>
+                <p>{createSkillError}</p>
+              </div>
+            ) : null}
+            <div className="create-form-grid">
+              <label className="field-stack">
+                <span>{t('create.targetDirectory')}</span>
+                <input
+                  ref={createTargetDirectoryRef}
+                  list="create-skill-directory-suggestions"
+                  value={createSkillDraft.targetDirectory}
+                  onChange={(event) => updateCreateSkillDraft('targetDirectory', event.target.value)}
+                />
+              </label>
+              <label className="field-stack">
+                <span>{t('details.name')}</span>
+                <input value={createSkillDraft.name} onChange={(event) => updateCreateSkillDraft('name', event.target.value)} />
+              </label>
+              <label className="field-stack create-description-field">
+                <span>{t('details.description')}</span>
+                <input
+                  value={createSkillDraft.description}
+                  onChange={(event) => updateCreateSkillDraft('description', event.target.value)}
+                />
+              </label>
+              <label className="field-stack create-markdown-field">
+                <span>{t('details.markdownBody')}</span>
+                <textarea value={createSkillDraft.markdown} onChange={(event) => updateCreateSkillDraft('markdown', event.target.value)} />
+              </label>
+            </div>
+            <datalist id="create-skill-directory-suggestions">
+              {settings.customScanDirectories.map((directory) => (
+                <option key={directory} value={directory} />
+              ))}
+              {defaultScanPathGroups.flatMap((group) =>
+                group.paths.map((path) => <option key={`${group.labelKey}-${path}`} value={path} />),
+              )}
+            </datalist>
+            <div className="dialog-actions">
+              <button type="button" disabled={isCreatingSkill} onClick={closeCreateSkillDialog}>
+                {t('actions.cancel')}
+              </button>
+              <button type="button" className="primary-action" disabled={isCreatingSkill} onClick={() => void createSkill()}>
+                {isCreatingSkill ? t('create.creating') : t('create.submit')}
               </button>
             </div>
           </div>
