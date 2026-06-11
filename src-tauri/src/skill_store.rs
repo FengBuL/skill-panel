@@ -1,6 +1,7 @@
 use crate::models::{
     CreateSkillInput, ParseStatus, SkillDetail, SkillSource, SkillSummary, UpdateSkillInput,
 };
+use crate::settings_store;
 use crate::skill_scanner::{self, ScanRoot};
 
 use serde_json::{Map, Number, Value};
@@ -19,23 +20,23 @@ struct ParsedSkillMarkdown {
 }
 
 pub fn read_skill(path: String) -> Result<SkillDetail, String> {
-    read_skill_in_roots(path, &default_allowed_roots()?)
+    read_skill_in_roots(path, &configured_allowed_roots()?)
 }
 
 pub fn create_skill(input: CreateSkillInput) -> Result<SkillDetail, String> {
-    create_skill_in_roots(input, &default_allowed_roots()?)
+    create_skill_in_roots(input, &configured_allowed_roots()?)
 }
 
 pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
-    update_skill_in_roots(input, &default_allowed_roots()?)
+    update_skill_in_roots(input, &configured_allowed_roots()?)
 }
 
 pub fn delete_skill(path: String) -> Result<(), String> {
-    delete_skill_in_roots(path, &default_allowed_roots()?)
+    delete_skill_in_roots(path, &configured_allowed_roots()?)
 }
 
 pub fn open_skill_folder(path: String) -> Result<(), String> {
-    open_skill_folder_in_roots(path, &default_allowed_roots()?)
+    spawn_skill_folder(resolve_skill_folder_to_open(path)?)
 }
 
 pub fn read_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<SkillDetail, String> {
@@ -148,12 +149,27 @@ pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), Str
 }
 
 pub fn open_skill_folder_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), String> {
+    spawn_skill_folder(resolve_skill_folder_to_open_in_roots(path, roots)?)
+}
+
+fn resolve_skill_folder_to_open(path: String) -> Result<PathBuf, String> {
+    resolve_skill_folder_to_open_in_roots(path, &configured_allowed_roots()?)
+}
+
+fn resolve_skill_folder_to_open_in_roots(
+    path: String,
+    roots: &[ScanRoot],
+) -> Result<PathBuf, String> {
     let folder = skill_folder_from_input(&path)?;
     ensure_existing_path_allowed(&folder.join(SKILL_FILE_NAME), roots)?;
     if !folder.exists() {
         return Err(format!("Skill folder does not exist: {}", folder.display()));
     }
 
+    Ok(folder)
+}
+
+fn spawn_skill_folder(folder: PathBuf) -> Result<(), String> {
     let mut command = if cfg!(windows) {
         let mut command = Command::new("cmd");
         command.args(["/C", "start", ""]).arg(&folder);
@@ -494,6 +510,19 @@ fn default_allowed_roots() -> Result<Vec<ScanRoot>, String> {
     Ok(skill_scanner::default_scan_roots_for_home(&home))
 }
 
+fn configured_allowed_roots() -> Result<Vec<ScanRoot>, String> {
+    let mut roots = default_allowed_roots()?;
+    let settings = settings_store::load_app_settings()?;
+    roots.extend(
+        settings
+            .custom_scan_directories
+            .iter()
+            .filter(|path| !path.trim().is_empty())
+            .map(|path| ScanRoot::new(path, SkillSource::Custom)),
+    );
+    Ok(roots)
+}
+
 fn home_dir() -> Option<PathBuf> {
     if cfg!(windows) {
         env::var_os("USERPROFILE")
@@ -585,17 +614,62 @@ fn source_for_path(path: &Path, roots: &[ScanRoot]) -> SkillSource {
 #[cfg(test)]
 mod tests {
     use super::{
-        create_skill_in_roots, delete_skill_in_roots, format_frontmatter, parse_skill_markdown,
-        read_skill_in_roots, skill_directory_name, update_skill_in_roots,
+        create_skill, create_skill_in_roots, delete_skill, delete_skill_in_roots,
+        format_frontmatter, parse_skill_markdown, read_skill, read_skill_in_roots,
+        resolve_skill_folder_to_open, skill_directory_name, update_skill, update_skill_in_roots,
     };
-    use crate::models::{CreateSkillInput, SkillSource, UpdateSkillInput, WritableSkillSource};
+    use crate::models::{
+        AppSettings, CreateSkillInput, Language, SkillSource, UpdateSkillInput,
+        WritableSkillSource,
+    };
+    use crate::settings_store::save_app_settings_to_path;
     use crate::skill_scanner::ScanRoot;
     use serde_json::json;
     use std::{
+        env,
+        ffi::OsString,
         fs,
         path::{Path, PathBuf},
+        sync::{Mutex, OnceLock},
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    struct HomeEnvGuard {
+        userprofile: Option<OsString>,
+        home: Option<OsString>,
+    }
+
+    impl HomeEnvGuard {
+        fn set(home: &Path) -> Self {
+            let guard = Self {
+                userprofile: env::var_os("USERPROFILE"),
+                home: env::var_os("HOME"),
+            };
+            env::set_var("USERPROFILE", home);
+            env::set_var("HOME", home);
+            guard
+        }
+    }
+
+    impl Drop for HomeEnvGuard {
+        fn drop(&mut self) {
+            restore_env_var("USERPROFILE", &self.userprofile);
+            restore_env_var("HOME", &self.home);
+        }
+    }
+
+    fn restore_env_var(name: &str, value: &Option<OsString>) {
+        if let Some(value) = value {
+            env::set_var(name, value);
+        } else {
+            env::remove_var(name);
+        }
+    }
+
+    fn home_env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     fn temp_root(test_name: &str) -> PathBuf {
         let suffix = SystemTime::now()
@@ -720,6 +794,133 @@ mod tests {
         assert!(target.join("Nested-Skill").join("SKILL.md").exists());
 
         fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn app_settings_custom_directories_allow_management_commands() {
+        let _home_env_lock = home_env_lock()
+            .lock()
+            .expect("home env lock should be available");
+        let home = temp_root("settings-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let custom_root = temp_root("settings-custom");
+        let outside_root = temp_root("settings-outside");
+        let settings_path = home
+            .join(".codex")
+            .join("skill-panel")
+            .join("settings.json");
+        save_app_settings_to_path(
+            &settings_path,
+            AppSettings {
+                language: Language::System,
+                custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+                show_default_scan_directories: true,
+            },
+        )
+        .expect("settings should save");
+
+        let skill_dir = custom_root.join("managed");
+        fs::create_dir_all(&skill_dir).expect("custom skill dir should be created");
+        let skill_path = skill_dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            "---\nname: Managed\ndescription: Custom root skill\n---\n# Managed\n",
+        )
+        .expect("custom skill should be written");
+
+        let read = read_skill(skill_path.to_string_lossy().to_string())
+            .expect("custom settings skill should read");
+        assert_eq!(read.summary.source, SkillSource::Custom);
+
+        let updated = update_skill(UpdateSkillInput {
+            path: skill_path.to_string_lossy().to_string(),
+            name: Some("Managed Updated".to_string()),
+            description: Some("Updated from settings root".to_string()),
+            markdown: Some("# Updated\n".to_string()),
+        })
+        .expect("custom settings skill should update");
+        assert_eq!(updated.summary.name, "Managed Updated");
+
+        let created = create_skill(CreateSkillInput {
+            name: "Created Managed".to_string(),
+            description: "Created inside a custom settings root".to_string(),
+            source: WritableSkillSource::Custom,
+            target_directory: custom_root.join("new-skills").to_string_lossy().to_string(),
+            markdown: "# Created\n".to_string(),
+        })
+        .expect("custom settings target should create");
+        assert_eq!(created.summary.source, SkillSource::Custom);
+
+        let outside_dir = outside_root.join("outside");
+        fs::create_dir_all(&outside_dir).expect("outside skill dir should be created");
+        let outside_skill = outside_dir.join("SKILL.md");
+        fs::write(
+            &outside_skill,
+            "---\nname: Outside\ndescription: Outside root\n---\n# Outside\n",
+        )
+        .expect("outside skill should be written");
+        let outside_error = read_skill(outside_skill.to_string_lossy().to_string())
+            .expect_err("outside skill should still be rejected");
+        assert!(outside_error.contains("outside the allowed skill roots"));
+
+        delete_skill(updated.path).expect("custom settings skill should delete");
+        assert!(!skill_dir.exists());
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+        fs::remove_dir_all(outside_root).ok();
+    }
+
+    #[test]
+    fn app_settings_custom_directories_allow_open_folder_validation() {
+        let _home_env_lock = home_env_lock()
+            .lock()
+            .expect("home env lock should be available");
+        let home = temp_root("open-settings-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let custom_root = temp_root("open-settings-custom");
+        let outside_root = temp_root("open-settings-outside");
+        let settings_path = home
+            .join(".codex")
+            .join("skill-panel")
+            .join("settings.json");
+        save_app_settings_to_path(
+            &settings_path,
+            AppSettings {
+                language: Language::System,
+                custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+                show_default_scan_directories: true,
+            },
+        )
+        .expect("settings should save");
+
+        let skill_dir = custom_root.join("openable");
+        fs::create_dir_all(&skill_dir).expect("custom skill dir should be created");
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Openable\ndescription: Custom root skill\n---\n# Openable\n",
+        )
+        .expect("custom skill should be written");
+
+        let folder = resolve_skill_folder_to_open(skill_dir.to_string_lossy().to_string())
+            .expect("custom settings skill folder should validate for opening");
+        assert_eq!(folder, skill_dir);
+
+        let outside_dir = outside_root.join("outside-open");
+        fs::create_dir_all(&outside_dir).expect("outside skill dir should be created");
+        fs::write(
+            outside_dir.join("SKILL.md"),
+            "---\nname: Outside\ndescription: Outside root\n---\n# Outside\n",
+        )
+        .expect("outside skill should be written");
+
+        let error = resolve_skill_folder_to_open(outside_dir.to_string_lossy().to_string())
+            .expect_err("outside skill folder should still be rejected");
+        assert!(error.contains("outside the allowed skill roots"));
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+        fs::remove_dir_all(outside_root).ok();
     }
 
     #[test]
