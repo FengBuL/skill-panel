@@ -45,6 +45,7 @@ const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey }> =
   { value: 'codex-user', labelKey: 'sources.codex' },
   { value: 'agents-user', labelKey: 'sources.agents' },
   { value: 'plugin-cache', labelKey: 'sources.plugins' },
+  { value: 'custom', labelKey: 'sources.custom' },
 ];
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
@@ -532,8 +533,12 @@ export function App() {
     <main className="app-shell fluid-app-shell">
       <header className="top-bar">
         <div className="brand-block">
-          <p className="eyebrow">{t('app.subtitle')}</p>
           <h1>{t('app.title')}</h1>
+          <p className="eyebrow">{t('app.subtitle')}</p>
+        </div>
+        <div className={`scan-summary-chip scan-summary-${scanOutcome}`}>
+          <span>{`${t('sources.scanState')}: ${t(scanOutcomeLabelKey)}`}</span>
+          <strong>{`${t('sources.lastScan')}: ${formattedLastScan ?? t('sources.notScanned')}`}</strong>
         </div>
         <div className="toolbar-actions">
           <button type="button" className="primary-action" onClick={() => void scanSkills()}>
