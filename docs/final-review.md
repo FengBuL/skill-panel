@@ -1,13 +1,13 @@
 # Skill 面板最终审查报告
 
-状态：READY_FOR_WINDOWS_TEST_RELEASE
+状态：READY_FOR_DUAL_PLATFORM_TEST_RELEASE
 
 审查对象：`codex/skill-panel-app`
 审查日期：2026-06-12
 
 ## 结论
 
-当前代码已经具备首版 Skill Panel 桌面应用能力：扫描本机 Skill、列表搜索筛选、详情读取、编辑保存、删除确认、打开目录、设置页、自定义扫描目录、新建 Skill、中英文切换、Rust 后端文件操作与 Windows 打包。
+当前代码已经具备首版 Skill Panel 桌面应用能力：扫描本机 Skill、列表搜索筛选、详情读取、编辑保存、删除确认、打开目录、设置页、自定义扫描目录、新建 Skill、中英文切换、Rust 后端文件操作与双平台打包。
 
 Windows 本机发布链路已经验证通过，并生成 NSIS 安装包：
 
@@ -15,7 +15,18 @@ Windows 本机发布链路已经验证通过，并生成 NSIS 安装包：
 src-tauri/target/release/bundle/nsis/Skill Panel_0.1.0_x64-setup.exe
 ```
 
-macOS 产物需要在 macOS runner 或 macOS 机器上生成。仓库已加入 GitHub Actions workflow：`.github/workflows/desktop-build.yml`，用于构建 Windows NSIS 与 macOS app/dmg artifacts。
+GitHub Actions 双平台构建已验证通过：
+
+- Workflow：`Desktop Build`
+- Run：`27412700792`
+- URL：`https://github.com/FengBuL/skill-panel/actions/runs/27412700792`
+- Commit：`0da3d61e3fd1383e2ac6e92ce0c22d135448b189`
+- 结论：`success`
+
+已上传 artifact：
+
+- `skill-panel-windows-nsis`，约 1.9 MB，过期时间：2026-09-10。
+- `skill-panel-macos`，约 5.8 MB，过期时间：2026-09-10。
 
 ## 已验证通过
 
@@ -25,6 +36,7 @@ macOS 产物需要在 macOS runner 或 macOS 机器上生成。仓库已加入 G
 - `npm.cmd run packaging:check`：1 个 test file、4 个 tests 通过。
 - `npm.cmd run cargo:test`：Rust lib/main/contract tests 通过，共 32 个有效测试。
 - `npm.cmd run tauri:build:windows`：通过，生成 Windows NSIS 安装包。
+- GitHub Actions `Desktop Build`：Windows NSIS 与 macOS App/DMG jobs 均通过并上传 artifact。
 - `git diff --check`：通过。
 
 ## 已解决的原阻塞项
@@ -35,11 +47,13 @@ macOS 产物需要在 macOS runner 或 macOS 机器上生成。仓库已加入 G
 - Windows MSVC linker 已通过 Visual Studio Build Tools 修复。
 - Tauri Windows build 所需图标资源已补齐。
 - Windows 新建嵌套目录路径校验已修复，避免 canonical 路径和未创建路径比较失败。
+- macOS CI rustdoc doctest 临时目录问题已通过收敛 `cargo:test` 脚本范围解决。
+- macOS Tauri 图标资源已补齐，CI 已生成 App/DMG artifact。
 
 ## 当前发布边界
 
-- Windows：可以进入测试发布，当前已生成 NSIS 安装包。
-- macOS：代码与配置已准备，需通过 macOS runner 生成并验证 `.app` / `.dmg`。
+- Windows：可以进入测试发布，当前已生成 NSIS 安装包，并通过 GitHub Actions 上传 artifact。
+- macOS：可以进入测试发布，当前已通过 GitHub Actions 生成并上传 `.app` / `.dmg` artifact。
 - MSI：保留可选命令 `npm.cmd run tauri:build:windows:msi`，需要 WiX 与 Windows NetFx3 系统依赖。
 - 正式公开发布前仍需准备品牌图标、签名证书、macOS notarization。
 
