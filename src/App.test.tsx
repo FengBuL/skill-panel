@@ -382,6 +382,64 @@ describe('App shell', () => {
     expect(description).toHaveClass('skill-description');
   });
 
+  it('marks the dashboard, panels, and stretch regions with fluid layout hooks', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    const selectedDetail: SkillDetail = {
+      ...paginatedScanResults[0],
+      markdown: '# Skill 01\n\nReadable body',
+      bodyMarkdown: '# Skill 01\n\nReadable body',
+      rawContent: '---\nname: skill 01\ndescription: Description for skill 01\n---\n# Skill 01\n\nReadable body',
+      frontmatter: {
+        name: 'skill 01',
+        description: 'Description for skill 01',
+      },
+    };
+    invokeMock.mockImplementation((command: string, args?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(paginatedScanResults);
+      }
+
+      if (command === 'read_skill') {
+        expect(args).toEqual({ path: paginatedScanResults[0].path });
+        return Promise.resolve(selectedDetail);
+      }
+
+      if (command === 'open_skill_folder') {
+        return Promise.resolve();
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    const dashboard = await screen.findByRole('region', { name: 'Skill management dashboard' });
+    const listPanel = screen.getByRole('region', { name: 'Skills' });
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+
+    expect(screen.getByRole('main')).toHaveClass('fluid-app-shell');
+    expect(dashboard).toHaveClass('fluid-dashboard-grid');
+    expect(screen.getByRole('complementary', { name: 'Sources' })).toHaveClass('fluid-sidebar-panel');
+    expect(listPanel).toHaveClass('fluid-list-panel');
+    expect(detailPanel).toHaveClass('fluid-detail-panel');
+    expect(listPanel.querySelector('.skill-table-wrap')).toHaveClass('fluid-table-region');
+
+    await user.click(screen.getByRole('row', { name: /skill 01/i }));
+
+    const markdownInput = await screen.findByRole('textbox', { name: 'Markdown body' });
+    expect(markdownInput.closest('.detail-markdown-section')).toHaveClass('fluid-markdown-region');
+    expect(markdownInput).toHaveClass('fluid-markdown-input');
+  });
+
   it('opens a skill folder from the list path button', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);

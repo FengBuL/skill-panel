@@ -529,7 +529,7 @@ export function App() {
   })();
 
   return (
-    <main className="app-shell">
+    <main className="app-shell fluid-app-shell">
       <header className="top-bar">
         <div className="brand-block">
           <p className="eyebrow">{t('app.subtitle')}</p>
@@ -701,8 +701,8 @@ export function App() {
         </section>
       ) : null}
 
-      <section className="dashboard-grid" aria-label={t('layout.dashboard')}>
-        <aside className="panel sidebar" aria-label={t('sources.title')}>
+      <section className="dashboard-grid fluid-dashboard-grid" aria-label={t('layout.dashboard')}>
+        <aside className="panel sidebar fluid-sidebar-panel" aria-label={t('sources.title')}>
           <div className="panel-heading">
             <h2>{t('sources.title')}</h2>
             <span className="count-badge">{skills.length}</span>
@@ -740,7 +740,7 @@ export function App() {
 
         </aside>
 
-        <section className="panel list-panel" aria-label={t('skills.title')}>
+        <section className="panel list-panel fluid-list-panel" aria-label={t('skills.title')}>
           <div className="section-heading">
             <div>
               <h2>{t('skills.title')}</h2>
@@ -790,7 +790,7 @@ export function App() {
             </div>
           </div>
           {listState === 'ready' ? (
-            <div className="skill-table-wrap">
+            <div className="skill-table-wrap fluid-table-region">
               <table aria-label={t('skills.tableLabel')} className="skill-table">
                 <thead>
                   <tr>
@@ -881,7 +881,7 @@ export function App() {
           )}
         </section>
 
-        <aside className="panel detail-panel" aria-label={t('details.ariaLabel')}>
+        <aside className="panel detail-panel fluid-detail-panel" aria-label={t('details.ariaLabel')}>
           <div className="panel-heading">
             <h2>{t('details.title')}</h2>
             <span className="status-pill">
@@ -921,11 +921,11 @@ export function App() {
                 <h3>{t('details.path')}</h3>
                 <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
               </section>
-              <section className="detail-section detail-markdown-section">
+              <section className="detail-section detail-markdown-section fluid-markdown-region">
                 <label className="field-stack detail-markdown-field">
                   <span>{t('details.markdownBody')}</span>
                   <textarea
-                    className="detail-markdown-input"
+                    className="detail-markdown-input fluid-markdown-input"
                     value={detailMarkdown}
                     onChange={(event) => setDetailMarkdown(event.target.value)}
                   />
