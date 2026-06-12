@@ -17,7 +17,7 @@
     "tauri:build:macos": "tauri build --bundles app,dmg",
     "tauri:icons": "tauri icon src-tauri/icons/source.png",
     "packaging:check": "vitest run src/packaging.config.test.ts",
-    "cargo:test": "cd src-tauri && cargo test"
+    "cargo:test": "cd src-tauri && cargo test --lib --bins --tests"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",
