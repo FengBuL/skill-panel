@@ -72,6 +72,14 @@ Build macOS bundles:
 npm.cmd run tauri:build:macos
 ```
 
+GitHub Actions can build both desktop targets:
+
+```text
+.github/workflows/desktop-build.yml
+```
+
+The workflow uploads a Windows NSIS installer and macOS app/dmg artifacts.
+
 ## Test Commands
 
 Use these commands from the repository root when validating a development slice:
