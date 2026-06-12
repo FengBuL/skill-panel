@@ -969,3 +969,67 @@ git diff --check
 4. 每个子会话完成后推送到 GitHub，并在主控会话中记录更新内容。
 5. 用户审核每个子会话输出后，主控会话再合并回 `codex/skill-panel-app`。
 6. 全部合并后运行最终验证并更新完成留痕。
+
+### 18.11 实施留痕
+
+状态：进行中
+
+实施日期：2026-06-13
+
+子会话状态：
+
+- 23 到 28 子会话已创建并展示；线程运行器返回 `systemError`，主控会话保留这些会话作为溯源入口，并在对应 worktree 中继续推进代码。
+
+已完成并推送的模块分支：
+
+1. 会话 23：UI 设计系统与工作台基础
+   - Worktree：`C:\Users\12925\.codex\worktrees\2eae\skill面板`
+   - 分支：`codex/skill-panel-23-ui-design-system`
+   - Commit：`e45ca73 style: redesign ui workbench foundation`
+   - 更新：新增工作台视觉 token、顶部扫描状态 chip、左侧自定义来源入口、列表选中态、状态色、路径按钮视觉、响应式三栏布局基础。
+   - 推送：已推送到 GitHub。
+
+2. 会话 27：详情 Inspector 重设计
+   - Worktree：`C:\Users\12925\.codex\worktrees\4fc9\skill面板`
+   - 分支：`codex/skill-panel-27-detail-inspector`
+   - Commit：`89f4bed feat: redesign detail inspector`
+   - 更新：详情描述改为完整多行编辑区，Markdown 正文增加预览 / 编辑切换，正文区域继续延伸到详情栏底部。
+   - 推送：已推送到 GitHub。
+
+集成分支：
+
+- `codex/skill-panel-app`
+- UI 工作台基础合并 Commit：`4d72c16 merge: ui workbench foundation`
+- 详情 Inspector 合并 Commit：`2f1476d merge: detail inspector redesign`
+- 推送：已推送到 GitHub。
+
+本地验证：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run packaging:check
+npm.cmd run cargo:test
+npm.cmd run tauri:build:windows
+git diff --check
+```
+
+验证结果：
+
+- 前端测试：6 个 test files、58 个 tests 通过。
+- TypeScript 类型检查通过。
+- Vite 生产构建通过。
+- Packaging 配置检查通过。
+- Rust 测试：30 个 lib/bin tests 和 3 个 contract tests 通过。
+- Windows NSIS 安装包重新生成。
+- 本地浏览器渲染检查：`http://127.0.0.1:1420/` 返回 200，并生成截图 `ui-redesign-actual.png`。
+- Tauri Windows 可执行文件已构建：`src-tauri\target\release\skill-panel.exe`。
+- 用户级安装路径已更新：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+- 开始菜单快捷方式已更新：`C:\Users\12925\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Skill Panel.lnk`。
+- 软件已正常启动，进程路径：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+
+后续待办：
+
+- 会话 24、25、26 的更细分命令栏、来源导航、列表视觉任务已被 23 的工作台基础覆盖主要内容，后续可继续微调。
+- 会话 28 仍需补充多窗口尺寸和中英文截图验收记录。
