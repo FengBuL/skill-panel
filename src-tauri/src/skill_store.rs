@@ -556,18 +556,13 @@ fn ensure_existing_path_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), S
 }
 
 fn ensure_target_directory_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), String> {
+    let normalized_target = normalize_target_directory(path);
     if roots.iter().any(|root| {
-        if let Ok(root_path) = root.path.canonicalize() {
-            if path.exists() {
-                path.canonicalize()
-                    .map(|existing_path| existing_path.starts_with(&root_path))
-                    .unwrap_or(false)
-            } else {
-                normalize_absolute(path).starts_with(normalize_absolute(&root_path))
-            }
-        } else {
-            normalize_absolute(path).starts_with(normalize_absolute(&root.path))
-        }
+        let root_path = root
+            .path
+            .canonicalize()
+            .unwrap_or_else(|_| normalize_absolute(&root.path));
+        normalized_target.starts_with(root_path)
     }) {
         Ok(())
     } else {
@@ -576,6 +571,36 @@ fn ensure_target_directory_allowed(path: &Path, roots: &[ScanRoot]) -> Result<()
             path.display()
         ))
     }
+}
+
+fn normalize_target_directory(path: &Path) -> PathBuf {
+    if path.exists() {
+        return path
+            .canonicalize()
+            .unwrap_or_else(|_| normalize_absolute(path));
+    }
+
+    let absolute = normalize_absolute(path);
+    let mut existing_parent = absolute.as_path();
+    let mut missing_components = Vec::new();
+
+    while !existing_parent.exists() {
+        if let Some(name) = existing_parent.file_name() {
+            missing_components.push(name.to_os_string());
+        }
+        let Some(parent) = existing_parent.parent() else {
+            return absolute;
+        };
+        existing_parent = parent;
+    }
+
+    let mut normalized = existing_parent
+        .canonicalize()
+        .unwrap_or_else(|_| normalize_absolute(existing_parent));
+    for component in missing_components.iter().rev() {
+        normalized.push(component);
+    }
+    normalized
 }
 
 fn normalize_absolute(path: &Path) -> PathBuf {
@@ -741,13 +766,13 @@ mod tests {
         assert_eq!(created.body_markdown, "# Demo\n\nCreated body.\n");
         assert_eq!(created.frontmatter["name"], "Demo Skill");
 
-        let read =
-            read_skill_in_roots(created.path.clone(), &roots(&root)).expect("skill should read");
+        let read = read_skill_in_roots(created.summary.path.clone(), &roots(&root))
+            .expect("skill should read");
         assert_eq!(read.raw_content, created.raw_content);
 
         let updated = update_skill_in_roots(
             UpdateSkillInput {
-                path: created.path.clone(),
+                path: created.summary.path.clone(),
                 name: Some("Updated Skill".to_string()),
                 description: Some("Updated description".to_string()),
                 markdown: Some("## Updated\n\nEdited body.\n".to_string()),
@@ -761,11 +786,11 @@ mod tests {
         assert!(updated.raw_content.contains("name: Updated Skill\n"));
         assert_eq!(updated.body_markdown, "## Updated\n\nEdited body.\n");
 
-        let skill_dir = PathBuf::from(&updated.path)
+        let skill_dir = PathBuf::from(&updated.summary.path)
             .parent()
             .expect("skill path should have parent")
             .to_path_buf();
-        delete_skill_in_roots(updated.path, &roots(&root)).expect("skill should delete");
+        delete_skill_in_roots(updated.summary.path, &roots(&root)).expect("skill should delete");
         assert!(!skill_dir.exists());
         assert!(root.exists());
 
@@ -789,7 +814,7 @@ mod tests {
         )
         .expect("skill should be created in nested target");
 
-        assert!(PathBuf::from(&created.path).starts_with(&target));
+        assert!(PathBuf::from(&created.summary.path).starts_with(&target));
         assert_eq!(created.summary.source, SkillSource::Custom);
         assert!(target.join("Nested-Skill").join("SKILL.md").exists());
 
@@ -863,7 +888,7 @@ mod tests {
             .expect_err("outside skill should still be rejected");
         assert!(outside_error.contains("outside the allowed skill roots"));
 
-        delete_skill(updated.path).expect("custom settings skill should delete");
+        delete_skill(updated.summary.path).expect("custom settings skill should delete");
         assert!(!skill_dir.exists());
 
         fs::remove_dir_all(home).ok();

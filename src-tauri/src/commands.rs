@@ -51,7 +51,7 @@ pub fn save_app_settings(settings: AppSettings) -> Result<AppSettings, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{app_version, load_app_settings, scan_skills, save_app_settings};
+    use super::{app_version, scan_skills};
     use crate::models::{AppSettings, Language};
 
     #[test]

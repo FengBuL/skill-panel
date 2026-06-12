@@ -54,10 +54,16 @@ Run packaging configuration checks:
 npm.cmd run packaging:check
 ```
 
-Build Windows installers:
+Build the Windows NSIS installer:
 
 ```bash
 npm.cmd run tauri:build:windows
+```
+
+Build the optional Windows MSI package:
+
+```bash
+npm.cmd run tauri:build:windows:msi
 ```
 
 Build macOS bundles:
@@ -77,30 +83,30 @@ npm.cmd run build
 npm.cmd run packaging:check
 ```
 
-Run Rust tests from `src-tauri`:
+Run Rust tests from a Visual Studio Developer Command Prompt, or from a shell that has loaded the MSVC build environment:
 
 ```bash
-C:\Users\12925\.cargo\bin\cargo.exe test
+npm.cmd run cargo:test
 ```
 
-The Rust command depends on the local Rust toolchain metadata. If `cargo.exe test` fails before compiling because the stable toolchain manifest cannot be read or synced, treat that as an environment risk and rerun after the local toolchain is repaired.
+The Rust command depends on the local Rust toolchain metadata and the Windows MSVC linker. On Windows, install Rust stable for `x86_64-pc-windows-msvc` and Visual Studio Build Tools with the C++ workload before running Rust tests or Tauri builds.
 
 ## Packaging
 
 Desktop packaging is configured in `src-tauri/tauri.conf.json` for Windows and macOS:
 
-- Windows targets: NSIS and MSI.
+- Windows targets: NSIS by default; MSI is available through `npm.cmd run tauri:build:windows:msi` when WiX and its Windows feature dependencies are installed.
 - macOS targets: `.app` and `.dmg`.
 - Application name: `Skill Panel`.
 - Bundle identifier: `com.fengbul.skillpanel`.
 
-Icon assets are intentionally kept out of the repository until final brand artwork is ready. Place a source image at `src-tauri/icons/source.png`, then run:
+The repository includes a lightweight placeholder Windows icon at `src-tauri/icons/icon.ico` so Tauri builds can run. Replace it with final brand artwork later. To regenerate icons from a source image, place it at `src-tauri/icons/source.png`, then run:
 
 ```bash
 npm.cmd run tauri:icons
 ```
 
-The generated files should live under `src-tauri/icons`. Large binary icon files are not committed during the planning build slice.
+The generated files should live under `src-tauri/icons`.
 
 ## Project Layout
 

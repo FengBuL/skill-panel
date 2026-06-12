@@ -8,7 +8,8 @@ describe('packaging configuration', () => {
       test: 'vitest run',
       typecheck: 'tsc --noEmit',
       'tauri:build': 'tauri build',
-      'tauri:build:windows': 'tauri build --bundles nsis,msi',
+      'tauri:build:windows': 'tauri build --bundles nsis',
+      'tauri:build:windows:msi': 'tauri build --bundles msi',
       'tauri:build:macos': 'tauri build --bundles app,dmg',
       'tauri:icons': 'tauri icon src-tauri/icons/source.png',
       'packaging:check': 'vitest run src/packaging.config.test.ts',
@@ -42,7 +43,7 @@ describe('packaging configuration', () => {
     });
   });
 
-  it('keeps icon assets lightweight with a documented generation strategy', () => {
-    expect(tauriConfig.bundle.icon).toEqual([]);
+  it('includes lightweight icon assets required by Tauri builds', () => {
+    expect(tauriConfig.bundle.icon).toEqual(['icons/icon.ico']);
   });
 });
