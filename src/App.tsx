@@ -21,6 +21,8 @@ type CreateSkillDraft = {
   markdown: string;
 };
 
+const skillsPerPage = 10;
+
 const sourceLabelKeys: Record<SkillSource, TranslationKey> = {
   'agents-user': 'sources.agentsUser',
   'codex-user': 'sources.codexUser',
@@ -124,6 +126,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -138,6 +141,12 @@ export function App() {
     () => filterSkills(skills, searchQuery, sourceFilter, statusFilter),
     [searchQuery, skills, sourceFilter, statusFilter],
   );
+  const totalPages = Math.max(1, Math.ceil(filteredSkills.length / skillsPerPage));
+  const normalizedCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedSkills = useMemo(() => {
+    const pageStartIndex = (normalizedCurrentPage - 1) * skillsPerPage;
+    return filteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
+  }, [filteredSkills, normalizedCurrentPage]);
 
   const sourceCounts = useMemo(() => {
     const counts: Record<SourceFilter, number> = {
@@ -178,6 +187,10 @@ export function App() {
   useEffect(() => {
     setSettingsDraft(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -620,7 +633,10 @@ export function App() {
                 key={item.value}
                 type="button"
                 className={sourceFilter === item.value ? 'active' : undefined}
-                onClick={() => setSourceFilter(item.value)}
+                onClick={() => {
+                  setSourceFilter(item.value);
+                  setCurrentPage(1);
+                }}
               >
                 <span>{t(item.labelKey)}</span>
                 <span>{sourceCounts[item.value]}</span>
@@ -642,14 +658,6 @@ export function App() {
             </dl>
           </section>
 
-          <section className="sidebar-section" aria-label={t('filters.title')}>
-            <h3>{t('filters.title')}</h3>
-            <div className="button-stack">
-              <button type="button">{t('filters.allSources')}</button>
-              <button type="button">{t('filters.writable')}</button>
-              <button type="button">{t('filters.withIssues')}</button>
-            </div>
-          </section>
         </aside>
 
         <section className="panel list-panel" aria-label={t('skills.title')}>
@@ -664,12 +672,18 @@ export function App() {
                 aria-label={t('search.skillsLabel')}
                 placeholder={t('search.placeholder')}
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
               />
               <select
                 aria-label={t('filters.sourceLabel')}
                 value={sourceFilter}
-                onChange={(event) => setSourceFilter(event.target.value as SourceFilter)}
+                onChange={(event) => {
+                  setSourceFilter(event.target.value as SourceFilter);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="all">{t('filters.allSources')}</option>
                 {skillSources.map((source) => (
@@ -681,7 +695,10 @@ export function App() {
               <select
                 aria-label={t('filters.statusLabel')}
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as StatusFilter);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="all">{t('filters.allStatuses')}</option>
                 {parseStatuses.map((status) => (
@@ -706,7 +723,7 @@ export function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSkills.map((skill) => (
+                  {paginatedSkills.map((skill) => (
                     <tr
                       key={skill.path}
                       className={selectedPath === skill.path ? 'selected-row' : undefined}
@@ -723,7 +740,9 @@ export function App() {
                       <td>
                         <strong>{skill.name}</strong>
                       </td>
-                      <td>{skill.description}</td>
+                      <td>
+                        <span className="skill-description">{skill.description}</span>
+                      </td>
                       <td>
                         <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
                       </td>
@@ -740,6 +759,23 @@ export function App() {
                   ))}
                 </tbody>
               </table>
+              <div className="pagination-controls" aria-label={t('pagination.label')}>
+                <button
+                  type="button"
+                  disabled={normalizedCurrentPage === 1}
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                >
+                  {t('pagination.previous')}
+                </button>
+                <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
+                <button
+                  type="button"
+                  disabled={normalizedCurrentPage === totalPages}
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                >
+                  {t('pagination.next')}
+                </button>
+              </div>
             </div>
           ) : (
             <div className={`empty-state ${listState === 'error' ? 'error-state' : ''}`}>

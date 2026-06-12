@@ -58,6 +58,23 @@ const scanResults: SkillSummary[] = [
   },
 ];
 
+const paginatedScanResults: SkillSummary[] = Array.from({ length: 12 }, (_, index) => {
+  const skillNumber = index + 1;
+  const paddedNumber = String(skillNumber).padStart(2, '0');
+
+  return {
+    path: `C:\\Users\\demo\\.codex\\skills\\skill-${paddedNumber}\\SKILL.md`,
+    name: `skill ${paddedNumber}`,
+    description:
+      skillNumber === 12
+        ? 'A long description that should stay visually compact when rendered in the skill list table.'
+        : `Description for skill ${paddedNumber}`,
+    source: skillNumber === 12 ? 'plugin-cache' : 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: null,
+  };
+});
+
 function mockInvoke({
   skills = [],
   settings = {
@@ -136,8 +153,10 @@ describe('App shell', () => {
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Sources' })).toBeInTheDocument();
     expect(screen.getByText('Source status')).toBeInTheDocument();
-    expect(screen.getByText('Filters')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'All sources' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /All sources/i })).toBeInTheDocument();
+    expect(screen.queryByText('Filters')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Writable' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'With issues' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('region', { name: 'Skills' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'Search skills' })).toBeInTheDocument();
@@ -221,6 +240,60 @@ describe('App shell', () => {
     expect(screen.getAllByText('Codex user').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Invalid frontmatter').length).toBeGreaterThan(0);
     expect(invokeMock).toHaveBeenCalledWith('scan_skills');
+  });
+
+  it('paginates the skill list ten skills at a time', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: paginatedScanResults });
+
+    render(<App />);
+
+    expect(await screen.findByRole('row', { name: /skill 01/i })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 10/i })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /skill 11/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+
+    expect(screen.queryByRole('row', { name: /skill 01/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 11/i })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+  });
+
+  it('returns to the first page when search or filters change', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: paginatedScanResults });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /skill 01/i });
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'skill 12');
+
+    expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+
+    await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
+    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Source filter' }), 'plugin-cache');
+
+    expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+  });
+
+  it('marks skill list descriptions for two-line visual clamping', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: paginatedScanResults });
+
+    render(<App />);
+
+    const description = await screen.findByText('Description for skill 01');
+    expect(description).toHaveClass('skill-description');
   });
 
   it('filters skills by name, description, and path search text', async () => {
