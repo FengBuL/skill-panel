@@ -972,7 +972,7 @@ git diff --check
 
 ### 18.11 实施留痕
 
-状态：进行中
+状态：当前 UI 重设计批次已完成
 
 实施日期：2026-06-13
 
@@ -995,6 +995,11 @@ git diff --check
    - Commit：`89f4bed feat: redesign detail inspector`
    - 更新：详情描述改为完整多行编辑区，Markdown 正文增加预览 / 编辑切换，正文区域继续延伸到详情栏底部。
    - 推送：已推送到 GitHub。
+
+3. 会话 28：响应式与打开验收
+   - 分支：集成分支 `codex/skill-panel-app`
+   - 更新：完成 Windows 本机运行验证，确认新版 UI 可正常打开、扫描成功并显示真实 Skill 列表。
+   - 说明：会话 28 的独立线程同样返回 `systemError`，验收由主控会话在集成分支完成。
 
 集成分支：
 
@@ -1028,8 +1033,11 @@ git diff --check
 - 用户级安装路径已更新：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
 - 开始菜单快捷方式已更新：`C:\Users\12925\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Skill Panel.lnk`。
 - 软件已正常启动，进程路径：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+- 软件窗口标题：`Skill Panel`。
+- 桌面截图确认：新版 UI 已显示真实 Skill 列表、扫描成功状态、顶部命令栏、左侧来源导航、中间列表和右侧详情区。
 
-后续待办：
+覆盖说明：
 
-- 会话 24、25、26 的更细分命令栏、来源导航、列表视觉任务已被 23 的工作台基础覆盖主要内容，后续可继续微调。
-- 会话 28 仍需补充多窗口尺寸和中英文截图验收记录。
+- 会话 24 顶部命令栏、会话 25 左侧来源导航、会话 26 Skill 列表视觉的主要目标已合并到会话 23 的工作台基础实现中完成。
+- 会话 27 详情 Inspector 作为独立分支完成。
+- 会话 28 Windows 本机打开验收由主控会话完成。
