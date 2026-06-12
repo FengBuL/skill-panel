@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -140,7 +140,9 @@ describe('App skill editor', () => {
     expect(await screen.findByDisplayValue('imagegen')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Generate or edit raster images')).toBeInTheDocument();
     expect(screen.getByLabelText('Markdown body')).toHaveValue('# Imagegen\n\nCreate bitmap assets.');
-    expect(screen.getByText(scanResults[0].path)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('complementary', { name: 'Skill details' })).getByRole('button', { name: scanResults[0].path }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('Parsed').length).toBeGreaterThan(0);
     expect(invokeMock).toHaveBeenCalledWith('read_skill', { path: scanResults[0].path });
   });
@@ -363,6 +365,31 @@ describe('App skill editor', () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('open_skill_folder', { path: scanResults[0].path }));
   });
 
+  it('opens the selected skill folder from the detail path button', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+    const detailPathButton = within(detailPanel).getByRole('button', { name: scanResults[0].path });
+
+    expect(detailPathButton).toHaveAttribute('title', scanResults[0].path);
+    await user.click(detailPathButton);
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('open_skill_folder', { path: scanResults[0].path }));
+  });
+
+  it('marks the selected skill markdown editor as the expanding detail body area', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+
+    const markdownEditor = await screen.findByLabelText('Markdown body');
+    expect(markdownEditor).toHaveClass('detail-markdown-input');
+    expect(markdownEditor.closest('.detail-markdown-section')).not.toBeNull();
+  });
+
   it('shows read errors when selected skill details fail to load', async () => {
     const user = userEvent.setup();
     invokeMock.mockImplementation((command: string) => {
@@ -480,7 +507,9 @@ describe('App skill editor', () => {
     expect(screen.queryByRole('dialog', { name: 'New Skill' })).not.toBeInTheDocument();
     expect(await screen.findByRole('row', { name: /review-helper/i })).toBeInTheDocument();
     expect(screen.getByDisplayValue('review-helper')).toBeInTheDocument();
-    expect(screen.getByText(createdSkill.path)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('complementary', { name: 'Skill details' })).getByRole('button', { name: createdSkill.path }),
+    ).toBeInTheDocument();
   });
 
   it('shows create errors inside the dialog and keeps the draft intact', async () => {

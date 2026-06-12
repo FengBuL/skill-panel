@@ -82,15 +82,30 @@ function filterSkills(skills: SkillSummary[], query: string, sourceFilter: Sourc
   });
 }
 
-function PathCell({ path }: { path: string }) {
-  const fragments = path.split(/([\\/])/);
-
+function PathButton({
+  className = 'path-button',
+  onOpen,
+  path,
+}: {
+  className?: string;
+  onOpen: (path: string) => void | Promise<void>;
+  path: string;
+}) {
   return (
-    <span className="path-cell" title={path}>
-      {fragments.map((fragment, index) => (
-        <span key={`${fragment}-${index}`}>{fragment}</span>
-      ))}
-    </span>
+    <button
+      type="button"
+      className={className}
+      title={path}
+      onClick={(event) => {
+        event.stopPropagation();
+        void onOpen(path);
+      }}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+      }}
+    >
+      {path}
+    </button>
   );
 }
 
@@ -384,19 +399,23 @@ export function App() {
     }
   };
 
+  const openSkillFolder = async (path: string) => {
+    setDetailError(null);
+
+    try {
+      await invoke('open_skill_folder', { path });
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const openSelectedSkillFolder = async () => {
     if (!selectedDetail) {
       return;
     }
 
-    setDetailError(null);
-
-    try {
-      await invoke('open_skill_folder', { path: selectedDetail.path });
-    } catch (error) {
-      setDetailErrorTitleKey('details.actionErrorTitle');
-      setDetailError(error instanceof Error ? error.message : String(error));
-    }
+    await openSkillFolder(selectedDetail.path);
   };
 
   const addCustomDirectory = () => {
@@ -753,7 +772,7 @@ export function App() {
                       </td>
                       <td>{skill.modifiedAt ?? t('skills.modifiedUnknown')}</td>
                       <td>
-                        <PathCell path={skill.path} />
+                        <PathButton path={skill.path} onOpen={openSkillFolder} />
                       </td>
                     </tr>
                   ))}
@@ -839,12 +858,16 @@ export function App() {
               </section>
               <section className="detail-section" aria-label={t('details.path')}>
                 <h3>{t('details.path')}</h3>
-                <p className="path-placeholder">{selectedDetail.path}</p>
+                <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
               </section>
-              <section className="detail-section">
-                <label className="field-stack">
+              <section className="detail-section detail-markdown-section">
+                <label className="field-stack detail-markdown-field">
                   <span>{t('details.markdownBody')}</span>
-                  <textarea value={detailMarkdown} onChange={(event) => setDetailMarkdown(event.target.value)} />
+                  <textarea
+                    className="detail-markdown-input"
+                    value={detailMarkdown}
+                    onChange={(event) => setDetailMarkdown(event.target.value)}
+                  />
                 </label>
               </section>
             </>

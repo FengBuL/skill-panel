@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -97,6 +97,10 @@ function mockInvoke({
 
     if (command === 'save_app_settings') {
       return Promise.resolve(settings);
+    }
+
+    if (command === 'open_skill_folder') {
+      return Promise.resolve();
     }
 
     return Promise.reject(new Error(`Unexpected command: ${command}`));
@@ -294,6 +298,23 @@ describe('App shell', () => {
 
     const description = await screen.findByText('Description for skill 01');
     expect(description).toHaveClass('skill-description');
+  });
+
+  it('opens a skill folder from the list path button', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    const row = await screen.findByRole('row', { name: /browser control/i });
+    const pathButton = within(row).getByRole('button', { name: scanResults[1].path });
+
+    expect(pathButton).toHaveAttribute('title', scanResults[1].path);
+    await user.click(pathButton);
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('open_skill_folder', { path: scanResults[1].path }));
+    expect(invokeMock).not.toHaveBeenCalledWith('read_skill', { path: scanResults[1].path });
   });
 
   it('filters skills by name, description, and path search text', async () => {

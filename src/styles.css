@@ -655,11 +655,28 @@ a:focus-visible {
   color: #8f3324;
 }
 
-.path-cell {
+.path-button {
   display: block;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: auto;
+  border: 0;
+  background: transparent;
   color: #52646f;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.path-button:hover {
+  border-color: transparent;
+  background: transparent;
+  color: #244a5b;
 }
 
 .detail-panel {
@@ -714,6 +731,27 @@ a:focus-visible {
   background: #f8fafb;
   padding: 10px;
   overflow-wrap: anywhere;
+}
+
+.path-button.path-placeholder:hover {
+  border-color: #c3ccd3;
+  background: #f3f7f8;
+}
+
+.detail-markdown-section {
+  flex: 1;
+  min-height: 360px;
+}
+
+.detail-markdown-field {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.detail-markdown-input {
+  height: 100%;
+  min-height: 320px;
 }
 
 .split-section {
@@ -914,6 +952,10 @@ a:focus-visible {
   .panel {
     min-height: auto;
     padding: 14px;
+  }
+
+  .detail-markdown-section {
+    min-height: 280px;
   }
 
   .skill-table {
