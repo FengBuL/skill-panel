@@ -658,3 +658,314 @@ GitHub Actions：
 - Commit：`f49ecece97150f1ec95466e342450a295788c229`
 - 结论：`success`
 - Artifact：`skill-panel-windows-nsis`、`skill-panel-macos`
+
+## 18. 整体 UI 重设计变更计划
+
+状态：待用户审核后执行
+
+提出日期：2026-06-13
+
+变更来源：用户人工验收反馈，当前整体 UI 观感不够好，需要重新设计软件界面。
+
+### 18.1 设计目标
+
+- 将 Skill 面板调整为更像桌面工作台的专业工具界面，适合长期查看、搜索、编辑本地 Skill 文档。
+- 保留当前已完成的功能能力：分页、路径跳转、扫描状态、Agents 详情加载、响应式布局、中英文切换。
+- 降低界面中的厚重边框和重复卡片感，使用清晰的层级、紧凑表格、柔和分隔线和稳定的状态色。
+- 让 Windows 与 macOS 两个平台都保持一致的信息架构，并预留平台原生窗口尺寸差异。
+- 全部 UI 文案继续走 i18n，中文与英文都必须在相同布局中可读。
+
+### 18.2 推荐使用的 UI Skill 和工具
+
+- `superpowers:brainstorming`：用于 UI 方向探索、设计假设、用户审核前的方案收敛。
+- `imagegen`：用于生成中文 UI 草图和高保真视觉参考图。
+- `superpowers:writing-plans`：用于把 UI 重设计拆成可执行、可审核、可追溯的计划。
+- `superpowers:using-git-worktrees`：每个实现会话必须创建或确认独立 worktree。
+- `superpowers:subagent-driven-development`：每个实现会话内部使用 implementer、spec reviewer、code quality reviewer。
+- `superpowers:test-driven-development`：涉及交互、布局状态、i18n 文案时先补测试或更新快照式行为测试。
+- `playwright` 或 `browser:control-in-app-browser`：用于实现后做桌面宽屏、窄屏、缩放状态的截图验收。
+- `superpowers:verification-before-completion`：每个分支完成前必须运行验证命令并记录结果。
+
+### 18.3 新 UI 信息架构
+
+主界面采用桌面工作台结构：
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Skill Panel        扫描成功 · 2026-06-13 15:42    重新扫描 新建 中/EN │
+├──────────────┬──────────────────────────────────────┬──────────────┤
+│ 全部 Skill   │ 搜索名称、描述、路径      来源筛选      │ 详情          │
+│ Codex        │                                      │ 来源/状态      │
+│ Agents       │ 名称   来源   描述   修改时间   路径   │ 修改时间       │
+│ 插件 Skill   │ ───────────────────────────────────  │ 路径           │
+│ 自定义目录   │ 代码审查助手  Codex  两行描述...        │              │
+│              │ 需求分析Agent Agents 两行描述...       │ 描述           │
+│ 存储位置     │ 接口文档生成器 插件Skill 两行描述...    │ 完整描述展示    │
+│              │                                      │              │
+│              │              第 1 / 6 页              │ 预览 / 编辑     │
+│              │                                      │ Markdown 正文  │
+│              │                                      │              │
+│              │                                      │ 打开目录 保存 删除│
+└──────────────┴──────────────────────────────────────┴──────────────┘
+```
+
+### 18.4 视觉方向
+
+- 背景：浅灰白应用背景，减少页面漂浮感。
+- 表面：主内容使用白色和浅灰分区，卡片圆角不超过 8px。
+- 分隔：优先使用细分隔线和留白，减少大面积描边。
+- 选中态：列表选中行使用浅蓝底、左侧强调线或细描边。
+- 状态色：成功使用绿色，失败使用红色，部分成功使用橙色，普通信息使用蓝色。
+- 字体层级：顶部标题紧凑，表格和详情使用桌面工具尺寸，避免过大的营销式标题。
+- 图标：按钮和导航优先使用 lucide 图标，中文标签用于关键命令和导航识别。
+
+建议设计 token：
+
+```css
+--bg-app: #f6f7f9;
+--surface: #ffffff;
+--surface-muted: #f1f4f6;
+--border: #d8dee4;
+--text: #111827;
+--muted: #64748b;
+--accent: #2563eb;
+--success: #067647;
+--warning: #b54708;
+--danger: #b42318;
+```
+
+### 18.5 模块拆分与溯源
+
+本轮 UI 重设计拆成 6 个子会话，每个子会话从最新 `codex/skill-panel-app` 拉出独立 worktree。每个子会话完成后都需要推送到 GitHub，并备注本次更新内容。
+
+1. 会话 23：UI 设计系统与样式 token
+   - 分支：`codex/skill-panel-23-ui-design-system`
+   - 溯源板块：06 UI 外壳、05 国际化
+   - 目标：建立新的颜色、间距、字体层级、按钮、状态 chip、表格基础样式。
+   - 预期文件：`src/styles.css`、`src/i18n/resources.ts`、`src/App.test.tsx`
+
+2. 会话 24：顶部命令栏重设计
+   - 分支：`codex/skill-panel-24-top-command-bar`
+   - 溯源板块：06 UI 外壳、05 国际化
+   - 目标：重构顶部区域为紧凑命令栏，包含产品名、扫描状态、重新扫描、新建 Skill、语言切换、设置入口。
+   - 预期文件：`src/App.tsx`、`src/styles.css`、`src/i18n/resources.ts`、`src/App.test.tsx`
+
+3. 会话 25：左侧来源导航重设计
+   - 分支：`codex/skill-panel-25-source-rail`
+   - 溯源板块：06 UI 外壳、07 Skill 列表、09 设置页
+   - 目标：将左侧区域调整为来源导航栏，展示全部 Skill、Codex、Agents、插件 Skill、自定义目录和数量。
+   - 预期文件：`src/App.tsx`、`src/styles.css`、`src/i18n/resources.ts`、`src/App.test.tsx`
+
+4. 会话 26：Skill 列表视觉重设计
+   - 分支：`codex/skill-panel-26-skill-list-visuals`
+   - 溯源板块：07 Skill 列表
+   - 目标：把中间列表调整为高密度资源表格，优化搜索栏、来源筛选、分页、选中行、两行描述和路径点击。
+   - 预期文件：`src/App.tsx`、`src/styles.css`、`src/App.test.tsx`
+
+5. 会话 27：详情 Inspector 重设计
+   - 分支：`codex/skill-panel-27-detail-inspector`
+   - 溯源板块：08 详情编辑、04 文件操作
+   - 目标：重构右侧详情为 Inspector，包含元信息、完整描述、Markdown 预览 / 编辑区域和底部操作栏。
+   - 预期文件：`src/App.tsx`、`src/styles.css`、`src/i18n/resources.ts`、`src/App.editor.test.tsx`
+
+6. 会话 28：响应式与视觉验收
+   - 分支：`codex/skill-panel-28-responsive-visual-qa`
+   - 溯源板块：06 UI 外壳、10 测试补强、11 双平台打包
+   - 目标：回归 Windows/macOS 窗口宽度、全屏、缩放状态，补充视觉验收记录。
+   - 预期文件：`src/styles.css`、`src/App.test.tsx`、`docs/final-review.md`
+
+### 18.6 子会话通用执行要求
+
+每个 UI 重设计子会话开头先粘贴本节，再粘贴对应会话指令。
+
+```text
+你是 Skill 面板 UI 重设计的独立板块开发会话。
+
+必须遵守：
+1. 使用 superpowers:using-git-worktrees，确认当前工作发生在独立 worktree。
+2. 本会话内部使用 superpowers:subagent-driven-development。
+3. 本会话内部可以创建 implementer、spec reviewer、code quality reviewer subagent。
+4. 主控会话只做审核和追踪，本会话负责本板块实现、测试、提交、推送和审查。
+5. 完成后停止，输出 worktree 路径、分支名、commit hash、GitHub 推送结果、修改文件列表、测试命令与结果、spec review 结论、code quality review 结论、遗留风险。
+6. 不要合并回集成分支，合并由主控会话和用户审核后处理。
+
+开发约束：
+- 应用使用 Tauri + React + TypeScript + Rust。
+- 支持 Windows 和 macOS。
+- 支持中文和英文切换。
+- 所有 UI 文案必须走 i18n。
+- 保留既有功能：分页、路径跳转、扫描状态、Agents 详情加载、响应式布局。
+- 所有开发都基于最新的 codex/skill-panel-app。
+- 每个分支完成后必须推送到 GitHub 仓库 skill-panel。
+```
+
+### 18.7 子会话执行指令
+
+#### 23 UI 设计系统与样式 token
+
+会话标题：`Skill 面板 - 23 UI 设计系统`
+
+```text
+板块：UI 设计系统与样式 token
+分支：codex/skill-panel-23-ui-design-system
+目标：建立 Skill 面板新版桌面工作台视觉基础。
+
+产出：
+- 新的 CSS 变量：背景、表面、边框、文本、弱文本、强调色、成功、警告、危险。
+- 统一按钮、图标按钮、状态 chip、表格、路径按钮、分页控件基础视觉。
+- 卡片圆角不超过 8px。
+- 避免单一灰蓝观感，状态色具备清晰区分。
+- 保持中英文 UI 文案可读。
+- 更新或补充必要测试。
+
+完成后提交一个 commit 并推送分支。
+```
+
+#### 24 顶部命令栏重设计
+
+会话标题：`Skill 面板 - 24 顶部命令栏`
+
+```text
+板块：顶部命令栏重设计
+分支：codex/skill-panel-24-top-command-bar
+目标：把顶部区域调整为紧凑、清晰、桌面工具风格的命令栏。
+
+产出：
+- 左侧展示 Skill Panel 产品名。
+- 中间或右侧展示扫描状态 chip：成功、失败、部分成功、未扫描、扫描中。
+- 右侧提供重新扫描、新建 Skill、语言切换、设置入口。
+- 中文和英文布局都不能挤压或换行错乱。
+- 顶部命令栏随窗口宽度伸缩。
+- 更新或补充必要测试。
+
+完成后提交一个 commit 并推送分支。
+```
+
+#### 25 左侧来源导航重设计
+
+会话标题：`Skill 面板 - 25 左侧来源导航`
+
+```text
+板块：左侧来源导航重设计
+分支：codex/skill-panel-25-source-rail
+目标：把左侧区域调整为来源导航栏，提升扫描来源识别和选择效率。
+
+产出：
+- 导航项：全部 Skill、Codex、Agents、插件 Skill、自定义目录。
+- 每个导航项显示数量。
+- 当前选中来源具备清晰选中态。
+- 保留扫描摘要和存储位置入口。
+- 删除无效或低价值筛选控件。
+- 更新或补充必要测试。
+
+完成后提交一个 commit 并推送分支。
+```
+
+#### 26 Skill 列表视觉重设计
+
+会话标题：`Skill 面板 - 26 Skill 列表视觉`
+
+```text
+板块：Skill 列表视觉重设计
+分支：codex/skill-panel-26-skill-list-visuals
+目标：把中间列表调整为高密度、可扫描、可分页的资源表格。
+
+产出：
+- 搜索框位于列表工具栏，提示文案支持中文和英文。
+- 来源筛选使用轻量 chip 或 segmented control。
+- 表格列保留名称、来源、描述、修改时间、路径。
+- 描述最多两行。
+- 路径可点击打开目录。
+- 分页控件清晰展示当前页和总页数。
+- 选中行具备清晰视觉反馈。
+- 更新或补充必要测试。
+
+完成后提交一个 commit 并推送分支。
+```
+
+#### 27 详情 Inspector 重设计
+
+会话标题：`Skill 面板 - 27 详情 Inspector`
+
+```text
+板块：详情 Inspector 重设计
+分支：codex/skill-panel-27-detail-inspector
+目标：把右侧详情调整为适合阅读和编辑长 Skill 文档的 Inspector。
+
+产出：
+- 顶部显示 Skill 名称和关键状态。
+- 元信息区展示来源、状态、修改时间、路径。
+- 路径可点击打开目录。
+- 描述区完整展示，不限制两行。
+- Markdown 区域支持预览 / 编辑切换或保留编辑区并优化阅读高度。
+- 正文区域默认延伸到详情栏底部。
+- 底部操作区包含打开目录、保存更改、删除。
+- 更新或补充必要测试。
+
+完成后提交一个 commit 并推送分支。
+```
+
+#### 28 响应式与视觉验收
+
+会话标题：`Skill 面板 - 28 响应式视觉验收`
+
+```text
+板块：响应式与视觉验收
+分支：codex/skill-panel-28-responsive-visual-qa
+目标：验证新版 UI 在 Windows/macOS 目标窗口尺寸下可用、稳定、好看。
+
+产出：
+- 验收 1440x960、1280x800、1024x768 三种窗口尺寸。
+- 验收中文和英文两种语言。
+- 验收扫描成功、失败、部分成功、空列表、选中详情、长 Markdown 文档。
+- 使用 Playwright 或 Browser 生成截图记录，记录到最终审查文档。
+- 修复发现的布局溢出、文字挤压、按钮换行、详情区高度不足。
+- 更新最终视觉验收结论。
+
+完成后提交一个 commit 并推送分支。
+```
+
+### 18.8 验收标准
+
+- 新版 UI 看起来是专业桌面工具，信息密度高但不拥挤。
+- 顶部命令栏、左侧来源导航、中间列表、右侧详情层级清晰。
+- 列表仍然一页 10 个 Skill，描述最多两行，路径可点击。
+- 详情描述完整展示，Markdown 正文区域可阅读长文档。
+- 扫描状态显示具体时间和成功、失败、部分成功。
+- Agents 用户 Skill 详情正常加载。
+- 修改时间保持本地化可读格式。
+- 窗口缩放时三栏布局随尺寸变化，内容不固定在小面板中。
+- 中文和英文切换后没有明显溢出、遮挡、错位。
+- Windows 本机可运行，macOS GitHub Actions 打包继续通过。
+
+### 18.9 测试要求
+
+每个子会话至少运行：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run packaging:check
+git diff --check
+```
+
+最终集成后需要运行：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run packaging:check
+npm.cmd run cargo:test
+npm.cmd run tauri:build:windows
+git diff --check
+```
+
+### 18.10 用户审核点
+
+1. 用户审核本 UI 重设计计划和草图方向。
+2. 主控会话创建并展示 23 到 28 的子会话。
+3. 每个子会话独立使用 worktree 和内部 subagent。
+4. 每个子会话完成后推送到 GitHub，并在主控会话中记录更新内容。
+5. 用户审核每个子会话输出后，主控会话再合并回 `codex/skill-panel-app`。
+6. 全部合并后运行最终验证并更新完成留痕。
