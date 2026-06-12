@@ -826,6 +826,16 @@ a:focus-visible {
   font-weight: 650;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 .field-stack input,
 .field-stack textarea {
   width: 100%;
@@ -839,6 +849,13 @@ a:focus-visible {
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+.detail-description-input {
+  min-height: 92px;
+  max-height: 180px;
+  font-family: inherit;
+  line-height: 1.45;
 }
 
 .detail-panel dl {
@@ -864,6 +881,7 @@ a:focus-visible {
 .detail-markdown-section {
   flex: 1;
   min-height: min(420px, 50vh);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .detail-markdown-field {
@@ -876,6 +894,57 @@ a:focus-visible {
   height: 100%;
   min-height: min(380px, 46vh);
   background: #fcfdff;
+}
+
+.detail-markdown-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.detail-mode-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-muted);
+  padding: 2px;
+}
+
+.detail-mode-tabs button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted-strong);
+  padding: 0 10px;
+}
+
+.detail-mode-tabs button.active,
+.detail-mode-tabs button[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 9%);
+}
+
+.markdown-preview {
+  height: 100%;
+  min-height: min(380px, 46vh);
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fcfdff;
+  color: var(--text-soft);
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 .split-section {
