@@ -173,6 +173,7 @@ export function App() {
   const [detailName, setDetailName] = useState('');
   const [detailDescription, setDetailDescription] = useState('');
   const [detailMarkdown, setDetailMarkdown] = useState('');
+  const [detailMode, setDetailMode] = useState<'preview' | 'edit'>('edit');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
@@ -909,7 +910,11 @@ export function App() {
                 </label>
                 <label className="field-stack">
                   <span>{t('details.description')}</span>
-                  <input value={detailDescription} onChange={(event) => setDetailDescription(event.target.value)} />
+                  <textarea
+                    className="detail-description-input"
+                    value={detailDescription}
+                    onChange={(event) => setDetailDescription(event.target.value)}
+                  />
                 </label>
                 <dl>
                   <div>
@@ -927,14 +932,41 @@ export function App() {
                 <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
               </section>
               <section className="detail-section detail-markdown-section fluid-markdown-region">
-                <label className="field-stack detail-markdown-field">
-                  <span>{t('details.markdownBody')}</span>
-                  <textarea
-                    className="detail-markdown-input fluid-markdown-input"
-                    value={detailMarkdown}
-                    onChange={(event) => setDetailMarkdown(event.target.value)}
-                  />
-                </label>
+                <div className="detail-markdown-heading">
+                  <h3>{t('details.markdownBody')}</h3>
+                  <div className="detail-mode-tabs" role="tablist" aria-label={t('details.markdownMode')}>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={detailMode === 'preview'}
+                      className={detailMode === 'preview' ? 'active' : undefined}
+                      onClick={() => setDetailMode('preview')}
+                    >
+                      {t('details.preview')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={detailMode === 'edit'}
+                      className={detailMode === 'edit' ? 'active' : undefined}
+                      onClick={() => setDetailMode('edit')}
+                    >
+                      {t('details.edit')}
+                    </button>
+                  </div>
+                </div>
+                {detailMode === 'preview' ? (
+                  <pre className="markdown-preview">{detailMarkdown.trim() || t('details.markdownEmpty')}</pre>
+                ) : (
+                  <label className="field-stack detail-markdown-field">
+                    <span className="visually-hidden">{t('details.markdownBody')}</span>
+                    <textarea
+                      className="detail-markdown-input fluid-markdown-input"
+                      value={detailMarkdown}
+                      onChange={(event) => setDetailMarkdown(event.target.value)}
+                    />
+                  </label>
+                )}
               </section>
             </>
           ) : (
