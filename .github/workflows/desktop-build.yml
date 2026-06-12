@@ -1,5 +1,8 @@
 name: Desktop Build
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   workflow_dispatch:
   push:
@@ -11,11 +14,6 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      TMPDIR: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
-      TEMP: ${{ runner.temp }}
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +43,14 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Configure macOS temp directory
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p "$RUNNER_TEMP/rusttmp"
+          echo "TMPDIR=$RUNNER_TEMP/rusttmp" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP/rusttmp" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP/rusttmp" >> "$GITHUB_ENV"
 
       - name: Setup MSVC
         if: runner.os == 'Windows'
