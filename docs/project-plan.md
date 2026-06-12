@@ -489,7 +489,7 @@ i18n 测试：
 
 ## 17. 体验修复变更计划
 
-状态：待用户审核
+状态：已完成
 
 提出日期：2026-06-12
 
@@ -596,3 +596,65 @@ git diff --check
 ### 17.7 用户审核点
 
 用户审核通过本计划后，主控会话再溯源对应历史会话和分支，按 18 到 21 的顺序派发子会话执行。每个子会话完成后必须推送到 GitHub，并备注本次更新内容。
+
+### 17.8 完成留痕
+
+完成日期：2026-06-12
+
+已完成并推送的模块分支：
+
+1. 会话 18：列表密度、分页与左侧筛选清理
+   - 分支：`codex/skill-panel-18-list-pagination`
+   - Commit：`18918d8 fix: improve skill list pagination and filters`
+   - 更新：列表描述两行截断、每页 10 个 Skill、上一页/下一页分页、移除左侧低价值筛选区。
+
+2. 会话 19：详情阅读区与路径跳转
+   - 分支：`codex/skill-panel-19-detail-reading-paths`
+   - Commit：`4c8df98 fix: expand details reading area and clickable paths`
+   - 更新：列表路径和详情路径可点击打开目录，Markdown 正文区域随详情栏伸展。
+
+3. 会话 20：扫描状态、时间格式与 Agents 详情修复
+   - 分支：`codex/skill-panel-20-scan-time-agents`
+   - Commit：`a51b042 fix: show scan status times and agents details`
+   - 更新：上次扫描显示具体日期时间，扫描状态支持成功、失败、部分成功，修改时间本地化格式展示，Agents 用户 Skill 详情读取增加回归测试。
+
+4. 会话 21：响应式窗口布局验收
+   - 分支：`codex/skill-panel-21-responsive-layout`
+   - Commit：`f49ecec fix: make desktop layout responsive`
+   - 更新：主窗口和三栏布局去除固定宽度限制，列表区域和详情区域随窗口尺寸伸缩。
+
+集成分支：
+
+- `codex/skill-panel-app`
+- 最新功能 Commit：`f49ecec fix: make desktop layout responsive`
+
+本地验证：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run packaging:check
+npm.cmd run cargo:test
+npm.cmd run tauri:build:windows
+git diff --check
+```
+
+验证结果：
+
+- 前端测试：6 个 test files、58 个 tests 通过。
+- Rust 测试：30 个 lib/bin tests 和 3 个 contract tests 通过。
+- TypeScript 类型检查通过。
+- Vite 生产构建通过。
+- Packaging 配置检查通过。
+- Windows NSIS 安装包重新生成。
+- `git diff --check` 通过。
+
+GitHub Actions：
+
+- Workflow：`Desktop Build`
+- Run：`27422880664`
+- URL：`https://github.com/FengBuL/skill-panel/actions/runs/27422880664`
+- Commit：`f49ecece97150f1ec95466e342450a295788c229`
+- 结论：`success`
+- Artifact：`skill-panel-windows-nsis`、`skill-panel-macos`
