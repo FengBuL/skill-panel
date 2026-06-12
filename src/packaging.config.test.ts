@@ -44,6 +44,13 @@ describe('packaging configuration', () => {
   });
 
   it('includes lightweight icon assets required by Tauri builds', () => {
-    expect(tauriConfig.bundle.icon).toEqual(['icons/icon.ico']);
+    expect(tauriConfig.bundle.icon).toEqual([
+      'icons/32x32.png',
+      'icons/128x128.png',
+      'icons/128x128@2x.png',
+      'icons/icon.png',
+      'icons/icon.icns',
+      'icons/icon.ico',
+    ]);
   });
 });

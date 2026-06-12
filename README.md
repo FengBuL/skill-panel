@@ -108,7 +108,7 @@ Desktop packaging is configured in `src-tauri/tauri.conf.json` for Windows and m
 - Application name: `Skill Panel`.
 - Bundle identifier: `com.fengbul.skillpanel`.
 
-The repository includes a lightweight placeholder Windows icon at `src-tauri/icons/icon.ico` so Tauri builds can run. Replace it with final brand artwork later. To regenerate icons from a source image, place it at `src-tauri/icons/source.png`, then run:
+The repository includes a lightweight generated placeholder icon set under `src-tauri/icons` so Tauri builds can run on Windows and macOS. Replace it with final brand artwork later. To regenerate icons from a source image, place it at `src-tauri/icons/source.png`, then run:
 
 ```bash
 npm.cmd run tauri:icons
