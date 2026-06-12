@@ -14,6 +14,7 @@ import {
 type SourceFilter = 'all' | SkillSource;
 type StatusFilter = 'all' | ParseStatus;
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
+type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
@@ -47,6 +48,11 @@ const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey }> =
 ];
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
+
+const dateTimeFormatOptions: Intl.DateTimeFormatOptions = {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+};
 
 const emptyCreateSkillDraft: CreateSkillDraft = {
   targetDirectory: '',
@@ -82,6 +88,44 @@ function filterSkills(skills: SkillSummary[], query: string, sourceFilter: Sourc
   });
 }
 
+function dateFromTimestamp(value: string) {
+  const trimmedValue = value.trim();
+  if (!/^\d+$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const timestamp = Number(trimmedValue);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+
+  return new Date(timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp);
+}
+
+function dateFromDateTimeValue(value: string) {
+  const timestampDate = dateFromTimestamp(value);
+  const date = timestampDate ?? new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateTime(value: string | Date | null, locale: string) {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : dateFromDateTimeValue(value);
+  if (!date) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(date);
+}
+
+function getScanOutcome(skills: SkillSummary[]): ScanOutcome {
+  return skills.some((skill) => skill.parseStatus !== 'parsed') ? 'partial-success' : 'success';
+}
+
 function PathButton({
   className = 'path-button',
   onOpen,
@@ -113,6 +157,7 @@ export function App() {
   const {
     language,
     languageOptions,
+    locale,
     saveSettings,
     settings,
     settingsLoadError,
@@ -144,6 +189,8 @@ export function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [lastScanAt, setLastScanAt] = useState<Date | null>(null);
+  const [scanOutcome, setScanOutcome] = useState<ScanOutcome>('idle');
   const [showSettings, setShowSettings] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(settings);
   const [customDirectoryInput, setCustomDirectoryInput] = useState('');
@@ -181,6 +228,17 @@ export function App() {
     return counts;
   }, [skills]);
 
+  const formattedLastScan = formatDateTime(lastScanAt, locale);
+  const scanOutcomeLabelKey: TranslationKey = isLoadingSkills
+    ? 'sources.loading'
+    : scanOutcome === 'success'
+      ? 'sources.success'
+      : scanOutcome === 'partial-success'
+        ? 'sources.partialSuccess'
+        : scanOutcome === 'failed'
+          ? 'sources.failed'
+          : 'sources.idle';
+
   const scanSkills = async () => {
     setIsLoadingSkills(true);
     setScanError(null);
@@ -188,9 +246,12 @@ export function App() {
     try {
       const scannedSkills = await invoke<SkillSummary[]>('scan_skills');
       setSkills(scannedSkills);
+      setScanOutcome(getScanOutcome(scannedSkills));
     } catch (error) {
       setScanError(error instanceof Error ? error.message : String(error));
+      setScanOutcome('failed');
     } finally {
+      setLastScanAt(new Date());
       setIsLoadingSkills(false);
     }
   };
@@ -668,11 +729,11 @@ export function App() {
             <dl className="status-grid">
               <div>
                 <dt>{t('sources.lastScan')}</dt>
-                <dd>{t('sources.notScanned')}</dd>
+                <dd>{formattedLastScan ?? t('sources.notScanned')}</dd>
               </div>
               <div>
                 <dt>{t('sources.scanState')}</dt>
-                <dd>{isLoadingSkills ? t('sources.loading') : scanError ? t('sources.failed') : t('sources.idle')}</dd>
+                <dd>{t(scanOutcomeLabelKey)}</dd>
               </div>
             </dl>
           </section>
@@ -770,7 +831,7 @@ export function App() {
                           {t(parseStatusLabelKeys[skill.parseStatus])}
                         </span>
                       </td>
-                      <td>{skill.modifiedAt ?? t('skills.modifiedUnknown')}</td>
+                      <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
                       <td>
                         <PathButton path={skill.path} onOpen={openSkillFolder} />
                       </td>
@@ -852,7 +913,7 @@ export function App() {
                   </div>
                   <div>
                     <dt>{t('details.modified')}</dt>
-                    <dd>{selectedDetail.modifiedAt ?? t('skills.modifiedUnknown')}</dd>
+                    <dd>{formatDateTime(selectedDetail.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
                   </div>
                 </dl>
               </section>

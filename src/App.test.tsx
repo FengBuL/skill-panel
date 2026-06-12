@@ -1,8 +1,8 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
-import type { AppSettings, SkillSummary } from './types/skill';
+import type { AppSettings, SkillDetail, SkillSummary } from './types/skill';
 
 const { invokeMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
@@ -58,6 +58,20 @@ const scanResults: SkillSummary[] = [
   },
 ];
 
+const parsedScanResults: SkillSummary[] = scanResults.map((skill) => ({
+  ...skill,
+  parseStatus: 'parsed',
+}));
+
+const dateTimeFormatOptions: Intl.DateTimeFormatOptions = {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+};
+
+function expectedDateTime(locale: string, value: string | Date) {
+  return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(value instanceof Date ? value : new Date(value));
+}
+
 const paginatedScanResults: SkillSummary[] = Array.from({ length: 12 }, (_, index) => {
   const skillNumber = index + 1;
   const paddedNumber = String(skillNumber).padStart(2, '0');
@@ -112,6 +126,10 @@ describe('App shell', () => {
     invokeMock.mockReset();
     mockInvoke();
     mockNavigatorLanguages(['zh-CN']);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the empty desktop shell with zh-CN text from i18n', async () => {
@@ -246,6 +264,70 @@ describe('App shell', () => {
     expect(invokeMock).toHaveBeenCalledWith('scan_skills');
   });
 
+  it('shows a successful scan status with the scan completion time', async () => {
+    const scanFinishedAt = new Date('2026-06-12T06:30:45Z');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(scanFinishedAt);
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: parsedScanResults });
+
+    render(<App />);
+
+    expect(await screen.findByRole('row', { name: /imagegen/i })).toBeInTheDocument();
+    expect(screen.getByText('Success')).toBeInTheDocument();
+    expect(screen.getByText(expectedDateTime('en-US', scanFinishedAt))).toBeInTheDocument();
+    expect(screen.queryByText('Not scanned')).not.toBeInTheDocument();
+  });
+
+  it('shows a partial success scan status when any scanned skill has parse issues', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    expect(await screen.findByRole('row', { name: /browser control/i })).toBeInTheDocument();
+    expect(screen.getByText('Partial success')).toBeInTheDocument();
+  });
+
+  it('records failed scan status and completion time', async () => {
+    const scanFailedAt = new Date('2026-06-12T07:15:10Z');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(scanFailedAt);
+    mockNavigatorLanguages(['en-US']);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.reject(new Error('scan failed'));
+      }
+
+      return Promise.reject(new Error('unexpected command'));
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('Scan failed')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText(expectedDateTime('en-US', scanFailedAt))).toBeInTheDocument();
+  });
+
+  it('formats skill modified times as localized date and time values', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    const row = await screen.findByRole('row', { name: /imagegen/i });
+    expect(within(row).getByText(expectedDateTime('en-US', '2026-05-30T08:15:00Z'))).toBeInTheDocument();
+    expect(screen.queryByText('2026-05-30T08:15:00Z')).not.toBeInTheDocument();
+  });
+
   it('paginates the skill list ten skills at a time', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
@@ -315,6 +397,56 @@ describe('App shell', () => {
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('open_skill_folder', { path: scanResults[1].path }));
     expect(invokeMock).not.toHaveBeenCalledWith('read_skill', { path: scanResults[1].path });
+  });
+
+  it('loads Agents user skill details with metadata, markdown, source, modified time, and path', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    const agentsDetail: SkillDetail = {
+      ...scanResults[2],
+      markdown: '# Standup\n\nDaily summary body.',
+      bodyMarkdown: '# Standup\n\nDaily summary body.',
+      rawContent: '---\nname: standup report\ndescription: Prepare daily task summaries\n---\n# Standup\n\nDaily summary body.',
+      frontmatter: {
+        name: 'standup report',
+        description: 'Prepare daily task summaries',
+      },
+    };
+    invokeMock.mockImplementation((command: string, args?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+
+      if (command === 'read_skill') {
+        expect(args).toEqual({ path: scanResults[2].path });
+        return Promise.resolve(agentsDetail);
+      }
+
+      if (command === 'open_skill_folder') {
+        return Promise.resolve();
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /standup report/i }));
+
+    expect(await screen.findByDisplayValue('standup report')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Prepare daily task summaries')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Markdown body' })).toHaveValue('# Standup\n\nDaily summary body.');
+    expect(screen.getAllByText('Agents user').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(expectedDateTime('en-US', '2026-06-01T11:00:00Z')).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: scanResults[2].path }).length).toBeGreaterThan(0);
   });
 
   it('filters skills by name, description, and path search text', async () => {

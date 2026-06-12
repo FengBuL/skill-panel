@@ -897,6 +897,36 @@ mod tests {
     }
 
     #[test]
+    fn read_skill_accepts_agents_user_skill_from_default_allowed_roots() {
+        let _home_env_lock = home_env_lock()
+            .lock()
+            .expect("home env lock should be available");
+        let home = temp_root("agents-default-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let skill_dir = home.join(".agents").join("skills").join("daily-agent");
+        fs::create_dir_all(&skill_dir).expect("agents skill dir should be created");
+        let skill_path = skill_dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            "---\nname: Daily Agent\ndescription: Agents user skill\nversion: 1.0.0\n---\n# Agent body\n",
+        )
+        .expect("agents skill should be written");
+
+        let detail = read_skill(skill_path.to_string_lossy().to_string())
+            .expect("agents user skill should read from default allowed roots");
+
+        assert_eq!(detail.summary.path, skill_path.to_string_lossy());
+        assert_eq!(detail.summary.name, "Daily Agent");
+        assert_eq!(detail.summary.description, "Agents user skill");
+        assert_eq!(detail.summary.source, SkillSource::AgentsUser);
+        assert!(detail.summary.modified_at.is_some());
+        assert_eq!(detail.frontmatter["version"], "1.0.0");
+        assert_eq!(detail.body_markdown, "# Agent body\n");
+
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
     fn app_settings_custom_directories_allow_open_folder_validation() {
         let _home_env_lock = home_env_lock()
             .lock()
