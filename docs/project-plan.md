@@ -1219,8 +1219,9 @@ git diff --check
    - commit：`458c7a19d7abb564308ac0e05ddae9c487ea5c16`
    - 推送：原续作线程复查时 HTTPS 推送已成功；主控只读检查显示本地分支正在跟踪 `origin/codex/skill-panel-33-visual-qa-screenshots`。
    - 验证：原续作线程复跑 `npm.cmd run visual:qa` passed；`npm.cmd test` 6 files / 58 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run build` passed；`npm.cmd run packaging:check` passed；`git diff --check` exit 0。
-   - 留痕：复跑 `visual:qa` 会刷新 `output/playwright/*.png` 和 `output/playwright/visual-qa-report.json`。已创建独立收尾审计线程处理这些生成物，但截至本节记录时该线程尚未输出 DONE / BLOCKED。
-   - 当前风险：33 worktree 可能仍存在由复跑产生的生成物修改；集成分支已有会话 33 的 merge commit，主控最终验证仍以集成分支为准。
+   - 收尾审计：线程 `019ec04a-9062-7490-8a32-d11c52b74c12` 确认复跑 `visual:qa` 只刷新 `generatedAt` 和 PNG byte sizes，已恢复 `output/playwright` 到 `HEAD`。
+   - 收尾验证：`npm.cmd run visual:qa` exit 0；`git diff --check` exit 0；`git status --short --branch` clean；分支继续跟踪远端同名分支。
+   - 结论：子会话 33 收尾 DONE。最终实时远端复查遇到 GitHub 443 连接超时，但线程开头已确认远端 ref 指向 `458c7a19d7abb564308ac0e05ddae9c487ea5c16`。
 
 主控处理原则：
 
@@ -1238,6 +1239,11 @@ git diff --check
 - commit：`15f0482 docs: record ui subthread continuation audit`
 - 内容：记录 29-33 子会话续作审计、推送状态、验证结果和 33 视觉 QA 收尾风险。
 - 本地验证：`git diff --check` exit 0；提交后 `git status --short --branch` 显示工作区干净、分支 ahead 12。
+
+追加提交：
+
+- commit：`bd6a2c6 docs: record integration push blocker`
+- 内容：记录主控集成分支推送失败、HTTPS 443 网络错误、SSH publickey 错误和连通性检查结果。
 
 推送尝试：
 
