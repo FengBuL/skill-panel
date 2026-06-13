@@ -341,7 +341,7 @@ describe('App shell', () => {
     expect(screen.getByLabelText('Language')).toHaveValue('en-US');
   });
 
-  it('loads and renders scanned skills with source and status metadata', async () => {
+  it('loads and renders scanned skills with source metadata and partial scan state', async () => {
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: scanResults });
 
@@ -352,7 +352,7 @@ describe('App shell', () => {
     expect(screen.getByRole('row', { name: /standup report/i })).toBeInTheDocument();
     expect(screen.getByText('3 skills')).toBeInTheDocument();
     expect(screen.getAllByText('Codex user').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Invalid frontmatter').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Scan status')).toHaveTextContent('Partial success');
     expect(invokeMock).toHaveBeenCalledWith('scan_skills');
   });
 

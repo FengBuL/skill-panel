@@ -1123,3 +1123,46 @@ git diff --check
 ```
 
 会话 33 还需要运行浏览器或 Tauri 视觉验收，并保存截图记录。
+
+### 19.5 执行结果与留痕
+
+日期：2026-06-13
+
+1. 会话 29 顶部命令栏
+   - 原会话：`019ebf54-1054-7651-aeed-403ac2631d66`
+   - 收尾重试：`019ebf5e-7deb-7063-a903-c0624d369592`、`019ebf62-6b3e-7cf3-bda7-afcbe27eaa12`、`019ebf64-28db-7303-94a8-8ee974727fd1`
+   - 结果：原会话留下实现改动，多个收尾线程在调度层进入 `systemError` 或长时间无正文输出；主控会话接管验证、提交和推送。
+   - commit：`41d713a Align top command bar`
+   - 推送：`origin/codex/skill-panel-29-top-command-bar-alignment` 成功。
+   - 验证：`npm.cmd test` 60 tests passed，`npm.cmd run typecheck` passed，`npm.cmd run packaging:check` 4 tests passed，`git diff --check` exit 0。
+
+2. 会话 30 左侧来源导航
+   - 线程：`019ebf54-105d-73d3-9673-a71c7122c906`
+   - commit：`a6822ce Align source rail navigation`
+   - 推送：`origin/codex/skill-panel-30-source-rail-icons-storage` 成功。
+   - 内容：来源导航图标、名称、数量、存储位置入口；删除列表筛选控件。
+
+3. 会话 31 资源表格
+   - 线程：`019ebf54-103a-7041-b0bb-f3fb694449bd`
+   - commit：`6dd15c7 Align resource table layout`
+   - 推送：`origin/codex/skill-panel-31-resource-table-alignment` 成功。
+   - 内容：资源表格列、描述两行截断、选中行淡蓝底和细描边、测试辅助声明。
+
+4. 会话 32 详情 Inspector
+   - 线程：`019ebf54-103a-7041-b0bb-f4093f56d65a`
+   - commit：`fce2162 Align detail inspector layout`
+   - 推送：`origin/codex/skill-panel-32-detail-inspector-alignment` 成功。
+   - 内容：详情元信息、完整描述、Markdown 区域撑到底部、Agents 用户 Skill 详情测试。
+
+5. 会话 33 视觉 QA
+   - 线程：`019ebf54-8436-78a0-b7a6-075d8e9fb50f`
+   - commit：`458c7a1 test: add visual qa screenshots`
+   - 推送：GitHub HTTPS 443 连接超时 / reset，三次子会话 push 和一次主控 push 均失败；本地分支和提交已保留。
+   - 内容：`npm.cmd run visual:qa`、`scripts/visual-qa.mjs`、`docs/visual-qa-checklist.md`、`output/playwright/visual-qa-report.json`、6 张截图。
+
+6. 主控集成结果
+   - 集成分支：`codex/skill-panel-app`
+   - 合并顺序：29、30、31、32、33。
+   - 冲突处理：30 合并时 `src/App.test.tsx` 测试冲突，保留 29 顶部栏测试和 30 来源导航测试；集成测试中将旧状态列断言更新为顶部部分成功状态断言。
+   - 集成 UI 修复：1024 宽度下顶部扫描状态 chip 改为提前两行布局，避免英文日期被截断。
+   - 最终视觉 QA：`npm.cmd run visual:qa` passed，报告时间 `2026-06-13T05:23:56.243Z`，6 个场景全部 passed。
