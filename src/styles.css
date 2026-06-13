@@ -473,16 +473,16 @@ a:focus-visible {
 
 .sidebar nav button {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  min-height: 38px;
+  gap: 9px;
+  min-height: 42px;
   border-color: transparent;
   border-radius: 7px;
   background: transparent;
   color: var(--text-soft);
-  padding: 0 10px;
+  padding: 0 9px;
 }
 
 .sidebar nav button:hover {
@@ -497,14 +497,20 @@ a:focus-visible {
   font-weight: 700;
 }
 
-.sidebar nav button span:first-child {
+.source-nav-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--muted-strong);
+}
+
+.source-nav-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sidebar nav button span:last-child {
+.source-nav-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -516,11 +522,52 @@ a:focus-visible {
   font-size: 0.76rem;
 }
 
+.sidebar nav button.active .source-nav-icon {
+  color: #1d4ed8;
+}
+
 .sidebar-section {
   display: grid;
   gap: 10px;
   border-top: 1px solid var(--border);
   padding-top: 14px;
+}
+
+.storage-section {
+  margin-top: auto;
+}
+
+.storage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.storage-heading button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 0.76rem;
+}
+
+.storage-path-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storage-path-list li {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--text-soft);
+  padding: 7px 8px;
+  overflow-wrap: anywhere;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .status-grid {
@@ -579,7 +626,7 @@ a:focus-visible {
 
 .list-controls {
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) minmax(132px, auto) minmax(132px, auto);
+  grid-template-columns: minmax(210px, 1fr);
   gap: 8px;
 }
 
