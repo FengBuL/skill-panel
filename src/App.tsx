@@ -801,9 +801,8 @@ export function App() {
                 <thead>
                   <tr>
                     <th scope="col">{t('skills.columnName')}</th>
-                    <th scope="col">{t('skills.columnDescription')}</th>
                     <th scope="col">{t('skills.columnSource')}</th>
-                    <th scope="col">{t('skills.columnStatus')}</th>
+                    <th scope="col">{t('skills.columnDescription')}</th>
                     <th scope="col">{t('skills.columnModified')}</th>
                     <th scope="col">{t('skills.columnPath')}</th>
                   </tr>
@@ -827,15 +826,10 @@ export function App() {
                         <strong>{skill.name}</strong>
                       </td>
                       <td>
-                        <span className="skill-description">{skill.description}</span>
-                      </td>
-                      <td>
                         <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
                       </td>
                       <td>
-                        <span className={`parse-status parse-status-${skill.parseStatus}`}>
-                          {t(parseStatusLabelKeys[skill.parseStatus])}
-                        </span>
+                        <span className="skill-description">{skill.description}</span>
                       </td>
                       <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
                       <td>
