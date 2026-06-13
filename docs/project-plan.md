@@ -1041,3 +1041,85 @@ git diff --check
 - 会话 24 顶部命令栏、会话 25 左侧来源导航、会话 26 Skill 列表视觉的主要目标已合并到会话 23 的工作台基础实现中完成。
 - 会话 27 详情 Inspector 作为独立分支完成。
 - 会话 28 Windows 本机打开验收由主控会话完成。
+## 19. UI 1:1 对齐纠偏计划
+
+日期：2026-06-13
+
+背景：用户审核新版 UI 后指出，已安装版本没有按第 18 节设计方案 1:1 落地。主控会话复盘确认，上一轮 24、25、26 的独立 UI 子会话没有正常完成，相关目标被压缩进 23 的工作台基础实现，导致顶部命令栏、左侧导航、列表表格、详情 Inspector 与视觉验收都缺少逐项可追溯验收。
+
+### 19.1 根因记录
+
+1. 上一轮 23-28 子会话多数进入 `systemError` 或 `notLoaded`，没有形成可审查的子会话输出。
+2. 24 顶部命令栏、25 左侧来源导航、26 列表视觉被主控会话合并执行，缺少独立板块验收。
+3. `src/App.tsx` 仍偏单体实现，UI 组件边界和验收点不够清晰。
+4. 没有建立“设计方案逐条对照”的截图和 checklist。
+5. 本地安装曾指向旧版 Program Files 路径，造成用户打开后仍看到旧版 UI；该安装路径问题已单独修复。
+
+### 19.2 子会话健康检查
+
+已执行两次健康检查：
+
+1. 试运行线程 `019ebf4b-fed6-7363-ad0c-51b29f45aa46`
+   - worktree：`C:\Users\12925\.codex\worktrees\8e95\skill面板`
+   - 结果：`systemError`
+   - 结论：指定模型和较复杂启动参数时存在失败风险。
+
+2. 试运行线程 `019ebf4d-b7ca-73e0-928d-8199e00c8c44`
+   - worktree：`C:\Users\12925\.codex\worktrees\b72a\skill面板`
+   - 结果：线程正常运行并输出 `STATUS BLOCKED`
+   - 阻塞原因：worktree 中缺少 `node_modules`，`tsc` / `vitest` 不可用。
+   - 结论：子会话执行器正常；正式 UI 子会话需要先执行 `npm.cmd install` 或 `npm.cmd ci`。
+
+3. local 健康检查线程 `019ebf4e-27b3-76e1-beba-da2c9a9829f2`
+   - cwd：`C:\Users\12925\Documents\skill面板`
+   - 结果：`STATUS READY`
+   - 结论：项目线程本身可正常执行。
+
+### 19.3 新的 1:1 对齐子会话
+
+本轮拆分为 5 个子会话。每个子会话都使用独立 worktree，从 `codex/skill-panel-app` 当前 HEAD 开始，完成后必须提交、推送到 GitHub 仓库 `skill-panel`，并在报告中注明本次更新内容。
+
+1. 会话 29：顶部命令栏 1:1 对齐
+   - 分支：`codex/skill-panel-29-top-command-bar-alignment`
+   - 目标：左侧产品名、中央扫描状态、右侧重新扫描 / 新建 Skill / 语言切换 / 设置，整体紧凑且随窗口伸缩。
+   - 验收：中英文都不挤压，扫描状态包含成功、失败、部分成功、未扫描、扫描中。
+
+2. 会话 30：左侧来源导航 1:1 对齐
+   - 分支：`codex/skill-panel-30-source-rail-icons-storage`
+   - 目标：使用图标、名称、数量展示全部 Skill、Codex、Agents、插件 Skill、自定义目录，底部展示当前存储位置。
+   - 验收：删除低价值筛选控件，保留来源选择、数量和存储位置入口。
+
+3. 会话 31：资源表格列表 1:1 对齐
+   - 分支：`codex/skill-panel-31-resource-table-alignment`
+   - 目标：中间列表是资源表格，一页 10 个，描述最多两行，路径可点击，选中行淡蓝底和细描边。
+   - 验收：分页、搜索、路径跳转、修改时间本地化格式全部可用。
+
+4. 会话 32：详情 Inspector 1:1 对齐
+   - 分支：`codex/skill-panel-32-detail-inspector-alignment`
+   - 目标：顶部元信息、完整描述、Markdown 预览 / 编辑区域，正文区域默认撑到底部，底部操作区清晰。
+   - 验收：长 Skill 文档可读，Agents 用户 Skill 能正常展示元信息和正文。
+
+5. 会话 33：视觉 QA 与截图验收
+   - 分支：`codex/skill-panel-33-visual-qa-screenshots`
+   - 目标：按第 18 节和第 19 节逐项截图验收，覆盖中文、英文、常见窗口尺寸、长文档、空列表、扫描状态。
+   - 验收：生成截图和 checklist，修复发现的布局溢出、按钮换行、详情区高度不足。
+
+### 19.4 正式子会话通用指令补充
+
+每个正式 UI 子会话启动后先执行：
+
+```powershell
+git status --short --branch
+npm.cmd install
+```
+
+随后执行实现、测试、提交和推送。完成前至少运行：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run packaging:check
+git diff --check
+```
+
+会话 33 还需要运行浏览器或 Tauri 视觉验收，并保存截图记录。
