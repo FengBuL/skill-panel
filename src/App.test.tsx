@@ -135,8 +135,8 @@ describe('App shell', () => {
   it('renders the empty desktop shell with zh-CN text from i18n', async () => {
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Skill 面板' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '手动扫描' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新扫描' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '新建 Skill' })).toBeInTheDocument();
     expect(screen.getByText('暂无已扫描的 Skill')).toBeInTheDocument();
     expect(screen.getByLabelText('语言')).toHaveValue('system');
@@ -150,7 +150,7 @@ describe('App shell', () => {
     await user.selectOptions(await screen.findByLabelText('语言'), 'en-US');
 
     expect(screen.getByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rescan' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
     expect(screen.getByText('No scanned skills yet')).toBeInTheDocument();
     expect(screen.getByLabelText('Language')).toHaveValue('en-US');
@@ -191,6 +191,59 @@ describe('App shell', () => {
     expect(screen.getByText('Tools')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open path' })).toBeInTheDocument();
+  });
+
+  it('aligns the top command bar as product name, centered scan status, and right-side commands', async () => {
+    mockNavigatorLanguages(['en-US']);
+    render(<App />);
+
+    const commandBar = screen.getByRole('banner');
+    const brand = commandBar.querySelector('.command-brand');
+    const scanStatus = commandBar.querySelector('.command-status');
+    const actions = commandBar.querySelector('.command-actions');
+
+    expect(commandBar).toHaveClass('top-command-bar');
+    expect(brand).toHaveTextContent('Skill Panel');
+    expect(brand?.querySelector('.eyebrow')).not.toBeInTheDocument();
+    expect(scanStatus).toHaveAccessibleName('Scan status');
+    expect(scanStatus).toHaveTextContent(/Scan state:/);
+    expect(scanStatus).toHaveTextContent(/Last scan:/);
+
+    expect(within(actions as HTMLElement).getByRole('button', { name: 'Rescan' })).toBeInTheDocument();
+    expect(within(actions as HTMLElement).getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
+    const languageSelect = within(actions as HTMLElement).getByRole('combobox', { name: 'Language' });
+    const settingsButton = within(actions as HTMLElement).getByRole('button', { name: 'Settings' });
+    expect(Boolean(languageSelect.compareDocumentPosition(settingsButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
+  it('marks the top scan status as scanning while a scan request is in flight', async () => {
+    const loadingScan = deferred<SkillSummary[]>();
+    mockNavigatorLanguages(['en-US']);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return loadingScan.promise;
+      }
+
+      return Promise.reject(new Error('unexpected command'));
+    });
+
+    render(<App />);
+
+    const scanStatus = await screen.findByLabelText('Scan status');
+    expect(scanStatus).toHaveClass('scan-summary-scanning');
+    expect(scanStatus).toHaveTextContent('Scanning');
+
+    await act(async () => {
+      loadingScan.resolve([]);
+    });
   });
 
   it('keeps local language state when saving settings fails', async () => {
@@ -624,7 +677,7 @@ describe('App shell', () => {
       return Promise.reject(new Error('unexpected command'));
     });
 
-    await userEvent.click(screen.getByRole('button', { name: '手动扫描' }));
+    await userEvent.click(screen.getByRole('button', { name: '重新扫描' }));
 
     expect(await screen.findByText('扫描失败')).toBeInTheDocument();
     expect(screen.getByText('scan failed')).toBeInTheDocument();
@@ -713,7 +766,7 @@ describe('App shell', () => {
         },
       }),
     );
-    expect(screen.getByRole('heading', { name: 'Skill 面板' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Skill Panel' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: '语言' })).toHaveValue('zh-CN');
   });
 

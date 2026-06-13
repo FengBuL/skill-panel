@@ -15,6 +15,7 @@ type SourceFilter = 'all' | SkillSource;
 type StatusFilter = 'all' | ParseStatus;
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
+type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
@@ -231,15 +232,17 @@ export function App() {
   }, [skills]);
 
   const formattedLastScan = formatDateTime(lastScanAt, locale);
-  const scanOutcomeLabelKey: TranslationKey = isLoadingSkills
-    ? 'sources.loading'
-    : scanOutcome === 'success'
-      ? 'sources.success'
-      : scanOutcome === 'partial-success'
-        ? 'sources.partialSuccess'
-        : scanOutcome === 'failed'
-          ? 'sources.failed'
-          : 'sources.idle';
+  const visibleScanOutcome: VisibleScanOutcome = isLoadingSkills ? 'scanning' : scanOutcome === 'idle' ? 'not-scanned' : scanOutcome;
+  const scanOutcomeLabelKey: TranslationKey =
+    visibleScanOutcome === 'scanning'
+      ? 'sources.scanning'
+      : visibleScanOutcome === 'success'
+        ? 'sources.success'
+        : visibleScanOutcome === 'partial-success'
+          ? 'sources.partialSuccess'
+          : visibleScanOutcome === 'failed'
+            ? 'sources.failed'
+            : 'sources.notScanned';
 
   const scanSkills = async () => {
     setIsLoadingSkills(true);
@@ -532,24 +535,20 @@ export function App() {
 
   return (
     <main className="app-shell fluid-app-shell">
-      <header className="top-bar">
-        <div className="brand-block">
-          <h1>{t('app.title')}</h1>
-          <p className="eyebrow">{t('app.subtitle')}</p>
+      <header className="top-bar top-command-bar">
+        <div className="brand-block command-brand">
+          <h1>{t('topBar.productName')}</h1>
         </div>
-        <div className={`scan-summary-chip scan-summary-${scanOutcome}`}>
+        <div className={`scan-summary-chip command-status scan-summary-${visibleScanOutcome}`} aria-label={t('topBar.scanStatusAria')}>
           <span>{`${t('sources.scanState')}: ${t(scanOutcomeLabelKey)}`}</span>
           <strong>{`${t('sources.lastScan')}: ${formattedLastScan ?? t('sources.notScanned')}`}</strong>
         </div>
-        <div className="toolbar-actions">
+        <div className="toolbar-actions command-actions">
           <button type="button" className="primary-action" onClick={() => void scanSkills()}>
-            {t('actions.scan')}
+            {t('actions.rescan')}
           </button>
           <button type="button" onClick={openCreateSkillDialog}>
             {t('actions.newSkill')}
-          </button>
-          <button type="button" className={showSettings ? 'active-action' : undefined} onClick={() => setShowSettings((current) => !current)}>
-            {t('actions.settings')}
           </button>
           <label className="locale-switcher">
             <span>{t('language.label')}</span>
@@ -569,6 +568,9 @@ export function App() {
               ))}
             </select>
           </label>
+          <button type="button" className={showSettings ? 'active-action' : undefined} onClick={() => setShowSettings((current) => !current)}>
+            {t('actions.settings')}
+          </button>
         </div>
       </header>
 
