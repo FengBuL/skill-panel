@@ -1,5 +1,8 @@
 import packageJson from '../package.json';
 import tauriConfig from '../src-tauri/tauri.conf.json';
+import { readFileSync } from 'node:fs';
+
+const tauriMainSource = readFileSync('src-tauri/src/main.rs', 'utf8');
 
 describe('packaging configuration', () => {
   it('documents platform-specific Tauri build commands', () => {
@@ -52,5 +55,11 @@ describe('packaging configuration', () => {
       'icons/icon.icns',
       'icons/icon.ico',
     ]);
+  });
+
+  it('uses the Windows GUI subsystem for release builds', () => {
+    expect(tauriMainSource).toContain(
+      '#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]',
+    );
   });
 });

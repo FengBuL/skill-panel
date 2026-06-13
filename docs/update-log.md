@@ -160,3 +160,18 @@
 - 视觉 QA：`output/playwright/visual-qa-report.json` 包含 6 个场景，全部 `passed: true`。
 - 桌面运行：`skill-panel-latest` 进程从 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe` 启动并保持运行。
 - 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`，以最终主控汇总中的远端 ref 为准。
+
+### U019 Windows 黑色控制台窗口修复
+
+- 分支：`codex/skill-panel-app`
+- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- 内容：为 Tauri Windows release 入口添加 `windows_subsystem = "windows"`，避免双击桌面入口时先弹出黑色控制台窗口。
+- 根因：`src-tauri/src/main.rs` 缺少 Windows GUI 子系统声明，release exe 被 Windows 按控制台程序启动。
+- 测试：新增 packaging 回归测试，读取 `src-tauri/src/main.rs` 并断言正式入口包含 GUI 子系统声明；该测试先红灯，再随修复转绿。
+- 构建：`npm.cmd run tauri:build:windows` 成功生成 release exe 和 NSIS 安装包。
+- 安装：覆盖 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe` 和 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+- exe 校验：release exe、`skill-panel-latest.exe`、`skill-panel.exe` 长度均为 `8642048` bytes，SHA256 前缀均为 `0DD0413214E0C110`。
+- 子系统验证：release exe 和安装目录 exe 的 PE subsystem 均为 `2`，即 `WINDOWS_GUI`。
+- 启动验证：从 `skill-panel-latest.exe` 启动，进程 `skill-panel-latest`，PID `21568`，路径 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe`。
+- 验证命令：`npm.cmd run packaging:check` 5 passed；`npm.cmd test` 64 passed；`npm.cmd run typecheck` passed；`npm.cmd run cargo:test` 30 lib tests + 3 contract tests passed；`git diff --check` exit 0。
+- 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`。
