@@ -132,9 +132,20 @@
 ### U016 桌面应用启动验证
 
 - 分支：`codex/skill-panel-app`
-- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- commit：`65ebc95 docs: record desktop launch verification U016`
 - 内容：从用户安装目录启动最新版桌面应用，确认运行入口为最新 exe。
 - 启动命令：`Start-Process C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe`
 - 运行证据：进程 `skill-panel-latest`，PID `5972`，路径 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe`，启动时间 `2026/6/13 18:12:33`。
 - 验证：`Get-Process -Id 5972` 返回运行进程和正确路径。
-- 推送：GitHub 443 网络恢复后重试。
+- 推送：已随 `codex/skill-panel-app` 推送到 GitHub。
+
+### U017 集成分支远端同步成功
+
+- 分支：`codex/skill-panel-app`
+- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- 内容：将 UI 更新、桌面安装同步、U001-U016 编号台账推送到 GitHub 仓库 `skill-panel`。
+- 推送命令：`git push origin codex/skill-panel-app`
+- 推送结果：`2e1bfc0..65ebc95  codex/skill-panel-app -> codex/skill-panel-app`
+- 远端确认：`git ls-remote origin -h refs/heads/codex/skill-panel-app` 返回 `65ebc95b653637524426e8365449bb70e5002850`，与本地 `HEAD` 一致。
+- 验证：`git status --short --branch` 显示本地分支跟踪远端且无 ahead；`git diff --check` exit 0。
+- 推送：本条记录提交后需再次推送。
