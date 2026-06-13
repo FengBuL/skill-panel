@@ -1227,3 +1227,33 @@ git diff --check
 - 主控不直接改写 29-33 worktree 的实现内容，只做读取、记录、集成分支验证和项目计划留痕。
 - 每个子会话的分支推送结果需要在报告中写清楚；网络异常或线程无响应需保留为可追溯记录。
 - 集成分支 `codex/skill-panel-app` 每次完成阶段性记录后继续运行本地验证，并尝试推送到 GitHub 仓库 `skill-panel`。
+
+### 19.7 主控集成分支推送记录
+
+日期：2026-06-13
+
+本次主控提交：
+
+- 分支：`codex/skill-panel-app`
+- commit：`15f0482 docs: record ui subthread continuation audit`
+- 内容：记录 29-33 子会话续作审计、推送状态、验证结果和 33 视觉 QA 收尾风险。
+- 本地验证：`git diff --check` exit 0；提交后 `git status --short --branch` 显示工作区干净、分支 ahead 12。
+
+推送尝试：
+
+1. `git push origin codex/skill-panel-app`
+   - 结果：失败。
+   - 错误：`Failed to connect to github.com port 443 after 21114 ms: Could not connect to server`。
+
+2. `git push git@github.com:FengBuL/skill-panel.git codex/skill-panel-app`
+   - 结果：失败。
+   - 错误：`Permission denied (publickey)`。
+
+3. `Test-NetConnection github.com -Port 443`
+   - 结果：`PingSucceeded: True`，`TcpTestSucceeded: False`。
+
+4. `git ls-remote origin -h refs/heads/codex/skill-panel-app`
+   - 结果：失败。
+   - 错误：`Recv failure: Connection was reset`。
+
+结论：本地集成分支提交已完成，GitHub 推送当前被网络 443 连接失败和本机 SSH key 未配置阻塞。恢复网络或配置 GitHub SSH key 后，需要继续推送 `codex/skill-panel-app`。
