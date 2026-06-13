@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-06-13T05:11:08.284Z",
+  "results": [
+    {
+      "id": "zh-success-1440x960-long-markdown",
+      "title": "Chinese success state, selected detail, long Markdown",
+      "language": "zh-CN",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/zh-success-1440x960-long-markdown.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "en-success-1280x800-long-markdown",
+      "title": "English success state, selected detail, long Markdown",
+      "language": "en-US",
+      "viewport": "1280x800",
+      "screenshot": "output/playwright/en-success-1280x800-long-markdown.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "en-partial-1024x768-resource-table",
+      "title": "English partial success state at compact desktop size",
+      "language": "en-US",
+      "viewport": "1024x768",
+      "screenshot": "output/playwright/en-partial-1024x768-resource-table.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "zh-empty-1024x768",
+      "title": "Chinese empty list state at compact desktop size",
+      "language": "zh-CN",
+      "viewport": "1024x768",
+      "screenshot": "output/playwright/zh-empty-1024x768.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "en-failed-1280x800",
+      "title": "English failed scan state",
+      "language": "en-US",
+      "viewport": "1280x800",
+      "screenshot": "output/playwright/en-failed-1280x800.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "zh-scanning-1440x960",
+      "title": "Chinese scanning state",
+      "language": "zh-CN",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/zh-scanning-1440x960.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ]
+}

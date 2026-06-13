@@ -1181,6 +1181,16 @@ a:focus-visible {
   min-height: 180px;
 }
 
+@media (max-width: 1480px) {
+  .section-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .list-controls {
+    grid-template-columns: minmax(220px, 1fr) minmax(120px, 160px) minmax(120px, 160px);
+  }
+}
+
 @media (max-width: 1180px) {
   .dashboard-grid {
     grid-template-columns: minmax(180px, 230px) minmax(440px, 1fr);

@@ -90,3 +90,30 @@ npm run tauri:build:macos
 - 当前缺少真实桌面端点击流 smoke test。
 - macOS 签名、公证和路径打开行为尚未在真实 macOS 机器上人工验收。
 - 当前图标是轻量占位资源，正式品牌发布前应替换。
+
+## Session 33 Visual QA Evidence
+
+Date: 2026-06-13
+
+Branch: `codex/skill-panel-33-visual-qa-screenshots`
+
+Artifacts:
+
+- Checklist: `docs/visual-qa-checklist.md`
+- Machine-readable report: `output/playwright/visual-qa-report.json`
+- Screenshots:
+  - `output/playwright/zh-success-1440x960-long-markdown.png`
+  - `output/playwright/en-success-1280x800-long-markdown.png`
+  - `output/playwright/en-partial-1024x768-resource-table.png`
+  - `output/playwright/zh-empty-1024x768.png`
+  - `output/playwright/en-failed-1280x800.png`
+  - `output/playwright/zh-scanning-1440x960.png`
+
+Coverage:
+
+- Chinese and English UI.
+- 1440x960, 1280x800, and 1024x768 desktop viewports.
+- Success, partial success, failed, empty list, scanning, selected detail, and long Markdown states.
+- Page-level horizontal overflow checks and list toolbar clipping checks.
+
+Result: `npm.cmd run visual:qa` passed and regenerated the evidence above.
