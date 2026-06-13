@@ -174,16 +174,16 @@ describe('App shell', () => {
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Sources' })).toBeInTheDocument();
-    expect(screen.getByText('Source status')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /All sources/i })).toBeInTheDocument();
+    expect(screen.getByText('Storage location')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /All Skills/i })).toBeInTheDocument();
     expect(screen.queryByText('Filters')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Writable' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'With issues' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('region', { name: 'Skills' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'Search skills' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Source filter' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Status filter' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Source filter' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Status filter' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('complementary', { name: 'Skill details' })).toBeInTheDocument();
     expect(screen.getByText('Metadata')).toBeInTheDocument();
@@ -244,6 +244,44 @@ describe('App shell', () => {
     await act(async () => {
       loadingScan.resolve([]);
     });
+  });
+
+  it('renders the source rail with icons, counts, and current storage location', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      skills: scanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: ['D:\\Team\\skills'],
+        showDefaultScanDirectories: true,
+      },
+    });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /imagegen/i });
+
+    const sources = screen.getByRole('complementary', { name: 'Sources' });
+    const expectedItems = [
+      ['All Skills', '3'],
+      ['Codex', '1'],
+      ['Agents', '1'],
+      ['Plugin Skills', '1'],
+      ['Custom directories', '0'],
+    ];
+
+    for (const [label, count] of expectedItems) {
+      const button = within(sources).getByRole('button', { name: new RegExp(`${label}\\s+${count}`, 'i') });
+      expect(within(button).getByText(label)).toBeInTheDocument();
+      expect(within(button).getByText(count)).toBeInTheDocument();
+      expect(button.querySelector('.source-nav-icon')).toBeInTheDocument();
+    }
+
+    expect(within(sources).getByText('Storage location')).toBeInTheDocument();
+    expect(within(sources).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
+    expect(within(sources).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
+    expect(within(sources).getByText('D:\\Team\\skills')).toBeInTheDocument();
+    expect(within(sources).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
   });
 
   it('keeps local language state when saving settings fails', async () => {
@@ -403,7 +441,7 @@ describe('App shell', () => {
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
 
-  it('returns to the first page when search or filters change', async () => {
+  it('returns to the first page when search or the source rail changes', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: paginatedScanResults });
@@ -419,7 +457,7 @@ describe('App shell', () => {
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
     await user.click(screen.getByRole('button', { name: 'Next page' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Source filter' }), 'plugin-cache');
+    await user.click(screen.getByRole('button', { name: /Plugin Skills/i }));
 
     expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
@@ -574,33 +612,20 @@ describe('App shell', () => {
     expect(screen.queryByRole('row', { name: /standup report/i })).not.toBeInTheDocument();
   });
 
-  it('filters skills by source', async () => {
+  it('filters skills by source from the source rail', async () => {
     const user = userEvent.setup();
     mockInvoke({ skills: scanResults });
 
     render(<App />);
 
     await screen.findByRole('row', { name: /imagegen/i });
-    await user.selectOptions(screen.getByRole('combobox', { name: '来源筛选' }), 'plugin-cache');
+    await user.click(screen.getByRole('button', { name: /插件 Skill/i }));
 
     expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
   });
 
-  it('filters skills by parse status', async () => {
-    const user = userEvent.setup();
-    mockInvoke({ skills: scanResults });
-
-    render(<App />);
-
-    await screen.findByRole('row', { name: /browser control/i });
-    await user.selectOptions(screen.getByRole('combobox', { name: '状态筛选' }), 'invalid-frontmatter');
-
-    expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
-  });
-
-  it('combines sidebar source filtering, text search, and status filtering', async () => {
+  it('combines sidebar source filtering and text search', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: scanResults });
@@ -608,7 +633,7 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /imagegen/i });
-    await user.click(screen.getByRole('button', { name: /Plugin Cache/i }));
+    await user.click(screen.getByRole('button', { name: /Plugin Skills/i }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'control');
 
     expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
@@ -616,10 +641,10 @@ describe('App shell', () => {
     expect(screen.queryByRole('row', { name: /standup report/i })).not.toBeInTheDocument();
     expect(screen.getByText('1 skills')).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Status filter' }), 'parsed');
+    await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
+    await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'missing skill');
 
     expect(screen.getByText('No matching skills')).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /browser control/i })).not.toBeInTheDocument();
   });
 
   it('shows an empty filtered state when no skill matches filters', async () => {
@@ -697,15 +722,16 @@ describe('App shell', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Settings' }));
 
-    expect(screen.getByRole('region', { name: 'Application settings' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Settings language' })).toHaveValue('en-US');
-    expect(screen.getByText('Windows default paths')).toBeInTheDocument();
-    expect(screen.getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
-    expect(screen.getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
-    expect(screen.getByText('macOS default paths')).toBeInTheDocument();
-    expect(screen.getByText('~/.codex/skills')).toBeInTheDocument();
-    expect(screen.getByText('~/.agents/skills')).toBeInTheDocument();
-    expect(screen.getByText('D:\\Team\\skills')).toBeInTheDocument();
+    const settingsPanel = screen.getByRole('region', { name: 'Application settings' });
+    expect(settingsPanel).toBeInTheDocument();
+    expect(within(settingsPanel).getByRole('combobox', { name: 'Settings language' })).toHaveValue('en-US');
+    expect(within(settingsPanel).getByText('Windows default paths')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('macOS default paths')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('~/.codex/skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('~/.agents/skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('D:\\Team\\skills')).toBeInTheDocument();
   });
 
   it('adds and removes custom directories before saving settings', async () => {

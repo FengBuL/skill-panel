@@ -2,8 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import {
-  parseStatuses,
-  skillSources,
   type AppSettings,
   type ParseStatus,
   type SkillDetail,
@@ -12,7 +10,7 @@ import {
 } from './types/skill';
 
 type SourceFilter = 'all' | SkillSource;
-type StatusFilter = 'all' | ParseStatus;
+type SourceIconName = 'agents' | 'all' | 'codex' | 'custom' | 'plugin';
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
@@ -41,12 +39,12 @@ const parseStatusLabelKeys: Record<ParseStatus, TranslationKey> = {
   'read-error': 'status.readError',
 };
 
-const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey }> = [
-  { value: 'all', labelKey: 'sources.all' },
-  { value: 'codex-user', labelKey: 'sources.codex' },
-  { value: 'agents-user', labelKey: 'sources.agents' },
-  { value: 'plugin-cache', labelKey: 'sources.plugins' },
-  { value: 'custom', labelKey: 'sources.custom' },
+const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey; icon: SourceIconName }> = [
+  { value: 'all', labelKey: 'sources.allSkills', icon: 'all' },
+  { value: 'codex-user', labelKey: 'sources.codexShort', icon: 'codex' },
+  { value: 'agents-user', labelKey: 'sources.agentsShort', icon: 'agents' },
+  { value: 'plugin-cache', labelKey: 'sources.pluginSkills', icon: 'plugin' },
+  { value: 'custom', labelKey: 'sources.customDirectories', icon: 'custom' },
 ];
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
@@ -74,20 +72,83 @@ const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }
   },
 ];
 
+const sidebarStoragePaths = ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'];
+
 function getSkillSearchText(skill: SkillSummary) {
   return `${skill.name} ${skill.description} ${skill.path}`.toLocaleLowerCase();
 }
 
-function filterSkills(skills: SkillSummary[], query: string, sourceFilter: SourceFilter, statusFilter: StatusFilter) {
+function filterSkills(skills: SkillSummary[], query: string, sourceFilter: SourceFilter) {
   const normalizedQuery = query.trim().toLocaleLowerCase();
 
   return skills.filter((skill) => {
     const matchesSearch = normalizedQuery.length === 0 || getSkillSearchText(skill).includes(normalizedQuery);
     const matchesSource = sourceFilter === 'all' || skill.source === sourceFilter;
-    const matchesStatus = statusFilter === 'all' || skill.parseStatus === statusFilter;
 
-    return matchesSearch && matchesSource && matchesStatus;
+    return matchesSearch && matchesSource;
   });
+}
+
+function SourceNavIcon({ name }: { name: SourceIconName }) {
+  const commonProps = {
+    'aria-hidden': true,
+    className: 'source-nav-icon',
+    fill: 'none',
+    focusable: false,
+    stroke: 'currentColor',
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    strokeWidth: 1.9,
+    viewBox: '0 0 24 24',
+  } as const;
+
+  if (name === 'all') {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 6.5h7.5" />
+        <path d="M4 12h16" />
+        <path d="M4 17.5h12" />
+        <path d="M15.5 5.5 18 8l3-4" />
+      </svg>
+    );
+  }
+
+  if (name === 'codex') {
+    return (
+      <svg {...commonProps}>
+        <rect x="4" y="5" width="16" height="14" rx="2.5" />
+        <path d="M8 9.5h8" />
+        <path d="M8 14.5h5" />
+      </svg>
+    );
+  }
+
+  if (name === 'agents') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="8" cy="8.5" r="2.5" />
+        <circle cx="16" cy="8.5" r="2.5" />
+        <path d="M4.5 18c.8-2.5 2.2-3.8 4.2-3.8" />
+        <path d="M19.5 18c-.8-2.5-2.2-3.8-4.2-3.8" />
+        <path d="M9.5 18h5" />
+      </svg>
+    );
+  }
+
+  if (name === 'plugin') {
+    return (
+      <svg {...commonProps}>
+        <path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps}>
+      <path d="M3.5 7.5h7l2 2h8v8.5a2 2 0 0 1-2 2h-15z" />
+      <path d="M3.5 7.5V5.8a1.8 1.8 0 0 1 1.8-1.8h4.2l2 2h7.2a1.8 1.8 0 0 1 1.8 1.8v1.7" />
+    </svg>
+  );
 }
 
 function dateFromTimestamp(value: string) {
@@ -188,7 +249,6 @@ export function App() {
   const createTargetDirectoryRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -203,8 +263,8 @@ export function App() {
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
 
   const filteredSkills = useMemo(
-    () => filterSkills(skills, searchQuery, sourceFilter, statusFilter),
-    [searchQuery, skills, sourceFilter, statusFilter],
+    () => filterSkills(skills, searchQuery, sourceFilter),
+    [searchQuery, skills, sourceFilter],
   );
   const totalPages = Math.max(1, Math.ceil(filteredSkills.length / skillsPerPage));
   const normalizedCurrentPage = Math.min(currentPage, totalPages);
@@ -720,14 +780,16 @@ export function App() {
               <button
                 key={item.value}
                 type="button"
-                className={sourceFilter === item.value ? 'active' : undefined}
+                aria-label={`${t(item.labelKey)} ${sourceCounts[item.value]}`}
+                className={`source-nav-button ${sourceFilter === item.value ? 'active' : ''}`}
                 onClick={() => {
                   setSourceFilter(item.value);
                   setCurrentPage(1);
                 }}
               >
-                <span>{t(item.labelKey)}</span>
-                <span>{sourceCounts[item.value]}</span>
+                <SourceNavIcon name={item.icon} />
+                <span className="source-nav-label">{t(item.labelKey)}</span>
+                <span className="source-nav-count">{sourceCounts[item.value]}</span>
               </button>
             ))}
           </nav>
@@ -744,6 +806,23 @@ export function App() {
                 <dd>{t(scanOutcomeLabelKey)}</dd>
               </div>
             </dl>
+          </section>
+
+          <section className="sidebar-section storage-section" aria-label={t('sources.storageTitle')}>
+            <div className="storage-heading">
+              <h3>{t('sources.storageTitle')}</h3>
+              <button type="button" onClick={() => setShowSettings(true)}>
+                {t('sources.manageStorage')}
+              </button>
+            </div>
+            <ul className="storage-path-list">
+              {sidebarStoragePaths.map((path) => (
+                <li key={path}>{path}</li>
+              ))}
+              {settings.customScanDirectories.map((directory) => (
+                <li key={directory}>{directory}</li>
+              ))}
+            </ul>
           </section>
 
         </aside>
@@ -765,36 +844,6 @@ export function App() {
                   setCurrentPage(1);
                 }}
               />
-              <select
-                aria-label={t('filters.sourceLabel')}
-                value={sourceFilter}
-                onChange={(event) => {
-                  setSourceFilter(event.target.value as SourceFilter);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">{t('filters.allSources')}</option>
-                {skillSources.map((source) => (
-                  <option key={source} value={source}>
-                    {t(sourceLabelKeys[source])}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label={t('filters.statusLabel')}
-                value={statusFilter}
-                onChange={(event) => {
-                  setStatusFilter(event.target.value as StatusFilter);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">{t('filters.allStatuses')}</option>
-                {parseStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {t(parseStatusLabelKeys[status])}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
           {listState === 'ready' ? (
