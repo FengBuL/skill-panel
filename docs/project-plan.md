@@ -1166,3 +1166,64 @@ git diff --check
    - 冲突处理：30 合并时 `src/App.test.tsx` 测试冲突，保留 29 顶部栏测试和 30 来源导航测试；集成测试中将旧状态列断言更新为顶部部分成功状态断言。
    - 集成 UI 修复：1024 宽度下顶部扫描状态 chip 改为提前两行布局，避免英文日期被截断。
    - 最终视觉 QA：`npm.cmd run visual:qa` passed，报告时间 `2026-06-13T05:23:56.243Z`，6 个场景全部 passed。
+
+### 19.6 子会话续作审计
+
+日期：2026-06-13
+
+用户要求：各 UI 子会话继续完成自己的任务，主控会话负责调度、轮询、记录和最终集成验证。
+
+续作结果：
+
+1. 会话 29 顶部命令栏
+   - 审计线程：`019ec046-2974-7b81-a7b5-5158f0390b0d`
+   - worktree：`C:\Users\12925\.codex\worktrees\4b1d\skill面板`
+   - 分支：`codex/skill-panel-29-top-command-bar-alignment`
+   - commit：`41d713abde8612620801c57f95d7f11a919d881f`
+   - 推送：远端 `origin/codex/skill-panel-29-top-command-bar-alignment` 已指向同一 commit，`git remote show origin` 显示 push 状态为 up to date。
+   - 验证：`npm.cmd test` 6 files / 60 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run packaging:check` 1 file / 4 tests passed；`git diff --check` passed。
+   - 结论：子会话审计 DONE，仍由主控集成到 `codex/skill-panel-app`。
+
+2. 会话 30 左侧来源导航
+   - 续作线程：`019ebf54-105d-73d3-9673-a71c7122c906`
+   - worktree：`C:\Users\12925\.codex\worktrees\3ea4\skill面板`
+   - 分支：`codex/skill-panel-30-source-rail-icons-storage`
+   - commit：`a6822cebb9ccbc0bc7ae0324387630c7a405c373`
+   - 推送：HTTPS origin 返回 `Everything up-to-date`。
+   - 验证：`npm.cmd test` 6 files / 58 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run packaging:check` 1 file / 4 tests passed；`git diff --check` passed。
+   - 结论：子会话续作 DONE。
+
+3. 会话 31 资源表格列表
+   - 续作线程：`019ebf54-103a-7041-b0bb-f3fb694449bd`
+   - worktree：`C:\Users\12925\.codex\worktrees\7061\skill面板`
+   - 分支：`codex/skill-panel-31-resource-table-alignment`
+   - commit：`6dd15c7db88ad5fbc624e1aa9e168eb4b7299274`
+   - 推送：远端分支已存在并指向同一 commit。
+   - 验证：`npm.cmd test` 6 files / 60 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run packaging:check` 1 file / 4 tests passed；`git diff --check` passed。
+   - 结论：子会话续作 DONE。
+
+4. 会话 32 详情 Inspector
+   - 续作线程：`019ebf54-103a-7041-b0bb-f4093f56d65a`
+   - worktree：`C:\Users\12925\.codex\worktrees\3a9f\skill面板`
+   - 分支：`codex/skill-panel-32-detail-inspector-alignment`
+   - commit：`fce21626217c77531b50e5307ff59ec69f659402`
+   - 推送：远端分支已存在并指向同一 commit。
+   - 验证：`npm.cmd test` 6 files / 59 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run packaging:check` 1 file / 4 tests passed；`git diff --check` passed。
+   - 结论：子会话续作 DONE。
+
+5. 会话 33 视觉 QA 与截图验收
+   - 原续作线程：`019ebf54-8436-78a0-b7a6-075d8e9fb50f`
+   - 收尾审计线程：`019ec04a-9062-7490-8a32-d11c52b74c12`
+   - worktree：`C:\Users\12925\.codex\worktrees\b0ec\skill面板`
+   - 分支：`codex/skill-panel-33-visual-qa-screenshots`
+   - commit：`458c7a19d7abb564308ac0e05ddae9c487ea5c16`
+   - 推送：原续作线程复查时 HTTPS 推送已成功；主控只读检查显示本地分支正在跟踪 `origin/codex/skill-panel-33-visual-qa-screenshots`。
+   - 验证：原续作线程复跑 `npm.cmd run visual:qa` passed；`npm.cmd test` 6 files / 58 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run build` passed；`npm.cmd run packaging:check` passed；`git diff --check` exit 0。
+   - 留痕：复跑 `visual:qa` 会刷新 `output/playwright/*.png` 和 `output/playwright/visual-qa-report.json`。已创建独立收尾审计线程处理这些生成物，但截至本节记录时该线程尚未输出 DONE / BLOCKED。
+   - 当前风险：33 worktree 可能仍存在由复跑产生的生成物修改；集成分支已有会话 33 的 merge commit，主控最终验证仍以集成分支为准。
+
+主控处理原则：
+
+- 主控不直接改写 29-33 worktree 的实现内容，只做读取、记录、集成分支验证和项目计划留痕。
+- 每个子会话的分支推送结果需要在报告中写清楚；网络异常或线程无响应需保留为可追溯记录。
+- 集成分支 `codex/skill-panel-app` 每次完成阶段性记录后继续运行本地验证，并尝试推送到 GitHub 仓库 `skill-panel`。
