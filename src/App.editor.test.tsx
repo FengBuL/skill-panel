@@ -390,6 +390,69 @@ describe('App skill editor', () => {
     expect(markdownEditor.closest('.detail-markdown-section')).not.toBeNull();
   });
 
+  it('renders Agents user skill details with inspector layout regions for metadata, description, body, and actions', async () => {
+    const user = userEvent.setup();
+    const agentsSkill: SkillSummary = {
+      path: 'C:\\Users\\demo\\.agents\\skills\\deep-research\\SKILL.md',
+      name: 'deep research',
+      description:
+        'Run a long research workflow with source collection, synthesis, and follow-up task extraction across multiple sections.',
+      source: 'agents-user',
+      parseStatus: 'parsed',
+      modifiedAt: '2026-06-13T09:45:00Z',
+    };
+    const agentsDetail: SkillDetail = {
+      ...agentsSkill,
+      markdown:
+        '# Deep research\n\n## Context\n\nCollect inputs.\n\n## Process\n\nSynthesize notes.\n\n## Output\n\nWrite a readable report.',
+      bodyMarkdown:
+        '# Deep research\n\n## Context\n\nCollect inputs.\n\n## Process\n\nSynthesize notes.\n\n## Output\n\nWrite a readable report.',
+      rawContent:
+        '---\nname: deep research\ndescription: Run a long research workflow with source collection, synthesis, and follow-up task extraction across multiple sections.\n---\n# Deep research\n\n## Context\n\nCollect inputs.\n\n## Process\n\nSynthesize notes.\n\n## Output\n\nWrite a readable report.',
+      frontmatter: {
+        name: 'deep research',
+        description: agentsSkill.description,
+      },
+    };
+    invokeMock.mockImplementation((command: string, payload?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve(settings);
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve([agentsSkill]);
+      }
+
+      if (command === 'read_skill') {
+        expect(payload).toEqual({ path: agentsSkill.path });
+        return Promise.resolve(agentsDetail);
+      }
+
+      if (command === 'open_skill_folder') {
+        return Promise.resolve();
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /deep research/i }));
+
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+    const descriptionField = await screen.findByRole('textbox', { name: 'Description' });
+    const markdownEditor = screen.getByRole('textbox', { name: 'Markdown body' });
+
+    expect(detailPanel.querySelector('.detail-content')).toBeInTheDocument();
+    expect(detailPanel.querySelector('.detail-meta-strip')).toHaveTextContent('Agents user');
+    expect(detailPanel.querySelector('.detail-meta-strip')).toHaveTextContent('Jun 13, 2026');
+    expect(descriptionField.closest('.detail-description-section')).toHaveClass('detail-description-section');
+    expect(descriptionField).toHaveValue(agentsSkill.description);
+    expect(markdownEditor.closest('.detail-body-section')).toHaveClass('detail-body-section', 'fluid-markdown-region');
+    expect(markdownEditor).toHaveValue(agentsDetail.bodyMarkdown);
+    expect(detailPanel.querySelector('.detail-actions')).toHaveClass('detail-actions-pinned');
+  });
+
   it('shows read errors when selected skill details fail to load', async () => {
     const user = userEvent.setup();
     invokeMock.mockImplementation((command: string) => {
