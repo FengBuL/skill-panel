@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import type { AppSettings, SkillDetail, SkillSummary } from './types/skill';
@@ -419,6 +420,20 @@ describe('App shell', () => {
     expect(screen.queryByText('2026-05-30T08:15:00Z')).not.toBeInTheDocument();
   });
 
+  it('renders the resource table columns in the design order', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    const table = await screen.findByRole('table', { name: 'Skill list' });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+
+    expect(headers).toEqual(['Name', 'Source', 'Description', 'Modified', 'Path']);
+  });
+
   it('paginates the skill list ten skills at a time', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
@@ -471,6 +486,16 @@ describe('App shell', () => {
 
     const description = await screen.findByText('Description for skill 01');
     expect(description).toHaveClass('skill-description');
+  });
+
+  it('styles selected resource rows with a pale fill and thin outline', () => {
+    const css = readFileSync('src/styles.css', 'utf8');
+
+    expect(css).toMatch(/\.skill-table tbody tr\.selected-row\s*\{[^}]*background:\s*var\(--accent-soft\);[^}]*\}/s);
+    expect(css).toMatch(
+      /\.skill-table tbody tr\.selected-row td\s*\{[^}]*border-(?:top|bottom|left|right):\s*1px solid var\(--accent-border\);/s,
+    );
+    expect(css).not.toMatch(/\.skill-table tbody tr\.selected-row\s*\{[^}]*box-shadow:\s*inset 3px 0 0 var\(--accent\);/s);
   });
 
   it('marks the dashboard, panels, and stretch regions with fluid layout hooks', async () => {

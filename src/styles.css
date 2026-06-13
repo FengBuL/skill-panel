@@ -733,7 +733,20 @@ a:focus-visible {
 
 .skill-table tbody tr.selected-row {
   background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.skill-table tbody tr.selected-row td {
+  background: var(--accent-soft);
+  border-top: 1px solid var(--accent-border);
+  border-bottom: 1px solid var(--accent-border);
+}
+
+.skill-table tbody tr.selected-row td:first-child {
+  border-left: 1px solid var(--accent-border);
+}
+
+.skill-table tbody tr.selected-row td:last-child {
+  border-right: 1px solid var(--accent-border);
 }
 
 .skill-table tbody tr:focus-visible {
@@ -743,29 +756,27 @@ a:focus-visible {
 
 .skill-table th:nth-child(1),
 .skill-table td:nth-child(1) {
-  width: 15%;
+  width: 17%;
 }
 
 .skill-table th:nth-child(2),
 .skill-table td:nth-child(2) {
-  width: 26%;
+  width: 15%;
 }
 
 .skill-table th:nth-child(3),
-.skill-table td:nth-child(3),
+.skill-table td:nth-child(3) {
+  width: 30%;
+}
+
 .skill-table th:nth-child(4),
 .skill-table td:nth-child(4) {
-  width: 12%;
+  width: 17%;
 }
 
 .skill-table th:nth-child(5),
 .skill-table td:nth-child(5) {
-  width: 15%;
-}
-
-.skill-table th:nth-child(6),
-.skill-table td:nth-child(6) {
-  width: 23%;
+  width: 21%;
 }
 
 .skill-table td {
