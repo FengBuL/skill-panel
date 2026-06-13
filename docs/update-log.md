@@ -120,7 +120,11 @@
 ### U015 桌面最新版安装同步
 
 - 分支：`codex/skill-panel-app`
-- commit：待本条记录提交后填写
+- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
 - 内容：重新确认安装入口，并将用户安装目录中的 `skill-panel-latest.exe` 与 `skill-panel.exe` 同步为当前 release 构建；桌面和开始菜单入口统一打开最新版。
-- 验证：待执行 `npm.cmd test`、`npm.cmd run typecheck`、`npm.cmd run build`、`npm.cmd run packaging:check`、`npm.cmd run cargo:test`、`npm.cmd run tauri:build:windows`、安装路径检查。
+- 构建产物：`C:\Users\12925\Documents\skill面板\src-tauri\target\release\skill-panel.exe`
+- 用户安装文件：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe`、`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`
+- exe 校验：三个 exe 长度均为 `8642048` bytes，SHA256 前缀均为 `A3EF318810D1BA9F`。
+- 快捷方式：桌面和用户开始菜单指向 `skill-panel-latest.exe`；公共开始菜单指向 `skill-panel.exe`，该文件已同步为同一最新版。
+- 验证：`npm.cmd test` 6 files / 63 tests passed；`npm.cmd run typecheck` passed；`npm.cmd run build` passed；`npm.cmd run packaging:check` 1 file / 4 tests passed；`npm.cmd run cargo:test` 30 lib tests + 3 contract tests passed；`npm.cmd run visual:qa` exit 0；`npm.cmd run tauri:build:windows` 生成 release exe 和 NSIS 安装包。
 - 推送：GitHub 443 网络恢复后重试。
