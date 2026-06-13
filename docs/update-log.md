@@ -142,10 +142,21 @@
 ### U017 集成分支远端同步成功
 
 - 分支：`codex/skill-panel-app`
-- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- commit：`e1a8904 docs: record remote sync update U017`
 - 内容：将 UI 更新、桌面安装同步、U001-U016 编号台账推送到 GitHub 仓库 `skill-panel`。
 - 推送命令：`git push origin codex/skill-panel-app`
 - 推送结果：`2e1bfc0..65ebc95  codex/skill-panel-app -> codex/skill-panel-app`
 - 远端确认：`git ls-remote origin -h refs/heads/codex/skill-panel-app` 返回 `65ebc95b653637524426e8365449bb70e5002850`，与本地 `HEAD` 一致。
 - 验证：`git status --short --branch` 显示本地分支跟踪远端且无 ahead；`git diff --check` exit 0。
-- 推送：本条记录提交后需再次推送。
+- 推送：已推送；后续 U018 记录最终完成审计和台账收口。
+
+### U018 本地最终完成审计与台账收口
+
+- 分支：`codex/skill-panel-app`
+- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- 内容：确认 UI 更新、桌面最新版安装、桌面应用启动、U001-U018 编号台账和本地最终审计均完成。
+- 本地状态：`git status --short --branch` 显示本地分支跟踪 `origin/codex/skill-panel-app`。
+- 远端状态：最终远端状态以 `git rev-parse HEAD` 和 `git ls-remote origin -h refs/heads/codex/skill-panel-app` 返回同一 hash 为完成证据。
+- 视觉 QA：`output/playwright/visual-qa-report.json` 包含 6 个场景，全部 `passed: true`。
+- 桌面运行：`skill-panel-latest` 进程从 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe` 启动并保持运行。
+- 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`，以最终主控汇总中的远端 ref 为准。
