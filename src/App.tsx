@@ -901,22 +901,17 @@ export function App() {
             </section>
           ) : null}
           {selectedDetail ? (
-            <>
-              <section className="detail-section" aria-label={t('details.metadata')}>
-                <h3>{t('details.metadata')}</h3>
-                <label className="field-stack">
+            <div className="detail-content detail-content-selected">
+              <section className="detail-section detail-metadata-section" aria-label={t('details.metadata')}>
+                <div className="detail-section-title-row">
+                  <h3>{t('details.metadata')}</h3>
+                  <span className="status-pill">{t(sourceLabelKeys[selectedDetail.source])}</span>
+                </div>
+                <label className="field-stack detail-name-field">
                   <span>{t('details.name')}</span>
                   <input value={detailName} onChange={(event) => setDetailName(event.target.value)} />
                 </label>
-                <label className="field-stack">
-                  <span>{t('details.description')}</span>
-                  <textarea
-                    className="detail-description-input"
-                    value={detailDescription}
-                    onChange={(event) => setDetailDescription(event.target.value)}
-                  />
-                </label>
-                <dl>
+                <dl className="detail-meta-strip">
                   <div>
                     <dt>{t('details.source')}</dt>
                     <dd>{t(sourceLabelKeys[selectedDetail.source])}</dd>
@@ -925,13 +920,26 @@ export function App() {
                     <dt>{t('details.modified')}</dt>
                     <dd>{formatDateTime(selectedDetail.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
                   </div>
+                  <div className="detail-path-meta">
+                    <dt>{t('details.path')}</dt>
+                    <dd>
+                      <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
+                    </dd>
+                  </div>
                 </dl>
               </section>
-              <section className="detail-section" aria-label={t('details.path')}>
-                <h3>{t('details.path')}</h3>
-                <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
+              <section className="detail-section detail-description-section">
+                <h3>{t('details.description')}</h3>
+                <label className="field-stack">
+                  <span className="visually-hidden">{t('details.description')}</span>
+                  <textarea
+                    className="detail-description-input"
+                    value={detailDescription}
+                    onChange={(event) => setDetailDescription(event.target.value)}
+                  />
+                </label>
               </section>
-              <section className="detail-section detail-markdown-section fluid-markdown-region">
+              <section className="detail-section detail-markdown-section detail-body-section fluid-markdown-region">
                 <div className="detail-markdown-heading">
                   <h3>{t('details.markdownBody')}</h3>
                   <div className="detail-mode-tabs" role="tablist" aria-label={t('details.markdownMode')}>
@@ -968,9 +976,9 @@ export function App() {
                   </label>
                 )}
               </section>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="detail-content detail-content-empty">
               <section className="detail-section" aria-label={t('details.metadata')}>
                 <h3>{t('details.metadata')}</h3>
                 <dl>
@@ -1010,9 +1018,9 @@ export function App() {
                   </div>
                 </div>
               </section>
-            </>
+            </div>
           )}
-          <div className="detail-actions">
+          <div className="detail-actions detail-actions-pinned">
             <button type="button" disabled={!selectedDetail || isSavingDetail} onClick={() => void saveSelectedSkill()}>
               {t('actions.save')}
             </button>

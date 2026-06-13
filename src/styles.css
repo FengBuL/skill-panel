@@ -804,6 +804,14 @@ a:focus-visible {
   padding: 14px 14px 12px;
 }
 
+.detail-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .detail-section {
   display: grid;
   gap: 10px;
@@ -811,8 +819,20 @@ a:focus-visible {
   padding: 12px 14px 0;
 }
 
+.detail-content > .detail-section:first-child,
 .detail-panel > .detail-section:first-of-type {
   border-top: 0;
+}
+
+.detail-metadata-section {
+  flex: 0 0 auto;
+}
+
+.detail-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .field-stack {
@@ -852,8 +872,8 @@ a:focus-visible {
 }
 
 .detail-description-input {
-  min-height: 92px;
-  max-height: 180px;
+  min-height: 108px;
+  max-height: 220px;
   font-family: inherit;
   line-height: 1.45;
 }
@@ -862,6 +882,18 @@ a:focus-visible {
   display: grid;
   gap: 10px;
   margin: 0;
+}
+
+.detail-meta-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-meta-strip div {
+  min-width: 0;
+}
+
+.detail-path-meta {
+  grid-column: 1 / -1;
 }
 
 .path-placeholder {
@@ -879,9 +911,13 @@ a:focus-visible {
 }
 
 .detail-markdown-section {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: min(420px, 50vh);
   grid-template-rows: auto minmax(0, 1fr);
+}
+
+.detail-body-section {
+  padding-bottom: 12px;
 }
 
 .detail-markdown-field {
@@ -966,7 +1002,8 @@ a:focus-visible {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
-  margin-top: auto;
+  flex: 0 0 auto;
+  margin-top: 0;
   border-top: 1px solid var(--border);
   background: var(--surface-raised);
   padding: 12px 14px 14px;
