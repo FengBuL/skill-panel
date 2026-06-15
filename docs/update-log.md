@@ -175,3 +175,66 @@
 - 启动验证：从 `skill-panel-latest.exe` 启动，进程 `skill-panel-latest`，PID `21568`，路径 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel-latest.exe`。
 - 验证命令：`npm.cmd run packaging:check` 5 passed；`npm.cmd test` 64 passed；`npm.cmd run typecheck` passed；`npm.cmd run cargo:test` 30 lib tests + 3 contract tests passed；`git diff --check` exit 0。
 - 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`。
+
+## 2026-06-16
+
+### U020 v2.0.0 UI 发布版
+
+- 分支：`codex/skill-panel-app`
+- commit：`860db8b release: v2.0.0 skill panel ui`
+- 内容：完成 Stitch 风格 UI 版本，覆盖左侧类目筛选、类目颜色、skill 自定义标签、标签进入左侧类目、固定底部分页、详情预览/编辑状态控制、中文/English 语言切换。
+- 版本：`package.json`、`package-lock.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 均为 `2.0.0`。
+- 验证：`npm.cmd test` 71 passed；`npm.cmd run build` passed；`npm.cmd run tauri:build` 生成 release exe 和 NSIS 安装包。
+- 发布：创建并推送 `v2.0.0` tag；GitHub Release 地址为 `https://github.com/FengBuL/skill-panel/releases/tag/v2.0.0`。
+
+### U021 本机 v2.0.0 启动入口同步
+
+- 分支：`codex/skill-panel-app`
+- 操作类型：本机安装目录同步。
+- 背景：桌面和开始菜单快捷方式指向 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX`，该目录仍保留 `0.1.0`。
+- 内容：停止旧进程，将 release 构建覆盖到 `skill-panel.exe` 和 `skill-panel-latest.exe`，再重新启动应用。
+- 运行证据：进程路径为 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+- 版本确认：`ProductVersion` 和 `FileVersion` 均为 `2.0.0`。
+- 结果：本机实际打开的应用已更新到 v2.0.0。
+
+### U022 v2.0.0 迁移设置持久化
+
+- 分支：`codex/skill-panel-app`
+- commit：`ef051f8 fix: make v2 migration settings portable`
+- 内容：`AppSettings` 增加 `categoryColors` 和 `skillTags`；右键改类目颜色、添加 skill 标签后写入 `settings.json`；设置页保存时保留 UI 自定义数据。
+- 兼容：旧版 `settings.json` 缺少新字段时自动补默认值；读取层兼容 UTF-8 BOM。
+- 配置路径：`%USERPROFILE%\.codex\skill-panel\settings.json`。
+- 测试：新增 UTF-8 BOM 设置读取测试；补充前端保存设置断言。
+- 验证：`npm.cmd test` 71 passed；`npm.cmd run typecheck` passed；`npm.cmd run build` passed；`npm.cmd run cargo:test` 31 lib/bin tests + 3 contract tests passed。
+- 推送：已推送到 `origin/codex/skill-panel-app`。
+
+### U023 v2.0.0 迁移包
+
+- 分支：`codex/skill-panel-app`
+- commit：`ef051f8 fix: make v2 migration settings portable`
+- 内容：新增 `scripts/create-migration-package.ps1` 和 `docs/migration-guide-v2.md`；README 增加迁移包命令；`.gitignore` 忽略 `output/migration/`。
+- 本地迁移包：`C:\Users\12925\Documents\skill面板\output\migration\Skill-Panel-v2.0.0-migration.zip`
+- 大小：`5870902` bytes。
+- 包含内容：Windows 安装器、便携 exe、`config/settings.json`、`.codex/skills`、`.agents/skills`、`README-MIGRATION.md`。
+- 生成命令：`powershell -ExecutionPolicy Bypass -File scripts\create-migration-package.ps1`。
+- 验证：zip 内含 `app\Skill Panel_2.0.0_x64-setup.exe`、`portable\skill-panel.exe`、`config\settings.json`、`docs\migration-guide-v2.md` 和 skill 目录。
+
+### U024 GitHub v2.0.0 Release 刷新
+
+- 分支：`codex/skill-panel-app`
+- commit：`ef051f8 fix: make v2 migration settings portable`
+- tag：`v2.0.0` 已更新到当前提交。
+- Release：`https://github.com/FengBuL/skill-panel/releases/tag/v2.0.0`
+- 资产：`Skill.Panel_2.0.0_x64-setup.exe`
+- 资产大小：`1950208` bytes。
+- SHA256 digest：`094925fb9f527d3f68190a7363c97daba11fa3cbc7bb92425fd06ae384f045e6`
+- 推送：`git push origin codex/skill-panel-app` 成功；`git push origin v2.0.0 --force` 成功；`gh release upload v2.0.0 ... --clobber` 成功。
+
+### U025 方案、更新计划与迭代情况补齐
+
+- 分支：`codex/skill-panel-app`
+- commit：由固化本条记录的提交承载，最终 hash 以 `git log` 和主控汇总为准。
+- 内容：在 `docs/project-plan.md` 增加第 21 节，补齐 v2.0.0 迁移版背景、更新方案、更新计划、已完成迭代、验证结果和后续迁移验收计划；在本台账追加 U020-U025。
+- 目的：让方案、计划、执行记录和发布状态在仓库中保持同一套追溯口径。
+- 验证：`git diff --check`；文档内容按 UTF-8 读取确认。
+- 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`。

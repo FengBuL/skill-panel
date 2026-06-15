@@ -1274,3 +1274,135 @@ git diff --check
 - 编号范围：`U001` 到 `U019`
 - 覆盖内容：会话 29-33 的 feature 分支更新、主控集成提交、视觉 QA 留痕、推送阻塞记录、桌面最新版安装同步、桌面应用启动验证、集成分支远端同步成功、本地最终完成审计与台账收口、Windows 黑色控制台窗口修复。
 - 后续要求：任何 UI、打包、安装、推送或验收变更都继续按 `U020`、`U021` 递增编号，并在台账中写明分支、commit、内容、验证和推送状态。
+
+## 21. v2.0.0 迁移版方案、更新计划与迭代情况
+
+日期：2026-06-16
+
+状态：已完成本机更新、迁移包生成、GitHub Release 更新；待在另一台电脑上做实际安装验收。
+
+### 21.1 背景
+
+用户确认本地应用需要迁移到另一台电脑继续使用。迁移目标包含三类内容：
+
+1. 应用程序本体：Windows 安装器和可直接运行的便携 exe。
+2. 应用配置：语言、扫描目录、类目颜色、skill 自定义标签。
+3. 本机 skill 数据：`%USERPROFILE%\.codex\skills` 和 `%USERPROFILE%\.agents\skills`。
+
+上一轮 v2.0.0 已完成 Stitch 风格 UI 重构、左侧类目筛选、类目颜色、自定义标签、详情编辑状态控制、底部分页固定、语言切换简化和 GitHub Release 发布。本轮把这些更新整理为可迁移方案，并补齐配置持久化。
+
+### 21.2 更新方案
+
+本轮方案分为五个部分：
+
+1. 配置模型扩展
+   - `AppSettings` 增加 `categoryColors` 和 `skillTags`。
+   - 旧版 `settings.json` 缺少新字段时继续按默认值读取。
+   - Windows PowerShell 写出的 UTF-8 BOM 配置文件可被 Rust 设置读取层兼容。
+
+2. UI 自定义状态持久化
+   - 左侧类目右键改色后写入 `settings.json`。
+   - skill 卡片右键添加自定义标签后写入 `settings.json`。
+   - 设置页保存时保留当前类目颜色和标签数据。
+
+3. 迁移包生成
+   - 新增 `scripts/create-migration-package.ps1`。
+   - 生成 `output/migration/Skill-Panel-v2.0.0-migration.zip`。
+   - 包含安装器、便携 exe、当前配置、迁移指南和本机 skill 目录。
+
+4. 文档补齐
+   - 新增 `docs/migration-guide-v2.md`。
+   - README 增加迁移包生成命令。
+   - `output/migration/` 加入 `.gitignore`，避免本机个人 skill 包进入仓库。
+
+5. 发布同步
+   - 集成分支 `codex/skill-panel-app` 推送到 GitHub。
+   - `v2.0.0` tag 更新到最新提交。
+   - GitHub Release 中的 Windows 安装器覆盖为最新构建。
+
+### 21.3 更新计划
+
+本轮计划按以下顺序执行：
+
+1. 确认当前本机运行版本和安装入口。
+2. 复查 v2.0.0 UI 功能和迁移相关文件边界。
+3. 扩展 `AppSettings`，让类目颜色和自定义标签可迁移。
+4. 补齐前端保存逻辑和单元测试。
+5. 补齐 Rust 设置兼容测试，覆盖 UTF-8 BOM 配置。
+6. 生成 Windows NSIS 安装包。
+7. 生成迁移 zip，并确认包内核心文件存在。
+8. 将最新 release exe 覆盖到本机实际启动目录。
+9. 提交、推送、更新 `v2.0.0` Release 资产。
+10. 更新方案、更新计划和迭代记录。
+
+### 21.4 已完成迭代
+
+1. v2.0.0 UI 迭代
+   - commit：`860db8b release: v2.0.0 skill panel ui`
+   - 内容：Stitch 风格 UI、类目筛选、类目颜色、标签类目、固定分页、详情预览/编辑状态、语言切换简化。
+   - 发布：`v2.0.0` Release 创建并上传 Windows 安装器。
+
+2. 本机启动入口修正
+   - 发现运行入口仍指向 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+   - 将 `skill-panel.exe` 和 `skill-panel-latest.exe` 覆盖为 v2.0.0 release 构建。
+   - 运行验证：进程路径为 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`，版本为 `2.0.0`。
+
+3. 迁移设置持久化
+   - commit：`ef051f8 fix: make v2 migration settings portable`
+   - 内容：类目颜色和 skill 标签写入 `settings.json`，旧配置兼容，UTF-8 BOM 兼容。
+   - 设置位置：`%USERPROFILE%\.codex\skill-panel\settings.json`。
+
+4. 迁移包生成
+   - 本地包：`C:\Users\12925\Documents\skill面板\output\migration\Skill-Panel-v2.0.0-migration.zip`
+   - 包大小：`5870902` bytes。
+   - 核心内容：`app/Skill Panel_2.0.0_x64-setup.exe`、`portable/skill-panel.exe`、`config/settings.json`、`skills/.codex/skills`、`skills/.agents/skills`、`README-MIGRATION.md`。
+
+5. GitHub 同步
+   - 分支：`codex/skill-panel-app`
+   - 最新提交：`ef051f8`
+   - Release：`https://github.com/FengBuL/skill-panel/releases/tag/v2.0.0`
+   - 资产：`Skill.Panel_2.0.0_x64-setup.exe`，大小 `1950208` bytes。
+
+### 21.5 验证结果
+
+已完成验证命令：
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run cargo:test
+npm.cmd run tauri:build:windows
+powershell -ExecutionPolicy Bypass -File scripts\create-migration-package.ps1
+```
+
+验证结果：
+
+- 前端测试：6 files / 71 tests passed。
+- TypeScript：`tsc --noEmit` passed。
+- Vite 构建：passed。
+- Rust 测试：31 lib/bin tests + 3 contract tests passed。
+- Windows NSIS 打包：生成 `Skill Panel_2.0.0_x64-setup.exe`。
+- 迁移包：生成 `Skill-Panel-v2.0.0-migration.zip`。
+- 本机运行：`skill-panel.exe` 版本 `2.0.0`，路径为 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+
+### 21.6 后续迁移验收计划
+
+目标电脑迁移时按以下步骤验收：
+
+1. 解压 `Skill-Panel-v2.0.0-migration.zip`。
+2. 运行 `app/Skill Panel_2.0.0_x64-setup.exe`。
+3. 将 `config/settings.json` 复制到 `%USERPROFILE%\.codex\skill-panel\settings.json`。
+4. 将 `skills/.codex/skills` 复制到 `%USERPROFILE%\.codex\skills`。
+5. 将 `skills/.agents/skills` 复制到 `%USERPROFILE%\.agents\skills`。
+6. 启动 Skill Panel 并点击重新扫描。
+7. 核对 skill 数量、类目颜色、自定义标签、语言、详情编辑状态和分页行为。
+8. 如 `settings.json` 中存在旧电脑绝对路径，在设置页改为新电脑目录。
+
+### 21.7 下一轮可选迭代
+
+1. 应用内增加“导出迁移包”入口。
+2. 应用内增加“导入配置和 skill 目录”入口。
+3. 增加安装身份统一策略，减少 `Skill Panel` 与 `SkillPanelUX` 双路径共存造成的启动混淆。
+4. 增加设置文件 schemaVersion，便于后续配置迁移。
+5. 增加标签删除、标签改色和标签重命名能力。
