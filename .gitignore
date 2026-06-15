@@ -4,6 +4,7 @@ worktrees/
 node_modules/
 dist/
 dist-ssr/
+output/migration/
 
 src-tauri/target/
 src-tauri/gen/

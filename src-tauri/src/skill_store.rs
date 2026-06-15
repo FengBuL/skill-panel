@@ -840,6 +840,7 @@ mod tests {
                 language: Language::System,
                 custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
                 show_default_scan_directories: true,
+                ..AppSettings::default()
             },
         )
         .expect("settings should save");
@@ -945,6 +946,7 @@ mod tests {
                 language: Language::System,
                 custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
                 show_default_scan_directories: true,
+                ..AppSettings::default()
             },
         )
         .expect("settings should save");

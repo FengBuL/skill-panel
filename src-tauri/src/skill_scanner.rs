@@ -382,6 +382,7 @@ mod tests {
             language: Language::System,
             custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
             show_default_scan_directories: true,
+            ..AppSettings::default()
         };
         let home = temp_home("configured-home");
 
@@ -421,6 +422,7 @@ mod tests {
             language: Language::System,
             custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
             show_default_scan_directories: true,
+            ..AppSettings::default()
         };
 
         let skills = scan_configured_skill_roots_for_home(&settings, &home);

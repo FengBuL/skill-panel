@@ -75,6 +75,8 @@ describe('useI18n', () => {
           language: 'en-US',
           customScanDirectories: [],
           showDefaultScanDirectories: true,
+          categoryColors: {},
+          skillTags: {},
         },
       }),
     );

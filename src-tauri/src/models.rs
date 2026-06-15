@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Language {
@@ -63,10 +64,21 @@ pub struct SkillDetail {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CustomSkillTagSetting {
+    pub color: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub language: Language,
     pub custom_scan_directories: Vec<String>,
     pub show_default_scan_directories: bool,
+    #[serde(default)]
+    pub category_colors: HashMap<String, String>,
+    #[serde(default)]
+    pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
 }
 
 impl Default for AppSettings {
@@ -75,6 +87,8 @@ impl Default for AppSettings {
             language: Language::System,
             custom_scan_directories: Vec::new(),
             show_default_scan_directories: true,
+            category_colors: HashMap::new(),
+            skill_tags: HashMap::new(),
         }
     }
 }

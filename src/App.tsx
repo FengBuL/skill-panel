@@ -312,6 +312,42 @@ function getInitialCategoryColors(): CategoryColorMap {
   };
 }
 
+function isCategoryId(value: string): value is CategoryId {
+  return Object.prototype.hasOwnProperty.call(categoryDefaults, value);
+}
+
+function normalizeCategoryColors(colors: AppSettings['categoryColors']): CategoryColorMap {
+  const normalizedColors = getInitialCategoryColors();
+
+  for (const [categoryId, color] of Object.entries(colors ?? {})) {
+    if (isCategoryId(categoryId) && typeof color === 'string' && color.trim()) {
+      normalizedColors[categoryId] = color;
+    }
+  }
+
+  return normalizedColors;
+}
+
+function normalizeSkillTags(tagsBySkill: AppSettings['skillTags']): Record<string, CustomSkillTag[]> {
+  const normalizedTags: Record<string, CustomSkillTag[]> = {};
+
+  for (const [path, tags] of Object.entries(tagsBySkill ?? {})) {
+    if (!path || !Array.isArray(tags)) {
+      continue;
+    }
+
+    const cleanTags = tags
+      .filter((tag) => typeof tag.label === 'string' && tag.label.trim() && typeof tag.color === 'string' && tag.color.trim())
+      .map((tag) => ({ color: tag.color, label: tag.label.trim() }));
+
+    if (cleanTags.length > 0) {
+      normalizedTags[path] = cleanTags;
+    }
+  }
+
+  return normalizedTags;
+}
+
 function getCategoryStyle(category: CategoryDefinition, categoryColors: CategoryColorMap): CSSProperties {
   return { '--category-color': categoryColors[category.id] ?? category.color } as CSSProperties;
 }
@@ -457,10 +493,10 @@ export function App() {
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<CategoryId | null>(null);
   const [activeTagLabel, setActiveTagLabel] = useState<string | null>(null);
-  const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => getInitialCategoryColors());
+  const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => normalizeCategoryColors(settings.categoryColors));
   const [categoryContextMenu, setCategoryContextMenu] = useState<CategoryContextMenu | null>(null);
   const [skillTagContextMenu, setSkillTagContextMenu] = useState<SkillTagContextMenu | null>(null);
-  const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>({});
+  const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>(() => normalizeSkillTags(settings.skillTags));
   const [tagDraft, setTagDraft] = useState('');
   const [tagColor, setTagColor] = useState(defaultCustomTagColor);
 
@@ -584,6 +620,8 @@ export function App() {
       ...settings,
       language: normalizeSelectableLanguage(settings.language),
     });
+    setCategoryColors(normalizeCategoryColors(settings.categoryColors));
+    setSkillTags(normalizeSkillTags(settings.skillTags));
   }, [settings]);
 
   useEffect(() => {
@@ -605,6 +643,17 @@ export function App() {
       createTargetDirectoryRef.current?.focus();
     }
   }, [showCreateSkill]);
+
+  const persistUiPreferences = (nextCategoryColors: CategoryColorMap, nextSkillTags: Record<string, CustomSkillTag[]>) => {
+    void saveSettings({
+      ...settings,
+      language: normalizeSelectableLanguage(settings.language),
+      categoryColors: nextCategoryColors,
+      skillTags: nextSkillTags,
+    }).catch(() => {
+      // Settings save errors are exposed through the shared settings runtime.
+    });
+  };
 
   const syncDetailForm = (detail: SkillDetail) => {
     setSelectedDetail(detail);
@@ -839,10 +888,12 @@ export function App() {
   };
 
   const updateCategoryColor = (categoryId: CategoryId, color: string) => {
-    setCategoryColors((currentColors) => ({
-      ...currentColors,
+    const nextCategoryColors = {
+      ...categoryColors,
       [categoryId]: color,
-    }));
+    };
+    setCategoryColors(nextCategoryColors);
+    persistUiPreferences(nextCategoryColors, skillTags);
     setCategoryContextMenu(null);
   };
 
@@ -861,10 +912,12 @@ export function App() {
       return;
     }
 
-    setSkillTags((currentTags) => ({
-      ...currentTags,
-      [skillTagContextMenu.path]: [...(currentTags[skillTagContextMenu.path] ?? []), { color: tagColor, label }],
-    }));
+    const nextSkillTags = {
+      ...skillTags,
+      [skillTagContextMenu.path]: [...(skillTags[skillTagContextMenu.path] ?? []), { color: tagColor, label }],
+    };
+    setSkillTags(nextSkillTags);
+    persistUiPreferences(categoryColors, nextSkillTags);
     setSkillTagContextMenu(null);
     setTagDraft('');
     setTagColor(defaultCustomTagColor);
@@ -875,6 +928,8 @@ export function App() {
       await saveSettings({
         ...settingsDraft,
         language: normalizeSelectableLanguage(settingsDraft.language),
+        categoryColors,
+        skillTags,
       });
     } catch {
       // Error state is stored by the i18n runtime for the settings panel.

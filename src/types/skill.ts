@@ -33,10 +33,17 @@ export interface SkillDetail extends SkillSummary {
   frontmatter: Record<string, unknown>;
 }
 
+export interface CustomSkillTagSetting {
+  color: string;
+  label: string;
+}
+
 export interface AppSettings {
   language: 'system' | 'zh-CN' | 'en-US';
   customScanDirectories: string[];
   showDefaultScanDirectories: boolean;
+  categoryColors?: Record<string, string>;
+  skillTags?: Record<string, CustomSkillTagSetting[]>;
 }
 
 export interface CreateSkillInput {

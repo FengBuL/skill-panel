@@ -15,6 +15,8 @@ const defaultSettings: AppSettings = {
   language: defaultLanguage,
   customScanDirectories: [],
   showDefaultScanDirectories: true,
+  categoryColors: {},
+  skillTags: {},
 };
 
 function getErrorMessage(error: unknown) {
@@ -31,6 +33,14 @@ function normalizeSettings(settings: AppSettings): AppSettings {
       typeof settings.showDefaultScanDirectories === 'boolean'
         ? settings.showDefaultScanDirectories
         : defaultSettings.showDefaultScanDirectories,
+    categoryColors:
+      settings.categoryColors && typeof settings.categoryColors === 'object' && !Array.isArray(settings.categoryColors)
+        ? settings.categoryColors
+        : {},
+    skillTags:
+      settings.skillTags && typeof settings.skillTags === 'object' && !Array.isArray(settings.skillTags)
+        ? settings.skillTags
+        : {},
   };
 }
 

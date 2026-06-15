@@ -188,6 +188,8 @@ describe('App shell', () => {
           language: 'en-US',
           customScanDirectories: [],
           showDefaultScanDirectories: true,
+          categoryColors: {},
+          skillTags: {},
         },
       }),
     );
@@ -560,6 +562,14 @@ describe('App shell', () => {
     expect(screen.getByTestId(`skill-category-${categorizedScanResults[0].path}-finance`)).toHaveStyle({
       '--category-color': '#f5e8ff',
     });
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          categoryColors: expect.objectContaining({ finance: '#f5e8ff' }),
+          skillTags: {},
+        }),
+      }),
+    );
   });
 
   it('adds a custom colored tag to a skill from its context menu', async () => {
@@ -579,6 +589,15 @@ describe('App shell', () => {
     const tag = within(cardGrid).getByText('重点');
     expect(tag).toHaveClass('custom-skill-tag');
     expect(tag).toHaveStyle({ '--tag-color': '#e0f2fe' });
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillTags: {
+            [categorizedScanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        }),
+      }),
+    );
   });
 
   it('adds custom skill tags to the left category rail and filters by tag', async () => {
@@ -910,6 +929,13 @@ describe('App shell', () => {
           language: 'en-US',
           customScanDirectories: ['E:\\AI\\skills'],
           showDefaultScanDirectories: false,
+          categoryColors: {
+            data: '#e8f0ff',
+            default: '#eef4ff',
+            finance: '#fff4d8',
+            writing: '#eaf3ff',
+          },
+          skillTags: {},
         },
       }),
     );
@@ -939,6 +965,13 @@ describe('App shell', () => {
           language: 'zh-CN',
           customScanDirectories: ['D:\\Team\\skills'],
           showDefaultScanDirectories: true,
+          categoryColors: {
+            data: '#e8f0ff',
+            default: '#eef4ff',
+            finance: '#fff4d8',
+            writing: '#eaf3ff',
+          },
+          skillTags: {},
         },
       }),
     );

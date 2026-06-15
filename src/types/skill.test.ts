@@ -69,6 +69,8 @@ describe('skill type contracts', () => {
       language: 'system' | 'zh-CN' | 'en-US';
       customScanDirectories: string[];
       showDefaultScanDirectories: boolean;
+      categoryColors?: Record<string, string>;
+      skillTags?: Record<string, { color: string; label: string }[]>;
     }>();
     expectTypeOf<CreateSkillInput>().toEqualTypeOf<{
       name: string;

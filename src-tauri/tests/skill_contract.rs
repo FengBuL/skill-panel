@@ -78,6 +78,7 @@ fn app_settings_serializes_skill_roots_and_default_source() {
         language: Language::System,
         custom_scan_directories: vec!["C:/Users/example/skills".to_string()],
         show_default_scan_directories: true,
+        ..AppSettings::default()
     };
 
     assert_eq!(
@@ -85,7 +86,9 @@ fn app_settings_serializes_skill_roots_and_default_source() {
         json!({
             "language": "system",
             "customScanDirectories": ["C:/Users/example/skills"],
-            "showDefaultScanDirectories": true
+            "showDefaultScanDirectories": true,
+            "categoryColors": {},
+            "skillTags": {}
         })
     );
 }

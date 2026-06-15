@@ -22,7 +22,8 @@ pub fn load_app_settings_from_path(path: &Path) -> Result<AppSettings, String> {
 
     let contents =
         fs::read_to_string(path).map_err(|error| format!("Unable to read settings: {error}"))?;
-    serde_json::from_str(&contents).map_err(|error| format!("Unable to parse settings: {error}"))
+    serde_json::from_str(contents.trim_start_matches('\u{feff}'))
+        .map_err(|error| format!("Unable to parse settings: {error}"))
 }
 
 pub fn save_app_settings_to_path(
@@ -94,6 +95,7 @@ mod tests {
             language: Language::EnUs,
             custom_scan_directories: vec!["D:\\Team\\skills".to_string()],
             show_default_scan_directories: false,
+            ..AppSettings::default()
         };
 
         let saved =
@@ -110,12 +112,34 @@ mod tests {
     }
 
     #[test]
+    fn settings_file_accepts_utf8_bom() {
+        let path = temp_settings_path("utf8-bom");
+        fs::create_dir_all(path.parent().expect("path should have parent"))
+            .expect("settings directory should be created");
+        fs::write(
+            &path,
+            "\u{feff}{\"language\":\"zh-CN\",\"customScanDirectories\":[],\"showDefaultScanDirectories\":true}",
+        )
+        .expect("settings should be written");
+
+        let settings = load_app_settings_from_path(&path).expect("bom settings should load");
+
+        assert_eq!(settings.language, Language::ZhCn);
+
+        let root = path.parent().and_then(|parent| parent.parent());
+        if let Some(root) = root {
+            fs::remove_dir_all(root).ok();
+        }
+    }
+
+    #[test]
     fn saving_settings_creates_parent_directories() {
         let path = temp_settings_path("creates-parent").join("nested").join("settings.json");
         let settings = AppSettings {
             language: Language::ZhCn,
             custom_scan_directories: vec!["/team/skills".to_string()],
             show_default_scan_directories: true,
+            ..AppSettings::default()
         };
 
         save_app_settings_to_path(&path, settings.clone()).expect("settings should save");

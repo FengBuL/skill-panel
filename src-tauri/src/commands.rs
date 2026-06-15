@@ -70,6 +70,7 @@ mod tests {
             language: Language::System,
             custom_scan_directories: vec!["/tmp/skills".to_string()],
             show_default_scan_directories: false,
+            ..AppSettings::default()
         };
 
         assert_eq!(settings.language, Language::System);
