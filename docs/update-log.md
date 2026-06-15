@@ -238,3 +238,16 @@
 - 目的：让方案、计划、执行记录和发布状态在仓库中保持同一套追溯口径。
 - 验证：`git diff --check`；文档内容按 UTF-8 读取确认。
 - 推送：本条记录提交后执行 `git push origin codex/skill-panel-app`。
+
+### U026 可发送完整交付文件夹
+
+- 分支：`codex/skill-panel-app`
+- 内容：生成可整体发送的本地交付文件夹，包含安装器、便携版、配置、skill 数据、迁移指南、项目方案、更新计划、迭代台账和 Release 信息。
+- 文件夹：`C:\Users\12925\Documents\skill面板\output\send\Skill-Panel-v2.0.0-complete`
+- 压缩包：`C:\Users\12925\Documents\skill面板\output\send\Skill-Panel-v2.0.0-complete.zip`
+- 文件数量：453 个文件。
+- 文件夹内容大小：`22979827` bytes。
+- 压缩包大小：`11672235` bytes。
+- 目录结构：`01-app-installer`、`02-portable`、`03-migration-data`、`04-docs`、`05-archives`、`README-SEND.md`、`RELEASE-INFO.txt`。
+- 仓库处理：`.gitignore` 增加 `output/send/`，避免本机交付包和个人 skill 数据进入 Git。
+- 验证：检查根目录结构、文件数量、压缩包大小和核心文件清单。

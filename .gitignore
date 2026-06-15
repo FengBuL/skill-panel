@@ -5,6 +5,7 @@ node_modules/
 dist/
 dist-ssr/
 output/migration/
+output/send/
 
 src-tauri/target/
 src-tauri/gen/
