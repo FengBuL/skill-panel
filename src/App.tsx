@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import {
   type AppSettings,
@@ -9,11 +9,40 @@ import {
   type SkillSummary,
 } from './types/skill';
 
-type SourceFilter = 'all' | SkillSource;
-type SourceIconName = 'agents' | 'all' | 'codex' | 'custom' | 'plugin';
+type SourceIconName = 'all' | 'tag' | CategoryId;
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
+type SkillViewMode = 'cards' | 'list';
+type CategoryId = 'data' | 'default' | 'finance' | 'writing';
+type CategoryDefinition = {
+  className: string;
+  color: string;
+  id: CategoryId;
+  label: string;
+};
+type ColorChoice = {
+  color: string;
+  label: string;
+};
+type CategoryContextMenu = {
+  categoryId: CategoryId;
+  x: number;
+  y: number;
+};
+type SkillTagContextMenu = {
+  path: string;
+  x: number;
+  y: number;
+};
+type CustomSkillTag = {
+  color: string;
+  label: string;
+};
+type CustomTagCategory = CustomSkillTag & {
+  count: number;
+};
+type CategoryColorMap = Record<CategoryId, string>;
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
@@ -38,14 +67,6 @@ const parseStatusLabelKeys: Record<ParseStatus, TranslationKey> = {
   parsed: 'status.parsed',
   'read-error': 'status.readError',
 };
-
-const sourceNavItems: Array<{ value: SourceFilter; labelKey: TranslationKey; icon: SourceIconName }> = [
-  { value: 'all', labelKey: 'sources.allSkills', icon: 'all' },
-  { value: 'codex-user', labelKey: 'sources.codexShort', icon: 'codex' },
-  { value: 'agents-user', labelKey: 'sources.agentsShort', icon: 'agents' },
-  { value: 'plugin-cache', labelKey: 'sources.pluginSkills', icon: 'plugin' },
-  { value: 'custom', labelKey: 'sources.customDirectories', icon: 'custom' },
-];
 
 const detailTagKeys = ['details.tagMcp', 'details.tagUi', 'details.tagLocal'] as const;
 
@@ -73,81 +94,254 @@ const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }
 ];
 
 const sidebarStoragePaths = ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'];
+const categoryDefaults: Record<CategoryId, CategoryDefinition> = {
+  finance: { id: 'finance', label: '金融', className: 'category-finance', color: '#fff4d8' },
+  data: { id: 'data', label: '表格', className: 'category-data', color: '#e8f0ff' },
+  writing: { id: 'writing', label: '文案', className: 'category-writing', color: '#eaf3ff' },
+  default: { id: 'default', label: '技能', className: 'category-default', color: '#eef4ff' },
+};
+const categoryNavItems: Array<{ category: CategoryDefinition | null; icon: SourceIconName; labelKey?: TranslationKey }> = [
+  { category: null, icon: 'all', labelKey: 'sources.allSkills' },
+  { category: categoryDefaults.finance, icon: 'finance' },
+  { category: categoryDefaults.data, icon: 'data' },
+  { category: categoryDefaults.writing, icon: 'writing' },
+  { category: categoryDefaults.default, icon: 'default' },
+];
+const colorChoices: ColorChoice[] = [
+  { label: '黄色', color: '#fff4d8' },
+  { label: '蓝色', color: '#e0f2fe' },
+  { label: '绿色', color: '#dcfce7' },
+  { label: '紫色', color: '#f5e8ff' },
+  { label: '粉色', color: '#ffe4ef' },
+];
+const defaultCustomTagColor = '#e0f2fe';
+
+const stitchDemoBaseSkills: SkillSummary[] = [
+  {
+    path: 'C:\\Users\\12925\\.codex\\skills\\a-share-daily-update\\SKILL.md',
+    name: 'a-share-daily-update',
+    description: 'Standardizes daily updates for the local stock dataset in MarketData folder.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-18T12:52:03Z',
+  },
+  {
+    path: 'C:\\Users\\12925\\.codex\\skills\\pdf-analysis-core\\SKILL.md',
+    name: 'pdf-analysis-core',
+    description: 'High-fidelity reading and processing tool for financial PDF documents.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-17T10:00:00Z',
+  },
+  {
+    path: 'C:\\Users\\12925\\.codex\\skills\\playwright-scrapper\\SKILL.md',
+    name: 'playwright-scrapper',
+    description: 'Automated browser testing and data extraction logic for complex SPA.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-17T09:30:00Z',
+  },
+  {
+    path: 'C:\\Users\\12925\\.codex\\skills\\serenity-stock-analysis\\SKILL.md',
+    name: 'serenity-stock-analysis',
+    description: 'Algorithmic engine for multi-factor stock screening and analysis.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-16T11:15:00Z',
+  },
+  {
+    path: 'C:\\Users\\12925\\.agents\\skills\\lark-approval-bot\\SKILL.md',
+    name: 'lark-approval-bot',
+    description: 'Lark approval API integration for automated workflow handling.',
+    source: 'agents-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-15T08:20:00Z',
+  },
+  {
+    path: 'C:\\Users\\12925\\.codex\\plugins\\cache\\browser\\skills\\control-in-app-browser\\SKILL.md',
+    name: 'browser-control',
+    description: 'Open, navigate, inspect, test, and screenshot local web targets.',
+    source: 'plugin-cache',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-05-14T07:00:00Z',
+  },
+];
+
+const stitchDemoSkills: SkillSummary[] = Array.from({ length: 66 }, (_, index) => {
+  const baseSkill = stitchDemoBaseSkills[index % stitchDemoBaseSkills.length];
+
+  if (index < stitchDemoBaseSkills.length) {
+    return baseSkill;
+  }
+
+  const suffix = String(index + 1).padStart(2, '0');
+  return {
+    ...baseSkill,
+    path: baseSkill.path.replace('\\SKILL.md', `-${suffix}\\SKILL.md`),
+    name: `${baseSkill.name}-${suffix}`,
+    modifiedAt: baseSkill.modifiedAt,
+  };
+});
+
+const stitchDemoDetails: Record<string, SkillDetail> = {
+  [stitchDemoBaseSkills[0].path]: {
+    ...stitchDemoBaseSkills[0],
+    markdown:
+      '---\nname: a-share-daily-update\ndescription: Standardizes daily updates for the local stock dataset in MarketData folder.\n---\n\n# A-Share Daily Update\n\nThis skill standardizes daily updates for the local stock dataset in `D:\\Quant\\MarketData`.\n\n## When To Use\nUse this skill when the request includes any of:\n- Update all A-share CSV files to a target trading date\n- Rename files to `Ticker_Name.csv` format\n- Replace old dated folders\n- Run mandatory two-subagent verification after update\n\n## Required Inputs\n- Dataset parent directory: `D:\\Quant\\MarketData`\n- Workspace scripts: `D:\\Codex\\Internal`\n- Target date: `Default: Current Shanghai Date`\n\n## Source Strategy\nUse hybrid sources for maximum reliability:\n- `baostock` for price-volume daily aggregates.\n- `Sina Finance` for real-time 60-min K-line checks.',
+    bodyMarkdown:
+      '# A-Share Daily Update\n\nThis skill standardizes daily updates for the local stock dataset in `D:\\Quant\\MarketData`.\n\n## When To Use\nUse this skill when the request includes any of:\n- Update all A-share CSV files to a target trading date\n- Rename files to `Ticker_Name.csv` format\n- Replace old dated folders\n- Run mandatory two-subagent verification after update\n\n## Required Inputs\n- Dataset parent directory: `D:\\Quant\\MarketData`\n- Workspace scripts: `D:\\Codex\\Internal`\n- Target date: `Default: Current Shanghai Date`\n\n## Source Strategy\nUse hybrid sources for maximum reliability:\n- `baostock` for price-volume daily aggregates.\n- `Sina Finance` for real-time 60-min K-line checks.',
+    rawContent:
+      '---\nname: a-share-daily-update\ndescription: Standardizes daily updates for the local stock dataset in MarketData folder.\n---\n\n# A-Share Daily Update',
+    frontmatter: {
+      description: 'Standardizes daily updates for the local stock dataset in MarketData folder.',
+      name: 'a-share-daily-update',
+    },
+  },
+};
+
+function isTauriUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.includes('invoke') || message.includes('__TAURI__') || message.includes('not available');
+}
+
+function getStitchDemoDetail(skill: SkillSummary): SkillDetail {
+  return (
+    stitchDemoDetails[skill.path] ?? {
+      ...skill,
+      markdown: `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n# ${skill.name}\n\n${skill.description}\n\n## Workflow\n- Inspect local context\n- Apply the skill instructions\n- Verify output before completion`,
+      bodyMarkdown: `# ${skill.name}\n\n${skill.description}\n\n## Workflow\n- Inspect local context\n- Apply the skill instructions\n- Verify output before completion`,
+      rawContent: `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n# ${skill.name}`,
+      frontmatter: {
+        description: skill.description,
+        name: skill.name,
+      },
+    }
+  );
+}
 
 function getSkillSearchText(skill: SkillSummary) {
   return `${skill.name} ${skill.description} ${skill.path}`.toLocaleLowerCase();
 }
 
-function filterSkills(skills: SkillSummary[], query: string, sourceFilter: SourceFilter) {
+function filterSkills(skills: SkillSummary[], query: string) {
   const normalizedQuery = query.trim().toLocaleLowerCase();
 
   return skills.filter((skill) => {
     const matchesSearch = normalizedQuery.length === 0 || getSkillSearchText(skill).includes(normalizedQuery);
-    const matchesSource = sourceFilter === 'all' || skill.source === sourceFilter;
 
-    return matchesSearch && matchesSource;
+    return matchesSearch;
   });
 }
 
+function MaterialIcon({ name, size = 18 }: { name: string; size?: number }) {
+  return (
+    <span aria-hidden="true" className="material-symbols-outlined app-icon" style={{ fontSize: `${size}px` }}>
+      {name}
+    </span>
+  );
+}
+
+function getSkillIcon(skill: SkillSummary) {
+  const text = getSkillSearchText(skill);
+
+  if (text.includes('pdf')) {
+    return 'picture_as_pdf';
+  }
+
+  if (text.includes('browser') || text.includes('playwright') || text.includes('web')) {
+    return 'open_in_browser';
+  }
+
+  if (text.includes('stock') || text.includes('share') || text.includes('finance') || text.includes('量化')) {
+    return 'monitoring';
+  }
+
+  if (text.includes('lark') || text.includes('message') || text.includes('chat')) {
+    return 'chat_bubble';
+  }
+
+  return 'schema';
+}
+
+function getSourceCode(source: SkillSource) {
+  if (source === 'agents-user') {
+    return 'AGENTS';
+  }
+
+  if (source === 'plugin-cache') {
+    return 'PLUGIN';
+  }
+
+  if (source === 'custom') {
+    return 'CUSTOM';
+  }
+
+  if (source === 'system') {
+    return 'SYSTEM';
+  }
+
+  return 'CODEX';
+}
+
+function getSkillCategories(skill: SkillSummary) {
+  const text = getSkillSearchText(skill);
+  const categories: CategoryDefinition[] = [];
+
+  if (text.includes('stock') || text.includes('share') || text.includes('finance') || text.includes('量化')) {
+    categories.push(categoryDefaults.finance);
+  }
+
+  if (text.includes('sheet') || text.includes('csv') || text.includes('table') || text.includes('data')) {
+    categories.push(categoryDefaults.data);
+  }
+
+  if (text.includes('doc') || text.includes('pdf') || text.includes('write') || text.includes('mail')) {
+    categories.push(categoryDefaults.writing);
+  }
+
+  return categories.length > 0 ? categories : [categoryDefaults.default];
+}
+
+function getInitialCategoryColors(): CategoryColorMap {
+  return {
+    data: categoryDefaults.data.color,
+    default: categoryDefaults.default.color,
+    finance: categoryDefaults.finance.color,
+    writing: categoryDefaults.writing.color,
+  };
+}
+
+function getCategoryStyle(category: CategoryDefinition, categoryColors: CategoryColorMap): CSSProperties {
+  return { '--category-color': categoryColors[category.id] ?? category.color } as CSSProperties;
+}
+
+function getTagStyle(color: string): CSSProperties {
+  return { '--tag-color': color } as CSSProperties;
+}
+
+function normalizeSelectableLanguage(languageValue: AppSettings['language']): AppSettings['language'] {
+  return languageValue === 'system' ? 'zh-CN' : languageValue;
+}
+
+function getSourceDotClass(source: SkillSource) {
+  return `source-dot source-dot-${source.replace(/[^a-z]/g, '-')}`;
+}
+
 function SourceNavIcon({ name }: { name: SourceIconName }) {
-  const commonProps = {
-    'aria-hidden': true,
-    className: 'source-nav-icon',
-    fill: 'none',
-    focusable: false,
-    stroke: 'currentColor',
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-    strokeWidth: 1.9,
-    viewBox: '0 0 24 24',
-  } as const;
-
-  if (name === 'all') {
-    return (
-      <svg {...commonProps}>
-        <path d="M4 6.5h7.5" />
-        <path d="M4 12h16" />
-        <path d="M4 17.5h12" />
-        <path d="M15.5 5.5 18 8l3-4" />
-      </svg>
-    );
-  }
-
-  if (name === 'codex') {
-    return (
-      <svg {...commonProps}>
-        <rect x="4" y="5" width="16" height="14" rx="2.5" />
-        <path d="M8 9.5h8" />
-        <path d="M8 14.5h5" />
-      </svg>
-    );
-  }
-
-  if (name === 'agents') {
-    return (
-      <svg {...commonProps}>
-        <circle cx="8" cy="8.5" r="2.5" />
-        <circle cx="16" cy="8.5" r="2.5" />
-        <path d="M4.5 18c.8-2.5 2.2-3.8 4.2-3.8" />
-        <path d="M19.5 18c-.8-2.5-2.2-3.8-4.2-3.8" />
-        <path d="M9.5 18h5" />
-      </svg>
-    );
-  }
-
-  if (name === 'plugin') {
-    return (
-      <svg {...commonProps}>
-        <path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z" />
-      </svg>
-    );
-  }
+  const iconNames: Record<SourceIconName, string> = {
+    all: 'list_alt',
+    data: 'table_chart',
+    default: 'extension',
+    finance: 'monitoring',
+    tag: 'label',
+    writing: 'edit_note',
+  };
 
   return (
-    <svg {...commonProps}>
-      <path d="M3.5 7.5h7l2 2h8v8.5a2 2 0 0 1-2 2h-15z" />
-      <path d="M3.5 7.5V5.8a1.8 1.8 0 0 1 1.8-1.8h4.2l2 2h7.2a1.8 1.8 0 0 1 1.8 1.8v1.7" />
-    </svg>
+    <span aria-hidden="true" className="material-symbols-outlined source-nav-icon">
+      {iconNames[name]}
+    </span>
   );
 }
 
@@ -236,6 +430,7 @@ export function App() {
   const [detailDescription, setDetailDescription] = useState('');
   const [detailMarkdown, setDetailMarkdown] = useState('');
   const [detailMode, setDetailMode] = useState<'preview' | 'edit'>('edit');
+  const [skillViewMode, setSkillViewMode] = useState<SkillViewMode>('cards');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
@@ -248,7 +443,6 @@ export function App() {
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
   const createTargetDirectoryRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -261,11 +455,35 @@ export function App() {
   const [createSkillDraft, setCreateSkillDraft] = useState<CreateSkillDraft>(emptyCreateSkillDraft);
   const [createSkillError, setCreateSkillError] = useState<string | null>(null);
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
+  const [activeCategoryId, setActiveCategoryId] = useState<CategoryId | null>(null);
+  const [activeTagLabel, setActiveTagLabel] = useState<string | null>(null);
+  const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => getInitialCategoryColors());
+  const [categoryContextMenu, setCategoryContextMenu] = useState<CategoryContextMenu | null>(null);
+  const [skillTagContextMenu, setSkillTagContextMenu] = useState<SkillTagContextMenu | null>(null);
+  const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>({});
+  const [tagDraft, setTagDraft] = useState('');
+  const [tagColor, setTagColor] = useState(defaultCustomTagColor);
 
-  const filteredSkills = useMemo(
-    () => filterSkills(skills, searchQuery, sourceFilter),
-    [searchQuery, skills, sourceFilter],
-  );
+  const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
+  const visibleLanguage = normalizeSelectableLanguage(language);
+  const visibleSettingsLanguage = normalizeSelectableLanguage(settingsDraft.language);
+  const categorySidebarLabel = visibleLanguage === 'en-US' ? 'Categories' : '类目';
+
+  const filteredSkills = useMemo(() => {
+    const searchMatches = filterSkills(skills, searchQuery);
+
+    if (activeTagLabel) {
+      return searchMatches.filter((skill) => skillTags[skill.path]?.some((tag) => tag.label === activeTagLabel));
+    }
+
+    if (!activeCategoryId) {
+      return searchMatches;
+    }
+
+    return searchMatches.filter((skill) =>
+      getSkillCategories(skill).some((category) => category.id === activeCategoryId),
+    );
+  }, [activeCategoryId, activeTagLabel, searchQuery, skillTags, skills]);
   const totalPages = Math.max(1, Math.ceil(filteredSkills.length / skillsPerPage));
   const normalizedCurrentPage = Math.min(currentPage, totalPages);
   const paginatedSkills = useMemo(() => {
@@ -273,23 +491,48 @@ export function App() {
     return filteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
   }, [filteredSkills, normalizedCurrentPage]);
 
-  const sourceCounts = useMemo(() => {
-    const counts: Record<SourceFilter, number> = {
-      all: skills.length,
-      'agents-user': 0,
-      'codex-user': 0,
-      custom: 0,
-      'plugin-cache': 0,
-      system: 0,
-      unknown: 0,
+  const categoryCounts = useMemo(() => {
+    const counts: Record<CategoryId, number> = {
+      data: 0,
+      default: 0,
+      finance: 0,
+      writing: 0,
     };
 
     for (const skill of skills) {
-      counts[skill.source] += 1;
+      for (const category of getSkillCategories(skill)) {
+        counts[category.id] += 1;
+      }
     }
 
     return counts;
   }, [skills]);
+
+  const customTagCategories = useMemo(() => {
+    const tagMap = new Map<string, CustomTagCategory>();
+
+    for (const tags of Object.values(skillTags)) {
+      const countedLabels = new Set<string>();
+
+      for (const tag of tags) {
+        const label = tag.label.trim();
+
+        if (!label || countedLabels.has(label)) {
+          continue;
+        }
+
+        countedLabels.add(label);
+        const existingTag = tagMap.get(label);
+        tagMap.set(label, {
+          color: existingTag?.color ?? tag.color,
+          count: (existingTag?.count ?? 0) + 1,
+          label,
+        });
+      }
+    }
+
+    return Array.from(tagMap.values()).sort((leftTag, rightTag) => leftTag.label.localeCompare(rightTag.label, 'zh-CN'));
+  }, [skillTags]);
 
   const formattedLastScan = formatDateTime(lastScanAt, locale);
   const visibleScanOutcome: VisibleScanOutcome = isLoadingSkills ? 'scanning' : scanOutcome === 'idle' ? 'not-scanned' : scanOutcome;
@@ -313,6 +556,17 @@ export function App() {
       setSkills(scannedSkills);
       setScanOutcome(getScanOutcome(scannedSkills));
     } catch (error) {
+      if (isTauriUnavailable(error)) {
+        const demoDetail = getStitchDemoDetail(stitchDemoSkills[0]);
+        setSkills(stitchDemoSkills);
+        setScanOutcome('success');
+        selectedPathRef.current = demoDetail.path;
+        setSelectedPath(demoDetail.path);
+        syncDetailForm(demoDetail);
+        setDetailMode('preview');
+        return;
+      }
+
       setScanError(error instanceof Error ? error.message : String(error));
       setScanOutcome('failed');
     } finally {
@@ -326,12 +580,19 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    setSettingsDraft(settings);
+    setSettingsDraft({
+      ...settings,
+      language: normalizeSelectableLanguage(settings.language),
+    });
   }, [settings]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategoryId, activeTagLabel]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -427,6 +688,12 @@ export function App() {
         syncDetailForm(detail);
       }
     } catch (error) {
+      if (isTauriUnavailable(error) && stitchDemoSkills.some((demoSkill) => demoSkill.path === skill.path)) {
+        syncDetailForm(getStitchDemoDetail(skill));
+        setDetailMode('preview');
+        return;
+      }
+
       if (detailRequestIdRef.current === requestId) {
         setDetailErrorTitleKey('details.errorTitle');
         setDetailError(error instanceof Error ? error.message : String(error));
@@ -565,9 +832,50 @@ export function App() {
     }));
   };
 
+  const openCategoryContextMenu = (event: MouseEvent, categoryId: CategoryId) => {
+    event.preventDefault();
+    setSkillTagContextMenu(null);
+    setCategoryContextMenu({ categoryId, x: event.clientX, y: event.clientY });
+  };
+
+  const updateCategoryColor = (categoryId: CategoryId, color: string) => {
+    setCategoryColors((currentColors) => ({
+      ...currentColors,
+      [categoryId]: color,
+    }));
+    setCategoryContextMenu(null);
+  };
+
+  const openSkillTagContextMenu = (event: MouseEvent, path: string) => {
+    event.preventDefault();
+    setCategoryContextMenu(null);
+    setTagDraft('');
+    setTagColor(defaultCustomTagColor);
+    setSkillTagContextMenu({ path, x: event.clientX, y: event.clientY });
+  };
+
+  const addSkillTag = () => {
+    const label = tagDraft.trim();
+
+    if (!label || !skillTagContextMenu) {
+      return;
+    }
+
+    setSkillTags((currentTags) => ({
+      ...currentTags,
+      [skillTagContextMenu.path]: [...(currentTags[skillTagContextMenu.path] ?? []), { color: tagColor, label }],
+    }));
+    setSkillTagContextMenu(null);
+    setTagDraft('');
+    setTagColor(defaultCustomTagColor);
+  };
+
   const saveSettingsDraft = async () => {
     try {
-      await saveSettings(settingsDraft);
+      await saveSettings({
+        ...settingsDraft,
+        language: normalizeSelectableLanguage(settingsDraft.language),
+      });
     } catch {
       // Error state is stored by the i18n runtime for the settings panel.
     }
@@ -598,38 +906,59 @@ export function App() {
       <header className="top-bar top-command-bar">
         <div className="brand-block command-brand">
           <h1>{t('topBar.productName')}</h1>
+          <div className="global-search-shell">
+            <MaterialIcon name="search" />
+            <input
+              type="search"
+              aria-label={t('search.skillsLabel')}
+              placeholder={t('search.placeholder')}
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </div>
         <div className={`scan-summary-chip command-status scan-summary-${visibleScanOutcome}`} aria-label={t('topBar.scanStatusAria')}>
+          <MaterialIcon name={visibleScanOutcome === 'failed' ? 'error' : visibleScanOutcome === 'scanning' ? 'sync' : 'check_circle'} size={16} />
           <span>{`${t('sources.scanState')}: ${t(scanOutcomeLabelKey)}`}</span>
           <strong>{`${t('sources.lastScan')}: ${formattedLastScan ?? t('sources.notScanned')}`}</strong>
         </div>
         <div className="toolbar-actions command-actions">
-          <button type="button" className="primary-action" onClick={() => void scanSkills()}>
+          <button type="button" className="secondary-action" onClick={() => void scanSkills()}>
+            <MaterialIcon name="refresh" />
             {t('actions.rescan')}
           </button>
-          <button type="button" onClick={openCreateSkillDialog}>
+          <button type="button" className="primary-action" onClick={openCreateSkillDialog}>
+            <MaterialIcon name="add" />
             {t('actions.newSkill')}
           </button>
           <label className="locale-switcher">
-            <span>{t('language.label')}</span>
+            <span className="visually-hidden">{t('language.label')}</span>
             <select
               aria-label={t('language.label')}
-              value={language}
+              value={visibleLanguage}
               onChange={(event) => {
                 if (isLanguage(event.target.value)) {
                   updateLanguage(event.target.value);
                 }
               }}
             >
-              {languageOptions.map((option) => (
+              {selectableLanguageOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {t(option.labelKey)}
                 </option>
               ))}
             </select>
           </label>
-          <button type="button" className={showSettings ? 'active-action' : undefined} onClick={() => setShowSettings((current) => !current)}>
-            {t('actions.settings')}
+          <button
+            type="button"
+            className={`icon-action ${showSettings ? 'active-action' : ''}`}
+            aria-label={t('actions.settings')}
+            onClick={() => setShowSettings((current) => !current)}
+          >
+            <MaterialIcon name="settings" size={20} />
           </button>
         </div>
       </header>
@@ -671,7 +1000,7 @@ export function App() {
                 <span>{t('settings.languageLabel')}</span>
                 <select
                   aria-label={t('settings.languageLabel')}
-                  value={settingsDraft.language}
+                  value={visibleSettingsLanguage}
                   onChange={(event) => {
                     const nextLanguage = event.currentTarget.value;
                     if (isLanguage(nextLanguage)) {
@@ -679,7 +1008,7 @@ export function App() {
                     }
                   }}
                 >
-                  {languageOptions.map((option) => (
+                  {selectableLanguageOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {t(option.labelKey)}
                     </option>
@@ -770,28 +1099,65 @@ export function App() {
       ) : null}
 
       <section className="dashboard-grid fluid-dashboard-grid" aria-label={t('layout.dashboard')}>
-        <aside className="panel sidebar fluid-sidebar-panel" aria-label={t('sources.title')}>
-          <div className="panel-heading">
-            <h2>{t('sources.title')}</h2>
-            <span className="count-badge">{skills.length}</span>
+        <aside className="panel sidebar fluid-sidebar-panel" aria-label={categorySidebarLabel}>
+          <div className="sidebar-kicker">
+            <h2>{categorySidebarLabel}</h2>
+            <p>{`${skills.length} Total Skills`}</p>
           </div>
-          <nav aria-label={t('sources.title')}>
-            {sourceNavItems.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                aria-label={`${t(item.labelKey)} ${sourceCounts[item.value]}`}
-                className={`source-nav-button ${sourceFilter === item.value ? 'active' : ''}`}
-                onClick={() => {
-                  setSourceFilter(item.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SourceNavIcon name={item.icon} />
-                <span className="source-nav-label">{t(item.labelKey)}</span>
-                <span className="source-nav-count">{sourceCounts[item.value]}</span>
-              </button>
-            ))}
+          <nav aria-label={categorySidebarLabel}>
+            {categoryNavItems.map((item) => {
+              const label = item.category ? item.category.label : t(item.labelKey ?? 'sources.allSkills');
+              const count = item.category ? categoryCounts[item.category.id] : skills.length;
+              const isActive = item.category
+                ? activeTagLabel === null && activeCategoryId === item.category.id
+                : activeCategoryId === null && activeTagLabel === null;
+
+              return (
+                <button
+                  key={item.category?.id ?? 'all'}
+                  type="button"
+                  aria-label={`${label} ${count}`}
+                  className={`source-nav-button category-nav-button ${isActive ? 'active' : ''}`}
+                  style={item.category ? getCategoryStyle(item.category, categoryColors) : undefined}
+                  onClick={() => {
+                    setActiveCategoryId(item.category?.id ?? null);
+                    setActiveTagLabel(null);
+                    setCurrentPage(1);
+                  }}
+                  onContextMenu={(event) => {
+                    if (item.category) {
+                      openCategoryContextMenu(event, item.category.id);
+                    }
+                  }}
+                >
+                  <SourceNavIcon name={item.icon} />
+                  <span className="source-nav-label">{label}</span>
+                  <span className="source-nav-count">{count}</span>
+                </button>
+              );
+            })}
+            {customTagCategories.map((tag) => {
+              const isActive = activeTagLabel === tag.label;
+
+              return (
+                <button
+                  key={`tag-${tag.label}`}
+                  type="button"
+                  aria-label={`${tag.label} ${tag.count}`}
+                  className={`source-nav-button category-nav-button custom-tag-nav-button ${isActive ? 'active' : ''}`}
+                  style={{ '--category-color': tag.color } as CSSProperties}
+                  onClick={() => {
+                    setActiveCategoryId(null);
+                    setActiveTagLabel(tag.label);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SourceNavIcon name="tag" />
+                  <span className="source-nav-label">{tag.label}</span>
+                  <span className="source-nav-count">{tag.count}</span>
+                </button>
+              );
+            })}
           </nav>
 
           <section className="sidebar-section" aria-label={t('sources.statusTitle')}>
@@ -825,87 +1191,181 @@ export function App() {
             </ul>
           </section>
 
+          <div className="sidebar-footer-status" aria-hidden="true">
+            <span />
+            <strong>Online</strong>
+          </div>
+
         </aside>
 
         <section className="panel list-panel fluid-list-panel" aria-label={t('skills.title')}>
           <div className="section-heading">
             <div>
               <h2>{t('skills.title')}</h2>
-              <p>{`${filteredSkills.length} ${t('skills.countUnit')}`}</p>
+              <p>{`Showing ${filteredSkills.length} ${t('skills.countUnit')}`}</p>
+              <span className="visually-hidden">{`${filteredSkills.length} ${t('skills.countUnit')}`}</span>
             </div>
-            <div className="list-controls">
-              <input
-                type="search"
-                aria-label={t('search.skillsLabel')}
-                placeholder={t('search.placeholder')}
-                value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  setCurrentPage(1);
-                }}
-              />
+            <div className="list-toolbar">
+              <div className="view-switcher" role="tablist" aria-label="Skill view">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={skillViewMode === 'list'}
+                  className={skillViewMode === 'list' ? 'active' : undefined}
+                  title="List View"
+                  onClick={() => setSkillViewMode('list')}
+                >
+                  <MaterialIcon name="format_list_bulleted" />
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={skillViewMode === 'cards'}
+                  className={skillViewMode === 'cards' ? 'active' : undefined}
+                  title="Card View"
+                  onClick={() => setSkillViewMode('cards')}
+                >
+                  <MaterialIcon name="grid_view" />
+                </button>
+              </div>
+              <button type="button" className="icon-button" aria-label="Sort skills">
+                <MaterialIcon name="sort" />
+              </button>
+              <button type="button" className="icon-button" aria-label="Filter skills">
+                <MaterialIcon name="filter_list" />
+              </button>
             </div>
           </div>
           {listState === 'ready' ? (
-            <div className="skill-table-wrap fluid-table-region">
-              <table aria-label={t('skills.tableLabel')} className="skill-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{t('skills.columnName')}</th>
-                    <th scope="col">{t('skills.columnSource')}</th>
-                    <th scope="col">{t('skills.columnDescription')}</th>
-                    <th scope="col">{t('skills.columnModified')}</th>
-                    <th scope="col">{t('skills.columnPath')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedSkills.map((skill) => (
-                    <tr
+            <div className="skill-list-scroll fluid-table-region">
+              <div className={skillViewMode === 'cards' ? 'skill-card-grid active' : 'skill-card-grid'}>
+                {paginatedSkills.map((skill) => {
+                  const selected = selectedPath === skill.path;
+                  const customTags = skillTags[skill.path] ?? [];
+                  return (
+                    <button
                       key={skill.path}
-                      className={selectedPath === skill.path ? 'selected-row' : undefined}
-                      aria-selected={selectedPath === skill.path}
-                      tabIndex={0}
+                      type="button"
+                      className={`skill-card ${selected ? 'selected-card' : ''}`}
+                      aria-pressed={selected}
                       onClick={() => void selectSkill(skill)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          void selectSkill(skill);
-                        }
-                      }}
+                      onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
                     >
-                      <td>
+                      <span className="skill-card-topline">
+                        <span className="skill-card-icon">
+                          <MaterialIcon name={getSkillIcon(skill)} size={24} />
+                        </span>
+                        <span className={`source-code source-code-${skill.source.replace(/[^a-z]/g, '-')}`}>{getSourceCode(skill.source)}</span>
+                      </span>
+                      <span className="skill-card-body">
                         <strong>{skill.name}</strong>
-                      </td>
-                      <td>
-                        <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
-                      </td>
-                      <td>
                         <span className="skill-description">{skill.description}</span>
-                      </td>
-                      <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
-                      <td>
-                        <PathButton path={skill.path} onOpen={openSkillFolder} />
-                      </td>
+                      </span>
+                      <span className="skill-card-tags">
+                        {getSkillCategories(skill).map((category) => (
+                          <span
+                            key={`${skill.path}-${category.id}`}
+                            className={`category-chip ${category.className}`}
+                            data-testid={`skill-category-${skill.path}-${category.id}`}
+                            style={getCategoryStyle(category, categoryColors)}
+                            aria-hidden="true"
+                          >
+                            {category.label}
+                          </span>
+                        ))}
+                        {customTags.map((tag, index) => (
+                          <span
+                            key={`${skill.path}-${tag.label}-${index}`}
+                            className="category-chip custom-skill-tag"
+                            style={getTagStyle(tag.color)}
+                            aria-hidden="true"
+                          >
+                            {tag.label}
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={skillViewMode === 'list' ? 'skill-table-wrap fluid-table-region active' : 'skill-table-wrap fluid-table-region semantic-table'}>
+                <table aria-label={t('skills.tableLabel')} className="skill-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('skills.columnName')}</th>
+                      <th scope="col">{t('skills.columnSource')}</th>
+                      <th scope="col">{t('skills.columnDescription')}</th>
+                      <th scope="col">{t('skills.columnModified')}</th>
+                      <th scope="col">{t('skills.columnPath')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paginatedSkills.map((skill) => (
+                      <tr
+                        key={skill.path}
+                        className={selectedPath === skill.path ? 'selected-row' : undefined}
+                        aria-selected={selectedPath === skill.path}
+                        tabIndex={0}
+                        onClick={() => void selectSkill(skill)}
+                        onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            void selectSkill(skill);
+                          }
+                        }}
+                      >
+                        <td>
+                          <span className="table-skill-name">
+                            <span className="table-skill-icon">
+                              <MaterialIcon name={getSkillIcon(skill)} />
+                            </span>
+                            <strong>{skill.name}</strong>
+                            <span className="source-code compact">{getSourceCode(skill.source)}</span>
+                          </span>
+                        </td>
+                        <td>
+                          <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
+                        </td>
+                        <td>
+                          {skillViewMode === 'list' ? <span className="skill-description">{skill.description}</span> : null}
+                        </td>
+                        <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
+                        <td>
+                          <PathButton path={skill.path} onOpen={openSkillFolder} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <div className="pagination-controls" aria-label={t('pagination.label')}>
+                <span>
+                  {`Showing ${paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1}-${Math.min(
+                    normalizedCurrentPage * skillsPerPage,
+                    filteredSkills.length,
+                  )} of ${filteredSkills.length} ${t('skills.countUnit')}`}
+                </span>
+                <div className="pagination-stepper">
+                  <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
                 <button
                   type="button"
                   disabled={normalizedCurrentPage === 1}
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                 >
+                    <MaterialIcon name="chevron_left" />
                   {t('pagination.previous')}
                 </button>
-                <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
                 <button
                   type="button"
                   disabled={normalizedCurrentPage === totalPages}
                   onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                 >
                   {t('pagination.next')}
+                    <MaterialIcon name="chevron_right" />
                 </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -933,8 +1393,30 @@ export function App() {
         </section>
 
         <aside className="panel detail-panel fluid-detail-panel" aria-label={t('details.ariaLabel')}>
-          <div className="panel-heading">
-            <h2>{t('details.title')}</h2>
+          <div className="detail-panel-heading">
+            <div className="detail-title-row">
+              <span className="detail-eyebrow">{t('details.title')}</span>
+              <div className="detail-mode-tabs" role="tablist" aria-label={t('details.markdownMode')}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailMode === 'preview'}
+                  className={detailMode === 'preview' ? 'active' : undefined}
+                  onClick={() => setDetailMode('preview')}
+                >
+                  {t('details.preview')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailMode === 'edit'}
+                  className={detailMode === 'edit' ? 'active' : undefined}
+                  onClick={() => setDetailMode('edit')}
+                >
+                  {t('details.edit')}
+                </button>
+              </div>
+            </div>
             <span className="status-pill">
               {selectedDetail ? t(parseStatusLabelKeys[selectedDetail.parseStatus]) : t('details.placeholderStatus')}
             </span>
@@ -947,19 +1429,28 @@ export function App() {
           ) : null}
           {selectedDetail ? (
             <div className="detail-content detail-content-selected">
-              <section className="detail-section detail-metadata-section" aria-label={t('details.metadata')}>
-                <div className="detail-section-title-row">
-                  <h3>{t('details.metadata')}</h3>
-                  <span className="status-pill">{t(sourceLabelKeys[selectedDetail.source])}</span>
-                </div>
-                <label className="field-stack detail-name-field">
+              <section className="detail-hero-section" aria-label={t('details.metadata')}>
+                <label className="field-stack detail-name-field title-field">
                   <span>{t('details.name')}</span>
                   <input value={detailName} onChange={(event) => setDetailName(event.target.value)} />
                 </label>
+                <div className="detail-tag-row">
+                  {getSkillCategories(selectedDetail).map((category) => (
+                    <span key={`${selectedDetail.path}-${category.label}`} className={`category-chip ${category.className}`}>
+                      {category.label}
+                    </span>
+                  ))}
+                  <button type="button" className="tag-edit-button" aria-label={t('details.tags')}>
+                    <MaterialIcon name="edit" size={14} />
+                  </button>
+                </div>
                 <dl className="detail-meta-strip">
                   <div>
                     <dt>{t('details.source')}</dt>
-                    <dd>{t(sourceLabelKeys[selectedDetail.source])}</dd>
+                    <dd>
+                      <span className={getSourceDotClass(selectedDetail.source)} />
+                      {t(sourceLabelKeys[selectedDetail.source])}
+                    </dd>
                   </div>
                   <div>
                     <dt>{t('details.modified')}</dt>
@@ -968,51 +1459,40 @@ export function App() {
                   <div className="detail-path-meta">
                     <dt>{t('details.path')}</dt>
                     <dd>
-                      <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
+                      <span className="detail-path-shell">
+                        <PathButton className="path-button path-placeholder" path={selectedDetail.path} onOpen={openSkillFolder} />
+                        <button type="button" className="copy-path-button" aria-label={t('details.path')} onClick={() => void openSkillFolder(selectedDetail.path)}>
+                          <MaterialIcon name="folder_open" size={16} />
+                        </button>
+                      </span>
                     </dd>
                   </div>
                 </dl>
               </section>
-              <section className="detail-section detail-description-section">
-                <h3>{t('details.description')}</h3>
-                <label className="field-stack">
-                  <span className="visually-hidden">{t('details.description')}</span>
-                  <textarea
-                    className="detail-description-input"
-                    value={detailDescription}
-                    onChange={(event) => setDetailDescription(event.target.value)}
-                  />
-                </label>
-              </section>
-              <section className="detail-section detail-markdown-section detail-body-section fluid-markdown-region">
-                <div className="detail-markdown-heading">
-                  <h3>{t('details.markdownBody')}</h3>
-                  <div className="detail-mode-tabs" role="tablist" aria-label={t('details.markdownMode')}>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={detailMode === 'preview'}
-                      className={detailMode === 'preview' ? 'active' : undefined}
-                      onClick={() => setDetailMode('preview')}
-                    >
-                      {t('details.preview')}
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={detailMode === 'edit'}
-                      className={detailMode === 'edit' ? 'active' : undefined}
-                      onClick={() => setDetailMode('edit')}
-                    >
-                      {t('details.edit')}
-                    </button>
-                  </div>
-                </div>
+
+              <section className="detail-description-section">
                 {detailMode === 'preview' ? (
-                  <pre className="markdown-preview">{detailMarkdown.trim() || t('details.markdownEmpty')}</pre>
+                  <div className="field-stack">
+                    <span>{t('details.description')}</span>
+                    <p className="detail-description-preview">{detailDescription || t('details.placeholder')}</p>
+                  </div>
+                ) : (
+                  <label className="field-stack">
+                    <span>{t('details.description')}</span>
+                    <textarea
+                      className="detail-description-input"
+                      value={detailDescription}
+                      onChange={(event) => setDetailDescription(event.target.value)}
+                    />
+                  </label>
+                )}
+              </section>
+              <section className="detail-markdown-section detail-body-section fluid-markdown-region">
+                {detailMode === 'preview' ? (
+                  <pre className="markdown-preview markdown-content">{detailMarkdown.trim() || t('details.markdownEmpty')}</pre>
                 ) : (
                   <label className="field-stack detail-markdown-field">
-                    <span className="visually-hidden">{t('details.markdownBody')}</span>
+                    <span>{t('details.markdownBody')}</span>
                     <textarea
                       className="detail-markdown-input fluid-markdown-input"
                       value={detailMarkdown}
@@ -1066,25 +1546,83 @@ export function App() {
             </div>
           )}
           <div className="detail-actions detail-actions-pinned">
-            <button type="button" disabled={!selectedDetail || isSavingDetail} onClick={() => void saveSelectedSkill()}>
+            <button type="button" className="primary-action" disabled={!selectedDetail || isSavingDetail} onClick={() => void saveSelectedSkill()}>
+              <MaterialIcon name="save" />
               {t('actions.save')}
             </button>
             <button
               type="button"
+              className="secondary-action"
               disabled={!selectedDetail}
               onClick={() => {
                 setDeleteConfirmPath(selectedDetail?.path ?? null);
                 setShowDeleteConfirm(true);
               }}
             >
+              <MaterialIcon name="delete" />
               {t('actions.delete')}
             </button>
-            <button type="button" disabled={!selectedDetail} onClick={() => void openSelectedSkillFolder()}>
+            <button type="button" className="secondary-action" disabled={!selectedDetail} onClick={() => void openSelectedSkillFolder()}>
+              <MaterialIcon name="folder_open" />
               {selectedDetail ? t('actions.openFolder') : t('actions.openPath')}
             </button>
           </div>
         </aside>
       </section>
+      {categoryContextMenu ? (
+        <div
+          className="context-menu color-context-menu"
+          role="menu"
+          style={{ left: categoryContextMenu.x, top: categoryContextMenu.y }}
+        >
+          <strong>{categoryDefaults[categoryContextMenu.categoryId].label}</strong>
+          {colorChoices.map((choice) => (
+            <button
+              key={choice.color}
+              type="button"
+              aria-label={`将 ${categoryDefaults[categoryContextMenu.categoryId].label} 设置为${choice.label}`}
+              onClick={() => updateCategoryColor(categoryContextMenu.categoryId, choice.color)}
+            >
+              <span className="color-swatch" style={{ background: choice.color }} />
+              {choice.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {skillTagContextMenu ? (
+        <div
+          className="context-menu tag-context-menu"
+          role="dialog"
+          aria-label="添加标签"
+          style={{ left: skillTagContextMenu.x, top: skillTagContextMenu.y }}
+        >
+          <label className="field-stack">
+            <span>标签名称</span>
+            <input aria-label="标签名称" value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} />
+          </label>
+          <div className="tag-color-picker" aria-label="标签颜色">
+            {colorChoices.map((choice) => (
+              <button
+                key={choice.color}
+                type="button"
+                className={tagColor === choice.color ? 'active-color' : undefined}
+                aria-label={`标签颜色 ${choice.label}`}
+                onClick={() => setTagColor(choice.color)}
+              >
+                <span className="color-swatch" style={{ background: choice.color }} />
+              </button>
+            ))}
+          </div>
+          <div className="context-menu-actions">
+            <button type="button" onClick={() => setSkillTagContextMenu(null)}>
+              取消
+            </button>
+            <button type="button" className="primary-action" onClick={addSkillTag}>
+              添加标签
+            </button>
+          </div>
+        </div>
+      ) : null}
       {showDeleteConfirm && deleteConfirmPath ? (
         <div className="dialog-backdrop">
           <div role="dialog" aria-modal="true" aria-labelledby="delete-skill-title" className="confirm-dialog">

@@ -147,6 +147,22 @@ describe('App skill editor', () => {
     expect(invokeMock).toHaveBeenCalledWith('read_skill', { path: scanResults[0].path });
   });
 
+  it('shows description as read-only content in preview mode and editable in edit mode', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+
+    expect(screen.queryByRole('textbox', { name: 'Description' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('complementary', { name: 'Skill details' })).getByText('Generate or edit raster images')).toHaveClass(
+      'detail-description-preview',
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('Generate or edit raster images');
+  });
+
   it('keeps the latest selected skill when detail responses resolve out of order', async () => {
     const user = userEvent.setup();
     const firstRead = deferred<SkillDetail>();
