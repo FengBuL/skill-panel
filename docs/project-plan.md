@@ -1406,3 +1406,30 @@ powershell -ExecutionPolicy Bypass -File scripts\create-migration-package.ps1
 3. 增加安装身份统一策略，减少 `Skill Panel` 与 `SkillPanelUX` 双路径共存造成的启动混淆。
 4. 增加设置文件 schemaVersion，便于后续配置迁移。
 5. 增加标签删除、标签改色和标签重命名能力。
+## 22. v2.0.0 功能问题修复与交付包刷新
+
+日期：2026-06-16
+
+状态：已完成代码修复、本机启动入口同步、迁移包刷新和发送包刷新；GitHub 推送待网络恢复后执行。
+
+本轮目标是按照功能和交互复盘建议全部修复明显问题，并把结果同步进可发送文件夹：
+
+1. 扫描失败处理：取消 Web 环境下的演示数据回退，桥接失败直接显示扫描错误，避免用户误判本地应用已经读取真实 Skill。
+2. 类目体系：左侧默认类目使用中文名称；类目右键支持改名和调色；`categoryLabels` 持久化到设置模型。
+3. 列表行为：排序按钮按名称排序，筛选按钮只显示解析异常 Skill；分页栏增加底部留白，减少内容穿透。
+4. 标签行为：Skill 右键菜单支持添加和移除自定义标签；删除 Skill 时同步清理该 Skill 的标签配置。
+5. 创建行为：新建 Skill 窗口增加来源选择，支持 `codex-user`、`agents-user` 和 `custom`。
+6. 视图一致性：表格视图也显示类目和自定义标签颜色，卡片与列表识别一致。
+7. 本机与迁移：重新构建 Windows 安装器，覆盖本机 `SkillPanelUX` 启动目录，刷新迁移 zip 和发送 zip。
+
+验证结果：
+
+```powershell
+npm.cmd test -- src/App.test.tsx src/App.editor.test.tsx src/types/skill.test.ts --reporter=dot
+npm.cmd run build
+cargo test
+npm.cmd run tauri:build:windows
+powershell -ExecutionPolicy Bypass -File scripts\create-migration-package.ps1
+```
+
+已知验证缺口：Node REPL 浏览器通道仍报本地内核资源路径错误，未完成截图冒烟验证；功能层由单元测试、构建、Rust 契约测试和桌面启动路径验证覆盖。

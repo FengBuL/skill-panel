@@ -78,6 +78,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub category_colors: HashMap<String, String>,
     #[serde(default)]
+    pub category_labels: HashMap<String, String>,
+    #[serde(default)]
     pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
 }
 
@@ -88,6 +90,7 @@ impl Default for AppSettings {
             custom_scan_directories: Vec::new(),
             show_default_scan_directories: true,
             category_colors: HashMap::new(),
+            category_labels: HashMap::new(),
             skill_tags: HashMap::new(),
         }
     }

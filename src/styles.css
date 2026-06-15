@@ -270,6 +270,13 @@ a:focus-visible {
   background: var(--surface-container-low);
 }
 
+.icon-button.active,
+.icon-button[aria-pressed="true"] {
+  border-color: var(--accent-border);
+  background: var(--secondary-container);
+  color: #fff;
+}
+
 .active-action {
   border-color: var(--accent-border);
   background: var(--surface-container-high);
@@ -661,7 +668,7 @@ button.category-chip {
   flex-direction: column;
   min-height: 0;
   overflow: auto;
-  padding: 24px;
+  padding: 24px 24px 108px;
 }
 
 .skill-list-scroll::-webkit-scrollbar,
@@ -910,6 +917,13 @@ button.category-chip {
   min-width: 0;
 }
 
+.table-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .table-skill-icon {
   width: 32px;
   height: 32px;
@@ -928,7 +942,7 @@ button.category-chip {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin: 32px -24px -24px;
+  margin: 32px -24px -108px;
   border-top: 1px solid rgb(198 198 205 / 28%);
   background: var(--surface-bright);
   padding: 18px 24px 24px;
@@ -1200,6 +1214,26 @@ button.category-chip {
 
 .tag-context-menu {
   width: 260px;
+}
+
+.existing-tag-list {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.existing-tag-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.existing-tag-item button {
+  min-height: 28px;
+  border-color: var(--outline-variant);
+  background: var(--surface-container-low);
+  font-size: 12px;
 }
 
 .tag-color-picker {

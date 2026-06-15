@@ -251,3 +251,15 @@
 - 目录结构：`01-app-installer`、`02-portable`、`03-migration-data`、`04-docs`、`05-archives`、`README-SEND.md`、`RELEASE-INFO.txt`。
 - 仓库处理：`.gitignore` 增加 `output/send/`，避免本机交付包和个人 skill 数据进入 Git。
 - 验证：检查根目录结构、文件数量、压缩包大小和核心文件清单。
+
+### U027 v2.0.0 功能问题修复与发送包刷新
+
+- 分支：`codex/skill-panel-app`
+- 内容：修复真实扫描失败时回退演示数据的问题；补齐左侧类目中文名称和改名持久化；工具栏排序和问题筛选按钮具备实际行为；新建 Skill 可选择可写来源；删除 Skill 时清理旧标签；Skill 右键菜单支持移除已有自定义标签；列表视图显示类目和标签；分页栏底部留白避免第二页内容穿透。
+- 设置模型：`AppSettings` 新增 `categoryLabels`，默认兼容旧配置，保存时只记录用户改过的类目名称。
+- 本机同步：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe` 和 `skill-panel-latest.exe` 已覆盖为最新 release exe，SHA256 前缀均为 `9671F6A1ED835BD5`。
+- 运行验证：已从 `skill-panel.exe` 启动，进程 PID `12244`，路径为 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
+- 验证：`npm.cmd test -- src/App.test.tsx src/App.editor.test.tsx src/types/skill.test.ts --reporter=dot` 63 passed；`npm.cmd run build` passed；`cargo test` 31 unit/bin tests + 3 contract tests passed；`npm.cmd run tauri:build:windows` 生成 NSIS 安装器。
+- 浏览器验证：Node REPL 浏览器通道仍报 `failed to write kernel assets: 系统找不到指定的路径。 (os error 3)`，未完成截图验证。
+- 交付包：已刷新 `output\migration\Skill-Panel-v2.0.0-migration.zip` 和 `output\send\Skill-Panel-v2.0.0-complete.zip`。
+- 发送包校验：文件数 `453`，文件夹内容大小约 `22989703` bytes，zip 大小约 `11679554` bytes；最终 SHA256 以生成后的校验命令输出为准。

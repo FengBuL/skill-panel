@@ -16,6 +16,7 @@ const defaultSettings: AppSettings = {
   customScanDirectories: [],
   showDefaultScanDirectories: true,
   categoryColors: {},
+  categoryLabels: {},
   skillTags: {},
 };
 
@@ -36,6 +37,10 @@ function normalizeSettings(settings: AppSettings): AppSettings {
     categoryColors:
       settings.categoryColors && typeof settings.categoryColors === 'object' && !Array.isArray(settings.categoryColors)
         ? settings.categoryColors
+        : {},
+    categoryLabels:
+      settings.categoryLabels && typeof settings.categoryLabels === 'object' && !Array.isArray(settings.categoryLabels)
+        ? settings.categoryLabels
         : {},
     skillTags:
       settings.skillTags && typeof settings.skillTags === 'object' && !Array.isArray(settings.skillTags)

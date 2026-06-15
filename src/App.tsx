@@ -7,6 +7,7 @@ import {
   type SkillDetail,
   type SkillSource,
   type SkillSummary,
+  type WritableSkillSource,
 } from './types/skill';
 
 type SourceIconName = 'all' | 'tag' | CategoryId;
@@ -43,11 +44,13 @@ type CustomTagCategory = CustomSkillTag & {
   count: number;
 };
 type CategoryColorMap = Record<CategoryId, string>;
+type CategoryLabelMap = Record<CategoryId, string>;
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
   description: string;
   markdown: string;
+  source: WritableSkillSource;
 };
 
 const skillsPerPage = 10;
@@ -80,6 +83,7 @@ const emptyCreateSkillDraft: CreateSkillDraft = {
   name: '',
   description: '',
   markdown: '',
+  source: 'codex-user',
 };
 
 const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }> = [
@@ -312,6 +316,15 @@ function getInitialCategoryColors(): CategoryColorMap {
   };
 }
 
+function getInitialCategoryLabels(): CategoryLabelMap {
+  return {
+    data: '表格',
+    default: '技能',
+    finance: '金融',
+    writing: '文案',
+  };
+}
+
 function isCategoryId(value: string): value is CategoryId {
   return Object.prototype.hasOwnProperty.call(categoryDefaults, value);
 }
@@ -326,6 +339,31 @@ function normalizeCategoryColors(colors: AppSettings['categoryColors']): Categor
   }
 
   return normalizedColors;
+}
+
+function normalizeCategoryLabels(labels: AppSettings['categoryLabels']): CategoryLabelMap {
+  const normalizedLabels = getInitialCategoryLabels();
+
+  for (const [categoryId, label] of Object.entries(labels ?? {})) {
+    if (isCategoryId(categoryId) && typeof label === 'string' && label.trim()) {
+      normalizedLabels[categoryId] = label.trim();
+    }
+  }
+
+  return normalizedLabels;
+}
+
+function getPersistedCategoryLabels(labels: CategoryLabelMap): Record<string, string> {
+  const defaultLabels = getInitialCategoryLabels();
+  const persistedLabels: Record<string, string> = {};
+
+  for (const categoryId of Object.keys(defaultLabels) as CategoryId[]) {
+    if (labels[categoryId] !== defaultLabels[categoryId]) {
+      persistedLabels[categoryId] = labels[categoryId];
+    }
+  }
+
+  return persistedLabels;
 }
 
 function normalizeSkillTags(tagsBySkill: AppSettings['skillTags']): Record<string, CustomSkillTag[]> {
@@ -350,6 +388,10 @@ function normalizeSkillTags(tagsBySkill: AppSettings['skillTags']): Record<strin
 
 function getCategoryStyle(category: CategoryDefinition, categoryColors: CategoryColorMap): CSSProperties {
   return { '--category-color': categoryColors[category.id] ?? category.color } as CSSProperties;
+}
+
+function getCategoryLabel(category: CategoryDefinition, categoryLabels: CategoryLabelMap) {
+  return categoryLabels[category.id] ?? category.label;
 }
 
 function getTagStyle(color: string): CSSProperties {
@@ -478,6 +520,7 @@ export function App() {
   const selectedPathRef = useRef<string | null>(null);
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
   const createTargetDirectoryRef = useRef<HTMLInputElement>(null);
+  const settingsRef = useRef(settings);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
@@ -494,11 +537,15 @@ export function App() {
   const [activeCategoryId, setActiveCategoryId] = useState<CategoryId | null>(null);
   const [activeTagLabel, setActiveTagLabel] = useState<string | null>(null);
   const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => normalizeCategoryColors(settings.categoryColors));
+  const [categoryLabels, setCategoryLabels] = useState<CategoryLabelMap>(() => normalizeCategoryLabels(settings.categoryLabels));
   const [categoryContextMenu, setCategoryContextMenu] = useState<CategoryContextMenu | null>(null);
+  const [categoryLabelDraft, setCategoryLabelDraft] = useState('');
   const [skillTagContextMenu, setSkillTagContextMenu] = useState<SkillTagContextMenu | null>(null);
   const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>(() => normalizeSkillTags(settings.skillTags));
   const [tagDraft, setTagDraft] = useState('');
   const [tagColor, setTagColor] = useState(defaultCustomTagColor);
+  const [sortByNameAscending, setSortByNameAscending] = useState(false);
+  const [showIssueSkillsOnly, setShowIssueSkillsOnly] = useState(false);
 
   const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
   const visibleLanguage = normalizeSelectableLanguage(language);
@@ -506,7 +553,7 @@ export function App() {
   const categorySidebarLabel = visibleLanguage === 'en-US' ? 'Categories' : '类目';
 
   const filteredSkills = useMemo(() => {
-    const searchMatches = filterSkills(skills, searchQuery);
+    const searchMatches = filterSkills(skills, searchQuery).filter((skill) => !showIssueSkillsOnly || skill.parseStatus !== 'parsed');
 
     if (activeTagLabel) {
       return searchMatches.filter((skill) => skillTags[skill.path]?.some((tag) => tag.label === activeTagLabel));
@@ -519,13 +566,20 @@ export function App() {
     return searchMatches.filter((skill) =>
       getSkillCategories(skill).some((category) => category.id === activeCategoryId),
     );
-  }, [activeCategoryId, activeTagLabel, searchQuery, skillTags, skills]);
-  const totalPages = Math.max(1, Math.ceil(filteredSkills.length / skillsPerPage));
+  }, [activeCategoryId, activeTagLabel, searchQuery, showIssueSkillsOnly, skillTags, skills]);
+  const sortedFilteredSkills = useMemo(() => {
+    if (!sortByNameAscending) {
+      return filteredSkills;
+    }
+
+    return [...filteredSkills].sort((leftSkill, rightSkill) => leftSkill.name.localeCompare(rightSkill.name, locale));
+  }, [filteredSkills, locale, sortByNameAscending]);
+  const totalPages = Math.max(1, Math.ceil(sortedFilteredSkills.length / skillsPerPage));
   const normalizedCurrentPage = Math.min(currentPage, totalPages);
   const paginatedSkills = useMemo(() => {
     const pageStartIndex = (normalizedCurrentPage - 1) * skillsPerPage;
-    return filteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
-  }, [filteredSkills, normalizedCurrentPage]);
+    return sortedFilteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
+  }, [normalizedCurrentPage, sortedFilteredSkills]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryId, number> = {
@@ -592,17 +646,7 @@ export function App() {
       setSkills(scannedSkills);
       setScanOutcome(getScanOutcome(scannedSkills));
     } catch (error) {
-      if (isTauriUnavailable(error)) {
-        const demoDetail = getStitchDemoDetail(stitchDemoSkills[0]);
-        setSkills(stitchDemoSkills);
-        setScanOutcome('success');
-        selectedPathRef.current = demoDetail.path;
-        setSelectedPath(demoDetail.path);
-        syncDetailForm(demoDetail);
-        setDetailMode('preview');
-        return;
-      }
-
+      setSkills([]);
       setScanError(error instanceof Error ? error.message : String(error));
       setScanOutcome('failed');
     } finally {
@@ -616,11 +660,13 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    settingsRef.current = settings;
     setSettingsDraft({
       ...settings,
       language: normalizeSelectableLanguage(settings.language),
     });
     setCategoryColors(normalizeCategoryColors(settings.categoryColors));
+    setCategoryLabels(normalizeCategoryLabels(settings.categoryLabels));
     setSkillTags(normalizeSkillTags(settings.skillTags));
   }, [settings]);
 
@@ -630,7 +676,7 @@ export function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategoryId, activeTagLabel]);
+  }, [activeCategoryId, activeTagLabel, searchQuery, showIssueSkillsOnly, sortByNameAscending]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -644,11 +690,17 @@ export function App() {
     }
   }, [showCreateSkill]);
 
-  const persistUiPreferences = (nextCategoryColors: CategoryColorMap, nextSkillTags: Record<string, CustomSkillTag[]>) => {
+  const persistUiPreferences = (
+    nextCategoryColors: CategoryColorMap,
+    nextCategoryLabels: CategoryLabelMap,
+    nextSkillTags: Record<string, CustomSkillTag[]>,
+  ) => {
+    const latestSettings = settingsRef.current;
     void saveSettings({
-      ...settings,
-      language: normalizeSelectableLanguage(settings.language),
+      ...latestSettings,
+      language: normalizeSelectableLanguage(latestSettings.language),
       categoryColors: nextCategoryColors,
+      categoryLabels: getPersistedCategoryLabels(nextCategoryLabels),
       skillTags: nextSkillTags,
     }).catch(() => {
       // Settings save errors are exposed through the shared settings runtime.
@@ -715,7 +767,7 @@ export function App() {
     setIsCreatingSkill(false);
   };
 
-  const updateCreateSkillDraft = (field: keyof CreateSkillDraft, value: string) => {
+  const updateCreateSkillDraft = <Field extends keyof CreateSkillDraft>(field: Field, value: CreateSkillDraft[Field]) => {
     setCreateSkillDraft((currentDraft) => ({
       ...currentDraft,
       [field]: value,
@@ -737,12 +789,6 @@ export function App() {
         syncDetailForm(detail);
       }
     } catch (error) {
-      if (isTauriUnavailable(error) && stitchDemoSkills.some((demoSkill) => demoSkill.path === skill.path)) {
-        syncDetailForm(getStitchDemoDetail(skill));
-        setDetailMode('preview');
-        return;
-      }
-
       if (detailRequestIdRef.current === requestId) {
         setDetailErrorTitleKey('details.errorTitle');
         setDetailError(error instanceof Error ? error.message : String(error));
@@ -792,7 +838,7 @@ export function App() {
         input: {
           name: createSkillDraft.name.trim(),
           description: createSkillDraft.description.trim(),
-          source: 'codex-user',
+          source: createSkillDraft.source,
           targetDirectory: createSkillDraft.targetDirectory.trim(),
           markdown: createSkillDraft.markdown,
         },
@@ -831,6 +877,12 @@ export function App() {
         selectedPathRef.current = null;
         setSelectedPath(null);
         setSelectedDetail(null);
+      }
+      if (skillTags[targetPath] || settingsRef.current.skillTags?.[targetPath]) {
+        const nextSkillTags = { ...normalizeSkillTags(settingsRef.current.skillTags), ...skillTags };
+        delete nextSkillTags[targetPath];
+        setSkillTags(nextSkillTags);
+        persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
       }
       await scanSkills();
     } catch (error) {
@@ -884,6 +936,7 @@ export function App() {
   const openCategoryContextMenu = (event: MouseEvent, categoryId: CategoryId) => {
     event.preventDefault();
     setSkillTagContextMenu(null);
+    setCategoryLabelDraft(categoryLabels[categoryId] ?? categoryDefaults[categoryId].label);
     setCategoryContextMenu({ categoryId, x: event.clientX, y: event.clientY });
   };
 
@@ -893,7 +946,21 @@ export function App() {
       [categoryId]: color,
     };
     setCategoryColors(nextCategoryColors);
-    persistUiPreferences(nextCategoryColors, skillTags);
+    persistUiPreferences(nextCategoryColors, categoryLabels, skillTags);
+  };
+
+  const saveCategoryLabel = () => {
+    if (!categoryContextMenu) {
+      return;
+    }
+
+    const nextLabel = categoryLabelDraft.trim() || getInitialCategoryLabels()[categoryContextMenu.categoryId];
+    const nextCategoryLabels = {
+      ...categoryLabels,
+      [categoryContextMenu.categoryId]: nextLabel,
+    };
+    setCategoryLabels(nextCategoryLabels);
+    persistUiPreferences(categoryColors, nextCategoryLabels, skillTags);
     setCategoryContextMenu(null);
   };
 
@@ -917,10 +984,24 @@ export function App() {
       [skillTagContextMenu.path]: [...(skillTags[skillTagContextMenu.path] ?? []), { color: tagColor, label }],
     };
     setSkillTags(nextSkillTags);
-    persistUiPreferences(categoryColors, nextSkillTags);
+    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
     setSkillTagContextMenu(null);
     setTagDraft('');
     setTagColor(defaultCustomTagColor);
+  };
+
+  const removeSkillTag = (path: string, index: number) => {
+    const remainingTags = (skillTags[path] ?? []).filter((_, tagIndex) => tagIndex !== index);
+    const nextSkillTags = { ...skillTags };
+
+    if (remainingTags.length > 0) {
+      nextSkillTags[path] = remainingTags;
+    } else {
+      delete nextSkillTags[path];
+    }
+
+    setSkillTags(nextSkillTags);
+    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
   };
 
   const saveSettingsDraft = async () => {
@@ -929,6 +1010,7 @@ export function App() {
         ...settingsDraft,
         language: normalizeSelectableLanguage(settingsDraft.language),
         categoryColors,
+        categoryLabels: getPersistedCategoryLabels(categoryLabels),
         skillTags,
       });
     } catch {
@@ -1161,7 +1243,7 @@ export function App() {
           </div>
           <nav aria-label={categorySidebarLabel}>
             {categoryNavItems.map((item) => {
-              const label = item.category ? item.category.label : t(item.labelKey ?? 'sources.allSkills');
+              const label = item.category ? getCategoryLabel(item.category, categoryLabels) : t(item.labelKey ?? 'sources.allSkills');
               const count = item.category ? categoryCounts[item.category.id] : skills.length;
               const isActive = item.category
                 ? activeTagLabel === null && activeCategoryId === item.category.id
@@ -1248,7 +1330,7 @@ export function App() {
 
           <div className="sidebar-footer-status" aria-hidden="true">
             <span />
-            <strong>Online</strong>
+            <strong>{`${t('sources.scanState')}: ${t(scanOutcomeLabelKey)}`}</strong>
           </div>
 
         </aside>
@@ -1257,8 +1339,8 @@ export function App() {
           <div className="section-heading">
             <div>
               <h2>{t('skills.title')}</h2>
-              <p>{`Showing ${filteredSkills.length} ${t('skills.countUnit')}`}</p>
-              <span className="visually-hidden">{`${filteredSkills.length} ${t('skills.countUnit')}`}</span>
+              <p>{`Showing ${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</p>
+              <span className="visually-hidden">{`${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</span>
             </div>
             <div className="list-toolbar">
               <div className="view-switcher" role="tablist" aria-label="Skill view">
@@ -1283,10 +1365,22 @@ export function App() {
                   <MaterialIcon name="grid_view" />
                 </button>
               </div>
-              <button type="button" className="icon-button" aria-label="Sort skills">
+              <button
+                type="button"
+                className={sortByNameAscending ? 'icon-button active' : 'icon-button'}
+                aria-label="Sort skills"
+                aria-pressed={sortByNameAscending}
+                onClick={() => setSortByNameAscending((isActive) => !isActive)}
+              >
                 <MaterialIcon name="sort" />
               </button>
-              <button type="button" className="icon-button" aria-label="Filter skills">
+              <button
+                type="button"
+                className={showIssueSkillsOnly ? 'icon-button active' : 'icon-button'}
+                aria-label="Filter skills"
+                aria-pressed={showIssueSkillsOnly}
+                onClick={() => setShowIssueSkillsOnly((isActive) => !isActive)}
+              >
                 <MaterialIcon name="filter_list" />
               </button>
             </div>
@@ -1325,7 +1419,7 @@ export function App() {
                             style={getCategoryStyle(category, categoryColors)}
                             aria-hidden="true"
                           >
-                            {category.label}
+                            {getCategoryLabel(category, categoryLabels)}
                           </span>
                         ))}
                         {customTags.map((tag, index) => (
@@ -1379,6 +1473,26 @@ export function App() {
                             <strong>{skill.name}</strong>
                             <span className="source-code compact">{getSourceCode(skill.source)}</span>
                           </span>
+                          <span className="table-skill-tags">
+                            {getSkillCategories(skill).map((category) => (
+                              <span
+                                key={`${skill.path}-table-${category.id}`}
+                                className={`category-chip ${category.className}`}
+                                style={getCategoryStyle(category, categoryColors)}
+                              >
+                                {getCategoryLabel(category, categoryLabels)}
+                              </span>
+                            ))}
+                            {(skillTags[skill.path] ?? []).map((tag, index) => (
+                              <span
+                                key={`${skill.path}-table-${tag.label}-${index}`}
+                                className="category-chip custom-skill-tag"
+                                style={getTagStyle(tag.color)}
+                              >
+                                {tag.label}
+                              </span>
+                            ))}
+                          </span>
                         </td>
                         <td>
                           <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
@@ -1399,8 +1513,8 @@ export function App() {
                 <span>
                   {`Showing ${paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1}-${Math.min(
                     normalizedCurrentPage * skillsPerPage,
-                    filteredSkills.length,
-                  )} of ${filteredSkills.length} ${t('skills.countUnit')}`}
+                    sortedFilteredSkills.length,
+                  )} of ${sortedFilteredSkills.length} ${t('skills.countUnit')}`}
                 </span>
                 <div className="pagination-stepper">
                   <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
@@ -1491,8 +1605,12 @@ export function App() {
                 </label>
                 <div className="detail-tag-row">
                   {getSkillCategories(selectedDetail).map((category) => (
-                    <span key={`${selectedDetail.path}-${category.label}`} className={`category-chip ${category.className}`}>
-                      {category.label}
+                    <span
+                      key={`${selectedDetail.path}-${category.id}`}
+                      className={`category-chip ${category.className}`}
+                      style={getCategoryStyle(category, categoryColors)}
+                    >
+                      {getCategoryLabel(category, categoryLabels)}
                     </span>
                   ))}
                   <button type="button" className="tag-edit-button" aria-label={t('details.tags')}>
@@ -1630,7 +1748,19 @@ export function App() {
           role="menu"
           style={{ left: categoryContextMenu.x, top: categoryContextMenu.y }}
         >
-          <strong>{categoryDefaults[categoryContextMenu.categoryId].label}</strong>
+          <strong>{getCategoryLabel(categoryDefaults[categoryContextMenu.categoryId], categoryLabels)}</strong>
+          <label className="field-stack">
+            <span>类目名称</span>
+            <input aria-label="类目名称" value={categoryLabelDraft} onChange={(event) => setCategoryLabelDraft(event.target.value)} />
+          </label>
+          <div className="context-menu-actions">
+            <button type="button" onClick={() => setCategoryContextMenu(null)}>
+              取消
+            </button>
+            <button type="button" className="primary-action" onClick={saveCategoryLabel}>
+              保存类目
+            </button>
+          </div>
           {colorChoices.map((choice) => (
             <button
               key={choice.color}
@@ -1651,6 +1781,20 @@ export function App() {
           aria-label="添加标签"
           style={{ left: skillTagContextMenu.x, top: skillTagContextMenu.y }}
         >
+          {(skillTags[skillTagContextMenu.path] ?? []).length > 0 ? (
+            <div className="existing-tag-list">
+              {(skillTags[skillTagContextMenu.path] ?? []).map((tag, index) => (
+                <div key={`${tag.label}-${index}`} className="existing-tag-item">
+                  <span className="category-chip custom-skill-tag" style={getTagStyle(tag.color)}>
+                    {tag.label}
+                  </span>
+                  <button type="button" aria-label={`移除 ${tag.label}`} onClick={() => removeSkillTag(skillTagContextMenu.path, index)}>
+                    移除
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <label className="field-stack">
             <span>标签名称</span>
             <input aria-label="标签名称" value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} />
@@ -1734,6 +1878,18 @@ export function App() {
               <label className="field-stack">
                 <span>{t('details.name')}</span>
                 <input value={createSkillDraft.name} onChange={(event) => updateCreateSkillDraft('name', event.target.value)} />
+              </label>
+              <label className="field-stack">
+                <span>{t('create.source')}</span>
+                <select
+                  aria-label="Skill source"
+                  value={createSkillDraft.source}
+                  onChange={(event) => updateCreateSkillDraft('source', event.target.value as WritableSkillSource)}
+                >
+                  <option value="codex-user">{t('sources.codexUser')}</option>
+                  <option value="agents-user">{t('sources.agentsUser')}</option>
+                  <option value="custom">{t('sources.custom')}</option>
+                </select>
               </label>
               <label className="field-stack create-description-field">
                 <span>{t('details.description')}</span>

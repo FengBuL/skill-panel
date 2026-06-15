@@ -171,6 +171,30 @@ describe('App shell', () => {
     expect(invokeMock).toHaveBeenCalledWith('load_app_settings');
   });
 
+  it('shows a scan error instead of demo skills when the desktop bridge is unavailable', async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'zh-CN',
+          customScanDirectories: [],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.reject(new Error('__TAURI__ invoke is not available'));
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('扫描失败')).toBeInTheDocument();
+    expect(screen.getByText('__TAURI__ invoke is not available')).toBeInTheDocument();
+    expect(screen.queryByText('a-share-daily-update')).not.toBeInTheDocument();
+  });
+
   it('switches all visible shell text to English and saves the setting', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -189,6 +213,7 @@ describe('App shell', () => {
           customScanDirectories: [],
           showDefaultScanDirectories: true,
           categoryColors: {},
+          categoryLabels: {},
           skillTags: {},
         },
       }),
@@ -572,6 +597,31 @@ describe('App shell', () => {
     );
   });
 
+  it('renames a category from the category context menu and persists it', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['zh-CN']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const categoryRail = screen.getByRole('complementary', { name: '类目' });
+    const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
+    fireEvent.contextMenu(financeCategory);
+    const labelInput = screen.getByLabelText('类目名称');
+    await user.clear(labelInput);
+    await user.type(labelInput, '投资');
+    await user.click(screen.getByRole('button', { name: '保存类目' }));
+
+    expect(within(categoryRail).getByRole('button', { name: /投资 1/i })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          categoryLabels: expect.objectContaining({ finance: '投资' }),
+        }),
+      }),
+    );
+  });
+
   it('adds a custom colored tag to a skill from its context menu', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['zh-CN']);
@@ -598,6 +648,75 @@ describe('App shell', () => {
         }),
       }),
     );
+  });
+
+  it('removes a custom skill tag from its context menu and persists the removal', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['zh-CN']);
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'zh-CN',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+        skillTags: {
+          [categorizedScanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+        },
+      },
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getAllByText('重点').length).toBeGreaterThan(0));
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = await within(cardGrid).findByRole('button', { name: /stock-flow/i });
+    fireEvent.contextMenu(stockCard);
+    await user.click(screen.getByRole('button', { name: '移除 重点' }));
+
+    expect(within(cardGrid).queryByText('重点')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillTags: {},
+        }),
+      }),
+    );
+  });
+
+  it('sorts skills by name and filters to issue skills from toolbar buttons', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      skills: [
+        {
+          path: 'C:\\skills\\zeta\\SKILL.md',
+          name: 'zeta-flow',
+          description: 'Parsed skill',
+          source: 'codex-user',
+          parseStatus: 'parsed',
+          modifiedAt: '2026-05-30T08:15:00Z',
+        },
+        {
+          path: 'C:\\skills\\alpha\\SKILL.md',
+          name: 'alpha-broken',
+          description: 'Broken skill',
+          source: 'codex-user',
+          parseStatus: 'read-error',
+          modifiedAt: '2026-05-29T08:15:00Z',
+        },
+      ],
+    });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /zeta-flow/i });
+    await user.click(screen.getByRole('button', { name: 'Sort skills' }));
+    const sortedRows = screen.getAllByRole('row').slice(1);
+    expect(sortedRows[0]).toHaveTextContent('alpha-broken');
+
+    await user.click(screen.getByRole('button', { name: 'Filter skills' }));
+    expect(screen.getByRole('row', { name: /alpha-broken/i })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /zeta-flow/i })).not.toBeInTheDocument();
   });
 
   it('adds custom skill tags to the left category rail and filters by tag', async () => {
@@ -629,7 +748,7 @@ describe('App shell', () => {
     const css = readFileSync('src/styles.css', 'utf8');
 
     expect(css).toMatch(/\.pagination-controls\s*\{[^}]*position:\s*sticky;[^}]*bottom:\s*0;/s);
-    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*margin:\s*32px -24px -24px;[^}]*padding:\s*18px 24px 24px;/s);
+    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*margin:\s*32px -24px -108px;[^}]*padding:\s*18px 24px 24px;/s);
   });
 
   it('styles selected resource rows with a pale fill and thin outline', () => {
@@ -935,6 +1054,7 @@ describe('App shell', () => {
             finance: '#fff4d8',
             writing: '#eaf3ff',
           },
+          categoryLabels: {},
           skillTags: {},
         },
       }),
@@ -971,6 +1091,7 @@ describe('App shell', () => {
             finance: '#fff4d8',
             writing: '#eaf3ff',
           },
+          categoryLabels: {},
           skillTags: {},
         },
       }),

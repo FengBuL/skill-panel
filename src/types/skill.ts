@@ -43,6 +43,7 @@ export interface AppSettings {
   customScanDirectories: string[];
   showDefaultScanDirectories: boolean;
   categoryColors?: Record<string, string>;
+  categoryLabels?: Record<string, string>;
   skillTags?: Record<string, CustomSkillTagSetting[]>;
 }
 

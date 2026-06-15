@@ -168,7 +168,12 @@ describe('App skill editor', () => {
     const firstRead = deferred<SkillDetail>();
     invokeMock.mockImplementation((command: string, payload?: unknown) => {
       if (command === 'load_app_settings') {
-        return Promise.resolve(settings);
+        return Promise.resolve({
+          ...settings,
+          skillTags: {
+            [scanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        });
       }
 
       if (command === 'scan_skills') {
@@ -212,7 +217,12 @@ describe('App skill editor', () => {
     const user = userEvent.setup();
     invokeMock.mockImplementation((command: string, payload?: unknown) => {
       if (command === 'load_app_settings') {
-        return Promise.resolve(settings);
+        return Promise.resolve({
+          ...settings,
+          skillTags: {
+            [scanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        });
       }
 
       if (command === 'scan_skills') {
@@ -265,7 +275,12 @@ describe('App skill editor', () => {
     const saveRequest = deferred<SkillDetail>();
     invokeMock.mockImplementation((command: string, payload?: unknown) => {
       if (command === 'load_app_settings') {
-        return Promise.resolve(settings);
+        return Promise.resolve({
+          ...settings,
+          skillTags: {
+            [scanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        });
       }
 
       if (command === 'scan_skills') {
@@ -307,7 +322,12 @@ describe('App skill editor', () => {
     let scanCount = 0;
     invokeMock.mockImplementation((command: string, payload?: unknown) => {
       if (command === 'load_app_settings') {
-        return Promise.resolve(settings);
+        return Promise.resolve({
+          ...settings,
+          skillTags: {
+            [scanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        });
       }
 
       if (command === 'scan_skills') {
@@ -323,6 +343,10 @@ describe('App skill editor', () => {
         return Promise.resolve();
       }
 
+      if (command === 'save_app_settings') {
+        return Promise.resolve(payload);
+      }
+
       return Promise.reject(new Error(`Unexpected command: ${command}`));
     });
 
@@ -336,6 +360,11 @@ describe('App skill editor', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: scanResults[0].path }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({ skillTags: {} }),
+      }),
+    );
     expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
   });
 
@@ -589,6 +618,47 @@ describe('App skill editor', () => {
     expect(
       within(screen.getByRole('complementary', { name: 'Skill details' })).getByRole('button', { name: createdSkill.path }),
     ).toBeInTheDocument();
+  });
+
+  it('creates a skill with the selected source', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: ['D:\\Team\\skills'],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+
+      if (command === 'create_skill') {
+        return Promise.resolve(createdSkill);
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Skill source' }), 'custom');
+    await user.type(screen.getByLabelText('Target directory'), 'D:\\Team\\skills');
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'custom-helper');
+    await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Custom root helper');
+    await user.click(screen.getByRole('button', { name: 'Create Skill' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('create_skill', {
+        input: expect.objectContaining({
+          source: 'custom',
+          targetDirectory: 'D:\\Team\\skills',
+        }),
+      }),
+    );
   });
 
   it('shows create errors inside the dialog and keeps the draft intact', async () => {

@@ -59,3 +59,7 @@ v2.0.0 的设置文件会保存：
 - skill 卡片上的自定义标签和标签颜色。
 
 这些数据都在 `%USERPROFILE%\.codex\skill-panel\settings.json` 中。
+
+## v2.0.0 最新补充
+
+2026-06-16 的最新构建还会迁移 `categoryLabels`，用于保存左侧类目自定义名称。迁移到新电脑后，类目颜色、类目名称、Skill 自定义标签和标签颜色会一起从 `settings.json` 恢复。

@@ -88,6 +88,7 @@ fn app_settings_serializes_skill_roots_and_default_source() {
             "customScanDirectories": ["C:/Users/example/skills"],
             "showDefaultScanDirectories": true,
             "categoryColors": {},
+            "categoryLabels": {},
             "skillTags": {}
         })
     );
