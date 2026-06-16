@@ -93,6 +93,17 @@ const scenarios = [
     previewMarkdown: true,
   },
   {
+    id: 'zh-success-1600x900-card-groups',
+    title: 'Chinese success state, grouped card view',
+    viewport: { width: 1600, height: 900 },
+    language: 'zh-CN',
+    mode: 'success',
+    skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
+    cardView: true,
+    selectFirstSkill: true,
+    previewMarkdown: true,
+  },
+  {
     id: 'en-success-1280x800-long-markdown',
     title: 'English success state, selected detail, long Markdown',
     viewport: { width: 1280, height: 800 },
@@ -289,11 +300,21 @@ async function runScenario(browser, scenario) {
   } else if (scenario.skills.length === 0) {
     await page.getByText(scenario.language === 'zh-CN' ? '暂无已扫描的 Skill' : 'No scanned skills yet').waitFor({ timeout: 5000 });
   } else {
-    await page.getByRole('table').waitFor({ timeout: 5000 });
+    if (scenario.cardView) {
+      await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '卡片视图' : 'Card View' }).click();
+      await page.locator('.skill-card-grid.active .category-card-section').first().waitFor({ timeout: 5000 });
+    } else {
+      await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '列表视图' : 'List View' }).click();
+      await page.locator('.skill-table-wrap.active .skill-table').waitFor({ timeout: 5000 });
+    }
   }
 
   if (scenario.selectFirstSkill) {
-    await page.getByRole('row', { name: /visual qa skill/i }).click();
+    if (scenario.cardView) {
+      await page.locator('.skill-card-grid.active .skill-card').filter({ hasText: 'visual qa skill' }).first().click();
+    } else {
+      await page.locator('.skill-table-wrap.active tbody tr').filter({ hasText: 'visual qa skill' }).click();
+    }
     await page.getByRole('textbox', { name: scenario.language === 'zh-CN' ? 'Markdown 正文' : 'Markdown body' }).waitFor({
       timeout: 5000,
     });
@@ -309,9 +330,15 @@ async function runScenario(browser, scenario) {
     const topBar = document.querySelector('.top-bar');
     const dashboard = document.querySelector('.dashboard-grid');
     const listControls = document.querySelector('.list-controls');
-    const table = document.querySelector('.skill-table');
+    const table = document.querySelector('.skill-table-wrap.active .skill-table');
     const detailPanel = document.querySelector('.detail-panel');
     const markdownRegion = document.querySelector('.detail-markdown-section');
+    const markdownPreview = document.querySelector('.markdown-preview');
+    const markdownNextSection = markdownPreview?.closest('.detail-markdown-section')?.nextElementSibling;
+    const cardGrid = document.querySelector('.skill-card-grid.active');
+    const cardHeights = Array.from(document.querySelectorAll('.skill-card-grid.active .skill-card'))
+      .slice(0, 8)
+      .map((element) => Math.round(element.getBoundingClientRect().height));
     const horizontalOverflow = document.documentElement.scrollWidth - window.innerWidth;
     const formControlText = Array.from(document.querySelectorAll('input, textarea, select'))
       .map((element) => element.value)
@@ -331,8 +358,16 @@ async function runScenario(browser, scenario) {
           })
         : true,
       tableRendered: Boolean(table),
+      cardGridRendered: Boolean(cardGrid),
+      cardPaginationHidden: !document.querySelector('.skill-card-grid.active ~ .pagination-controls'),
+      cardHeightsMatch: cardHeights.length > 0 ? Math.max(...cardHeights) - Math.min(...cardHeights) <= 1 : true,
       detailPanelVisible: detailPanel ? detailPanel.getBoundingClientRect().height > 0 : false,
       markdownRegionVisible: markdownRegion ? markdownRegion.getBoundingClientRect().height >= 260 : true,
+      markdownOutlineAbsent: !document.querySelector('.markdown-outline'),
+      markdownPreviewContained:
+        markdownPreview && markdownNextSection
+          ? markdownPreview.getBoundingClientRect().bottom <= markdownNextSection.getBoundingClientRect().top + 1
+          : true,
       bodyText: `${document.body.innerText}\n${formControlText}`,
     };
   });
@@ -355,13 +390,24 @@ async function runScenario(browser, scenario) {
     ['expected scenario text is present', checks.bodyText.includes(expectedText)],
   ];
 
-  if (scenario.skills.length > 0 && scenario.mode !== 'failed') {
+  if (scenario.skills.length > 0 && scenario.mode !== 'failed' && !scenario.cardView) {
     assertions.push(['resource table is rendered', checks.tableRendered]);
+  }
+
+  if (scenario.cardView) {
+    assertions.push(['grouped card grid is rendered', checks.cardGridRendered]);
+    assertions.push(['card view hides list pagination controls', checks.cardPaginationHidden]);
+    assertions.push(['skill cards keep matching heights', checks.cardHeightsMatch]);
   }
 
   if (scenario.selectFirstSkill) {
     assertions.push(['long Markdown region has usable height', checks.markdownRegionVisible]);
     assertions.push(['selected detail body is present', checks.bodyText.includes('Visual QA Skill')]);
+  }
+
+  if (scenario.previewMarkdown) {
+    assertions.push(['Markdown preview does not duplicate an outline', checks.markdownOutlineAbsent]);
+    assertions.push(['Markdown preview does not overlap following detail sections', checks.markdownPreviewContained]);
   }
 
   const failedAssertions = assertions.filter(([, passed]) => !passed).map(([name]) => name);

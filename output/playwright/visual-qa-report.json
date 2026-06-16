@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T10:09:17.670Z",
+  "generatedAt": "2026-06-16T16:13:21.771Z",
   "results": [
     {
       "id": "zh-success-1440x960-long-markdown",
@@ -7,6 +7,17 @@
       "language": "zh-CN",
       "viewport": "1440x960",
       "screenshot": "output/playwright/zh-success-1440x960-long-markdown.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "zh-success-1600x900-card-groups",
+      "title": "Chinese success state, grouped card view",
+      "language": "zh-CN",
+      "viewport": "1600x900",
+      "screenshot": "output/playwright/zh-success-1600x900-card-groups.png",
       "passed": true,
       "failedAssertions": [],
       "consoleErrors": [],

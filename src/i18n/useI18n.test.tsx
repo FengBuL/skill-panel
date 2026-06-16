@@ -76,6 +76,7 @@ describe('useI18n', () => {
           customScanDirectories: [],
           showDefaultScanDirectories: true,
           categoryColors: {},
+          categoryLabels: {},
           skillTags: {},
         },
       }),

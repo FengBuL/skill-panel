@@ -9,6 +9,7 @@ use std::{
     env, fs,
     path::{Component, Path, PathBuf},
     process::Command,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 const SKILL_FILE_NAME: &str = "SKILL.md";
@@ -106,6 +107,10 @@ pub fn update_skill_in_roots(
 
     ensure_required_frontmatter(&frontmatter)?;
     let body_markdown = input.markdown.unwrap_or(parsed.body_markdown);
+    let skill_dir = skill_file
+        .parent()
+        .ok_or_else(|| "Skill file must have a parent directory".to_string())?;
+    backup_skill_directory(skill_dir, roots)?;
     write_skill_file(&skill_file, &frontmatter, &body_markdown)?;
     read_skill_file(&skill_file, source_for_path(&skill_file, roots))
 }
@@ -144,6 +149,7 @@ pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), Str
         return Err("Refusing to delete an allowed skill root".to_string());
     }
 
+    backup_skill_directory(&canonical_dir, roots)?;
     fs::remove_dir_all(&canonical_dir)
         .map_err(|error| format!("Unable to delete skill directory: {error}"))
 }
@@ -285,6 +291,7 @@ fn parse_frontmatter_map(frontmatter_text: &str) -> Result<Map<String, Value>, S
         let value = raw_value.trim();
         if value.is_empty() {
             let mut items = Vec::new();
+            let mut object = Map::new();
             index += 1;
             while index < lines.len() {
                 let child = lines[index];
@@ -296,13 +303,62 @@ fn parse_frontmatter_map(frontmatter_text: &str) -> Result<Map<String, Value>, S
                 if !(child.starts_with(' ') || child.starts_with('\t')) {
                     break;
                 }
-                let item = child_trimmed
-                    .strip_prefix("- ")
-                    .ok_or_else(|| format!("Unsupported nested frontmatter line: {child_trimmed}"))?;
-                items.push(parse_scalar_value(item));
+
+                if let Some(item) = child_trimmed.strip_prefix("- ") {
+                    items.push(parse_scalar_value(item));
+                    index += 1;
+                    continue;
+                }
+
+                if let Some((nested_key, nested_raw_value)) = child_trimmed.split_once(':') {
+                    let nested_key = nested_key.trim();
+                    if nested_key.is_empty() {
+                        index += 1;
+                        continue;
+                    }
+
+                    let nested_value = nested_raw_value.trim();
+                    if !nested_value.is_empty() {
+                        object.insert(nested_key.to_string(), parse_scalar_value(nested_value));
+                        index += 1;
+                        continue;
+                    }
+
+                    let mut nested_items = Vec::new();
+                    index += 1;
+                    while index < lines.len() {
+                        let grandchild = lines[index];
+                        let grandchild_trimmed = grandchild.trim();
+                        if grandchild_trimmed.is_empty() || grandchild_trimmed.starts_with('#') {
+                            index += 1;
+                            continue;
+                        }
+                        if !(grandchild.starts_with("    ")
+                            || grandchild.starts_with("\t\t")
+                            || grandchild.starts_with("  -")
+                            || grandchild.starts_with('\t'))
+                        {
+                            break;
+                        }
+                        if let Some(item) = grandchild_trimmed.strip_prefix("- ") {
+                            nested_items.push(parse_scalar_value(item));
+                        }
+                        index += 1;
+                    }
+                    object.insert(nested_key.to_string(), Value::Array(nested_items));
+                    continue;
+                }
+
                 index += 1;
             }
-            map.insert(key.to_string(), Value::Array(items));
+            if !object.is_empty() {
+                if !items.is_empty() {
+                    object.insert("items".to_string(), Value::Array(items));
+                }
+                map.insert(key.to_string(), Value::Object(object));
+            } else {
+                map.insert(key.to_string(), Value::Array(items));
+            }
             continue;
         }
 
@@ -636,6 +692,67 @@ fn source_for_path(path: &Path, roots: &[ScanRoot]) -> SkillSource {
         .unwrap_or(SkillSource::Unknown)
 }
 
+fn backup_skill_directory(skill_dir: &Path, roots: &[ScanRoot]) -> Result<PathBuf, String> {
+    let canonical_skill_dir = skill_dir
+        .canonicalize()
+        .map_err(|error| format!("Unable to resolve skill directory for backup: {error}"))?;
+    let backup_parent = containing_scan_root(&canonical_skill_dir, roots)?.join(".skill-panel-backups");
+    fs::create_dir_all(&backup_parent)
+        .map_err(|error| format!("Unable to create backup directory: {error}"))?;
+
+    let skill_name = canonical_skill_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("skill");
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("Unable to timestamp backup: {error}"))?
+        .as_millis();
+    let backup_dir = backup_parent.join(format!("{}-{}", skill_directory_name(skill_name), timestamp));
+    copy_directory_recursive(&canonical_skill_dir, &backup_dir)?;
+    Ok(backup_dir)
+}
+
+fn containing_scan_root(skill_dir: &Path, roots: &[ScanRoot]) -> Result<PathBuf, String> {
+    for root in roots {
+        if let Ok(root_path) = root.path.canonicalize() {
+            if skill_dir.starts_with(&root_path) {
+                return Ok(root_path);
+            }
+        }
+    }
+
+    Err(format!(
+        "Unable to find allowed root for backup: {}",
+        skill_dir.display()
+    ))
+}
+
+fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), String> {
+    fs::create_dir_all(destination)
+        .map_err(|error| format!("Unable to create backup skill directory: {error}"))?;
+    let entries = fs::read_dir(source)
+        .map_err(|error| format!("Unable to read skill directory for backup: {error}"))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("Unable to read backup entry: {error}"))?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let metadata = entry
+            .metadata()
+            .map_err(|error| format!("Unable to read backup metadata: {error}"))?;
+
+        if metadata.is_dir() {
+            copy_directory_recursive(&source_path, &destination_path)?;
+        } else if metadata.is_file() {
+            fs::copy(&source_path, &destination_path)
+                .map_err(|error| format!("Unable to copy backup file: {error}"))?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -721,6 +838,20 @@ mod tests {
         assert_eq!(parsed.frontmatter["description"], "Demo skill");
         assert_eq!(parsed.frontmatter["tools"][0], "shell");
         assert_eq!(parsed.frontmatter["rank"], 4);
+        assert_eq!(parsed.body_markdown, "# Body\n");
+    }
+
+    #[test]
+    fn parser_tolerates_nested_frontmatter_for_lark_skills() {
+        let parsed = parse_skill_markdown(
+            "---\nname: lark-demo\ndescription: Lark demo skill\nrequires:\n  auth: true\n  scopes:\n    - im:message\n---\n# Body\n",
+        )
+        .expect("nested frontmatter should parse");
+
+        assert_eq!(parsed.frontmatter["name"], "lark-demo");
+        assert_eq!(parsed.frontmatter["description"], "Lark demo skill");
+        assert_eq!(parsed.frontmatter["requires"]["auth"], true);
+        assert_eq!(parsed.frontmatter["requires"]["scopes"][0], "im:message");
         assert_eq!(parsed.body_markdown, "# Body\n");
     }
 
@@ -1038,6 +1169,64 @@ mod tests {
     }
 
     #[test]
+    fn update_skill_creates_a_recoverable_backup_before_writing() {
+        let root = temp_root("update-backup");
+        let skill_dir = root.join("backup-target");
+        fs::create_dir_all(&skill_dir).expect("skill dir should be created");
+        let skill_path = skill_dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            "---\nname: Backup Target\ndescription: Original description\n---\n# Original\n",
+        )
+        .expect("skill should be written");
+
+        update_skill_in_roots(
+            UpdateSkillInput {
+                path: skill_path.to_string_lossy().to_string(),
+                name: Some("Backup Target Updated".to_string()),
+                description: Some("Updated description".to_string()),
+                markdown: Some("# Updated\n".to_string()),
+            },
+            &roots(&root),
+        )
+        .expect("skill should update");
+
+        let backup_root = root.join(".skill-panel-backups");
+        let backup_files = find_backup_skill_files(&backup_root);
+        assert_eq!(backup_files.len(), 1);
+        let backup = fs::read_to_string(&backup_files[0]).expect("backup should read");
+        assert!(backup.contains("name: Backup Target\n"));
+        assert!(backup.contains("# Original\n"));
+
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn delete_skill_creates_a_recoverable_backup_before_removing_directory() {
+        let root = temp_root("delete-backup");
+        let skill_dir = root.join("delete-target");
+        fs::create_dir_all(&skill_dir).expect("skill dir should be created");
+        let skill_path = skill_dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            "---\nname: Delete Target\ndescription: Original description\n---\n# Delete me\n",
+        )
+        .expect("skill should be written");
+
+        delete_skill_in_roots(skill_path.to_string_lossy().to_string(), &roots(&root))
+            .expect("skill should delete");
+
+        assert!(!skill_dir.exists());
+        let backup_files = find_backup_skill_files(&root.join(".skill-panel-backups"));
+        assert_eq!(backup_files.len(), 1);
+        let backup = fs::read_to_string(&backup_files[0]).expect("backup should read");
+        assert!(backup.contains("name: Delete Target\n"));
+        assert!(backup.contains("# Delete me\n"));
+
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
     fn rejects_read_create_update_and_delete_outside_allowed_roots() {
         let root = temp_root("allowed");
         let outside = temp_root("outside");
@@ -1091,6 +1280,21 @@ mod tests {
 
         fs::remove_dir_all(root).ok();
         fs::remove_dir_all(outside).ok();
+    }
+
+    fn find_backup_skill_files(root: &Path) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        let Ok(entries) = fs::read_dir(root) else {
+            return files;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path().join("SKILL.md");
+            if path.exists() {
+                files.push(path);
+            }
+        }
+        files.sort();
+        files
     }
 
     #[test]

@@ -1,8 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type MouseEvent, type ReactNode, type RefObject, type UIEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import {
   type AppSettings,
+  type CustomCategorySetting,
   type ParseStatus,
   type SkillDetail,
   type SkillSource,
@@ -10,21 +13,31 @@ import {
   type WritableSkillSource,
 } from './types/skill';
 
-type SourceIconName = 'all' | 'tag' | CategoryId;
+type SourceIconName = 'all' | 'tag' | CategoryId | string;
 type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
 type SkillViewMode = 'cards' | 'list';
-type CategoryId = 'data' | 'default' | 'finance' | 'writing';
+type BuiltInCategoryId = 'data' | 'default' | 'finance' | 'writing';
+type CategoryId = string;
+type GovernanceFilter = 'needs-attention' | 'read-only-plugins' | 'user-editable';
+type SortMode = 'original' | 'name' | 'modified';
 type CategoryDefinition = {
   className: string;
   color: string;
+  icon?: string;
   id: CategoryId;
   label: string;
+  labelKey?: TranslationKey;
 };
 type ColorChoice = {
   color: string;
   label: string;
+  labelKey?: TranslationKey;
+};
+type IconChoice = {
+  icon: string;
+  labelKey: TranslationKey;
 };
 type CategoryContextMenu = {
   categoryId: CategoryId;
@@ -43,8 +56,20 @@ type CustomSkillTag = {
 type CustomTagCategory = CustomSkillTag & {
   count: number;
 };
+const tagCategoryPrefix = 'tag:';
 type CategoryColorMap = Record<CategoryId, string>;
+type CategoryIconMap = Record<CategoryId, string>;
 type CategoryLabelMap = Record<CategoryId, string>;
+type CategorySkillOrderMap = Partial<Record<CategoryId, string[]>>;
+type SkillCardColorMap = Record<string, string>;
+type SkillCategoryAssignmentMap = Partial<Record<string, CategoryId[]>>;
+type CustomCategoryMap = Record<string, CustomCategorySetting>;
+type TranslateFn = (key: TranslationKey, replacements?: Record<string, string>) => string;
+type CategorySection = {
+  category: CategoryDefinition;
+  label: string;
+  skills: SkillSummary[];
+};
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
@@ -54,6 +79,9 @@ type CreateSkillDraft = {
 };
 
 const skillsPerPage = 10;
+const defaultDetailPanelWidth = 400;
+const minDetailPanelWidth = 320;
+const maxDetailPanelWidth = 1080;
 
 const sourceLabelKeys: Record<SkillSource, TranslationKey> = {
   'agents-user': 'sources.agentsUser',
@@ -98,27 +126,51 @@ const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }
 ];
 
 const sidebarStoragePaths = ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'];
-const categoryDefaults: Record<CategoryId, CategoryDefinition> = {
-  finance: { id: 'finance', label: '金融', className: 'category-finance', color: '#fff4d8' },
-  data: { id: 'data', label: '表格', className: 'category-data', color: '#e8f0ff' },
-  writing: { id: 'writing', label: '文案', className: 'category-writing', color: '#eaf3ff' },
-  default: { id: 'default', label: '技能', className: 'category-default', color: '#eef4ff' },
+const builtInCategoryIds: BuiltInCategoryId[] = ['finance', 'data', 'writing', 'default'];
+const categoryDefaults: Record<BuiltInCategoryId, CategoryDefinition> = {
+  finance: { id: 'finance', label: 'Finance', labelKey: 'category.finance', className: 'category-finance', color: '#fff4d8' },
+  data: { id: 'data', label: 'Data', labelKey: 'category.data', className: 'category-data', color: '#e8f0ff' },
+  writing: { id: 'writing', label: 'Writing', labelKey: 'category.writing', className: 'category-writing', color: '#eaf3ff' },
+  default: { id: 'default', label: 'Skills', labelKey: 'category.default', className: 'category-default', color: '#eef4ff' },
 };
-const categoryNavItems: Array<{ category: CategoryDefinition | null; icon: SourceIconName; labelKey?: TranslationKey }> = [
-  { category: null, icon: 'all', labelKey: 'sources.allSkills' },
-  { category: categoryDefaults.finance, icon: 'finance' },
-  { category: categoryDefaults.data, icon: 'data' },
-  { category: categoryDefaults.writing, icon: 'writing' },
-  { category: categoryDefaults.default, icon: 'default' },
-];
 const colorChoices: ColorChoice[] = [
-  { label: '黄色', color: '#fff4d8' },
-  { label: '蓝色', color: '#e0f2fe' },
-  { label: '绿色', color: '#dcfce7' },
-  { label: '紫色', color: '#f5e8ff' },
-  { label: '粉色', color: '#ffe4ef' },
+  { label: 'Yellow', labelKey: 'color.yellow', color: '#fff4d8' },
+  { label: 'Blue', labelKey: 'color.blue', color: '#e0f2fe' },
+  { label: 'Green', labelKey: 'color.green', color: '#dcfce7' },
+  { label: 'Purple', labelKey: 'color.purple', color: '#f5e8ff' },
+  { label: 'Pink', labelKey: 'color.pink', color: '#ffe4ef' },
 ];
 const defaultCustomTagColor = '#e0f2fe';
+const categoryLabelKeys: Record<BuiltInCategoryId, TranslationKey> = {
+  data: 'category.data',
+  default: 'category.default',
+  finance: 'category.finance',
+  writing: 'category.writing',
+};
+const categoryDefaultIcons: Record<BuiltInCategoryId, string> = {
+  data: 'table_chart',
+  default: 'extension',
+  finance: 'monitoring',
+  writing: 'edit_note',
+};
+const skillCardColorChoices: ColorChoice[] = [
+  { label: 'Default', labelKey: 'color.default', color: '' },
+  { label: 'Red', labelKey: 'color.red', color: '#fee2e2' },
+  { label: 'Yellow', labelKey: 'color.yellow', color: '#fef3c7' },
+  { label: 'Green', labelKey: 'color.green', color: '#dcfce7' },
+  { label: 'Blue', labelKey: 'color.blue', color: '#dbeafe' },
+  { label: 'Purple', labelKey: 'color.purple', color: '#ede9fe' },
+];
+const categoryIconChoices: IconChoice[] = [
+  { icon: 'monitoring', labelKey: 'icon.chart' },
+  { icon: 'table_chart', labelKey: 'icon.table' },
+  { icon: 'edit_note', labelKey: 'icon.write' },
+  { icon: 'extension', labelKey: 'icon.skill' },
+  { icon: 'star', labelKey: 'icon.star' },
+  { icon: 'bolt', labelKey: 'icon.bolt' },
+  { icon: 'folder_open', labelKey: 'icon.folder' },
+  { icon: 'psychology', labelKey: 'icon.brain' },
+];
 
 const stitchDemoBaseSkills: SkillSummary[] = [
   {
@@ -268,27 +320,7 @@ function getSkillIcon(skill: SkillSummary) {
   return 'schema';
 }
 
-function getSourceCode(source: SkillSource) {
-  if (source === 'agents-user') {
-    return 'AGENTS';
-  }
-
-  if (source === 'plugin-cache') {
-    return 'PLUGIN';
-  }
-
-  if (source === 'custom') {
-    return 'CUSTOM';
-  }
-
-  if (source === 'system') {
-    return 'SYSTEM';
-  }
-
-  return 'CODEX';
-}
-
-function getSkillCategories(skill: SkillSummary) {
+function getInferredSkillCategories(skill: SkillSummary) {
   const text = getSkillSearchText(skill);
   const categories: CategoryDefinition[] = [];
 
@@ -307,8 +339,9 @@ function getSkillCategories(skill: SkillSummary) {
   return categories.length > 0 ? categories : [categoryDefaults.default];
 }
 
-function getInitialCategoryColors(): CategoryColorMap {
+function getInitialCategoryColors(customCategories: CustomCategoryMap = {}): CategoryColorMap {
   return {
+    ...Object.fromEntries(Object.entries(customCategories).map(([categoryId, category]) => [categoryId, category.color])),
     data: categoryDefaults.data.color,
     default: categoryDefaults.default.color,
     finance: categoryDefaults.finance.color,
@@ -316,24 +349,49 @@ function getInitialCategoryColors(): CategoryColorMap {
   };
 }
 
-function getInitialCategoryLabels(): CategoryLabelMap {
+function getInitialCategoryLabels(customCategories: CustomCategoryMap = {}): CategoryLabelMap {
   return {
-    data: '表格',
-    default: '技能',
-    finance: '金融',
-    writing: '文案',
+    ...Object.fromEntries(Object.entries(customCategories).map(([categoryId, category]) => [categoryId, category.label])),
+    data: '',
+    default: '',
+    finance: '',
+    writing: '',
   };
 }
 
-function isCategoryId(value: string): value is CategoryId {
+function isBuiltInCategoryId(value: string): value is BuiltInCategoryId {
   return Object.prototype.hasOwnProperty.call(categoryDefaults, value);
 }
 
-function normalizeCategoryColors(colors: AppSettings['categoryColors']): CategoryColorMap {
-  const normalizedColors = getInitialCategoryColors();
+function normalizeCustomCategories(categories: AppSettings['customCategories']): CustomCategoryMap {
+  const normalizedCategories: CustomCategoryMap = {};
+
+  for (const [categoryId, category] of Object.entries(categories ?? {})) {
+    if (
+      categoryId &&
+      typeof category.label === 'string' &&
+      category.label.trim() &&
+      typeof category.color === 'string' &&
+      category.color.trim() &&
+      typeof category.icon === 'string' &&
+      category.icon.trim()
+    ) {
+      normalizedCategories[categoryId] = {
+        color: category.color.trim(),
+        icon: category.icon.trim(),
+        label: category.label.trim(),
+      };
+    }
+  }
+
+  return normalizedCategories;
+}
+
+function normalizeCategoryColors(colors: AppSettings['categoryColors'], customCategories: CustomCategoryMap = {}): CategoryColorMap {
+  const normalizedColors = getInitialCategoryColors(customCategories);
 
   for (const [categoryId, color] of Object.entries(colors ?? {})) {
-    if (isCategoryId(categoryId) && typeof color === 'string' && color.trim()) {
+    if (categoryId && typeof color === 'string' && color.trim()) {
       normalizedColors[categoryId] = color;
     }
   }
@@ -341,11 +399,11 @@ function normalizeCategoryColors(colors: AppSettings['categoryColors']): Categor
   return normalizedColors;
 }
 
-function normalizeCategoryLabels(labels: AppSettings['categoryLabels']): CategoryLabelMap {
-  const normalizedLabels = getInitialCategoryLabels();
+function normalizeCategoryLabels(labels: AppSettings['categoryLabels'], customCategories: CustomCategoryMap = {}): CategoryLabelMap {
+  const normalizedLabels = getInitialCategoryLabels(customCategories);
 
   for (const [categoryId, label] of Object.entries(labels ?? {})) {
-    if (isCategoryId(categoryId) && typeof label === 'string' && label.trim()) {
+    if (categoryId && typeof label === 'string' && label.trim()) {
       normalizedLabels[categoryId] = label.trim();
     }
   }
@@ -353,17 +411,105 @@ function normalizeCategoryLabels(labels: AppSettings['categoryLabels']): Categor
   return normalizedLabels;
 }
 
-function getPersistedCategoryLabels(labels: CategoryLabelMap): Record<string, string> {
-  const defaultLabels = getInitialCategoryLabels();
+function getPersistedCategoryLabels(labels: CategoryLabelMap, customCategories: CustomCategoryMap): Record<string, string> {
+  const defaultLabels = getInitialCategoryLabels(customCategories);
   const persistedLabels: Record<string, string> = {};
 
-  for (const categoryId of Object.keys(defaultLabels) as CategoryId[]) {
+  for (const categoryId of Object.keys(labels)) {
     if (labels[categoryId] !== defaultLabels[categoryId]) {
       persistedLabels[categoryId] = labels[categoryId];
     }
   }
 
   return persistedLabels;
+}
+
+function getInitialCategoryIcons(customCategories: CustomCategoryMap = {}): CategoryIconMap {
+  return {
+    ...Object.fromEntries(Object.entries(customCategories).map(([categoryId, category]) => [categoryId, category.icon])),
+    ...categoryDefaultIcons,
+  };
+}
+
+function normalizeCategoryIcons(icons: AppSettings['categoryIcons'], customCategories: CustomCategoryMap = {}): CategoryIconMap {
+  const normalizedIcons = getInitialCategoryIcons(customCategories);
+
+  for (const [categoryId, icon] of Object.entries(icons ?? {})) {
+    if (categoryId && typeof icon === 'string' && icon.trim()) {
+      normalizedIcons[categoryId] = icon.trim();
+    }
+  }
+
+  return normalizedIcons;
+}
+
+function getPersistedCategoryIcons(icons: CategoryIconMap, customCategories: CustomCategoryMap): Record<string, string> {
+  const defaultIcons = getInitialCategoryIcons(customCategories);
+  const persistedIcons: Record<string, string> = {};
+
+  for (const categoryId of Object.keys(icons)) {
+    if (icons[categoryId] !== defaultIcons[categoryId]) {
+      persistedIcons[categoryId] = icons[categoryId];
+    }
+  }
+
+  return persistedIcons;
+}
+
+function normalizeSkillCardColors(colors: AppSettings['skillCardColors']): SkillCardColorMap {
+  const normalizedColors: SkillCardColorMap = {};
+
+  for (const [path, color] of Object.entries(colors ?? {})) {
+    if (path && typeof color === 'string' && color.trim()) {
+      normalizedColors[path] = color.trim();
+    }
+  }
+
+  return normalizedColors;
+}
+
+function normalizeSkillCategoryAssignments(
+  assignments: AppSettings['skillCategoryAssignments'],
+  overrides: AppSettings['skillCategoryOverrides'],
+): SkillCategoryAssignmentMap {
+  const normalizedAssignments: SkillCategoryAssignmentMap = {};
+
+  for (const [path, categoryIds] of Object.entries(assignments ?? {})) {
+    if (!path || !Array.isArray(categoryIds)) {
+      continue;
+    }
+
+    const cleanCategoryIds = Array.from(
+      new Set(
+        categoryIds
+          .filter((categoryId): categoryId is string => typeof categoryId === 'string' && categoryId.trim().length > 0)
+          .map((categoryId) => categoryId.trim()),
+      ),
+    );
+    if (cleanCategoryIds.length > 0) {
+      normalizedAssignments[path] = cleanCategoryIds;
+    }
+  }
+
+  for (const [path, categoryId] of Object.entries(overrides ?? {})) {
+    if (path && !normalizedAssignments[path] && typeof categoryId === 'string' && categoryId.trim()) {
+      normalizedAssignments[path] = [categoryId.trim()];
+    }
+  }
+
+  return normalizedAssignments;
+}
+
+function getPersistedSkillCategoryAssignments(assignments: SkillCategoryAssignmentMap): Record<string, string[]> {
+  const persistedAssignments: Record<string, string[]> = {};
+
+  for (const [path, categoryIds] of Object.entries(assignments)) {
+    if (path && Array.isArray(categoryIds) && categoryIds.length > 0) {
+      persistedAssignments[path] = categoryIds;
+    }
+  }
+
+  return persistedAssignments;
 }
 
 function normalizeSkillTags(tagsBySkill: AppSettings['skillTags']): Record<string, CustomSkillTag[]> {
@@ -386,12 +532,135 @@ function normalizeSkillTags(tagsBySkill: AppSettings['skillTags']): Record<strin
   return normalizedTags;
 }
 
+function normalizeCategorySkillOrder(orderByCategory: AppSettings['categorySkillOrder']): CategorySkillOrderMap {
+  const normalizedOrder: CategorySkillOrderMap = {};
+
+  for (const [categoryId, order] of Object.entries(orderByCategory ?? {})) {
+    if (!categoryId || !Array.isArray(order)) {
+      continue;
+    }
+
+    const cleanOrder = order.filter((path): path is string => typeof path === 'string' && path.trim().length > 0);
+    if (cleanOrder.length > 0) {
+      normalizedOrder[categoryId] = Array.from(new Set(cleanOrder));
+    }
+  }
+
+  return normalizedOrder;
+}
+
+function getPersistedCategorySkillOrder(orderByCategory: CategorySkillOrderMap): Record<string, string[]> {
+  const persistedOrder: Record<string, string[]> = {};
+
+  for (const [categoryId, order] of Object.entries(orderByCategory)) {
+    if (categoryId && Array.isArray(order) && order.length > 0) {
+      persistedOrder[categoryId] = order;
+    }
+  }
+
+  return persistedOrder;
+}
+
+function clampDetailPanelWidth(width: number) {
+  return Math.min(maxDetailPanelWidth, Math.max(minDetailPanelWidth, Math.round(width)));
+}
+
+function normalizeDetailPanelWidth(width: AppSettings['detailPanelWidth']) {
+  return typeof width === 'number' && Number.isFinite(width) ? clampDetailPanelWidth(width) : defaultDetailPanelWidth;
+}
+
+function getPersistedDetailPanelWidth(width: number, persistedWidth: AppSettings['detailPanelWidth']) {
+  if (width === defaultDetailPanelWidth && persistedWidth === undefined) {
+    return undefined;
+  }
+
+  return width;
+}
+
+function applyCategorySkillOrder(skills: SkillSummary[], order: string[] | undefined) {
+  if (!order || order.length === 0) {
+    return skills;
+  }
+
+  const skillByPath = new Map(skills.map((skill) => [skill.path, skill]));
+  const orderedSkills = order.flatMap((path) => {
+    const skill = skillByPath.get(path);
+    if (!skill) {
+      return [];
+    }
+    skillByPath.delete(path);
+    return [skill];
+  });
+
+  return [...orderedSkills, ...skills.filter((skill) => skillByPath.has(skill.path))];
+}
+
+function buildCategoryDefinition(
+  categoryId: CategoryId,
+  categoryLabels: CategoryLabelMap,
+  categoryColors: CategoryColorMap,
+  categoryIcons: CategoryIconMap,
+): CategoryDefinition {
+  if (isBuiltInCategoryId(categoryId)) {
+    return categoryDefaults[categoryId];
+  }
+
+  return {
+    className: 'category-custom',
+    color: categoryColors[categoryId] ?? defaultCustomTagColor,
+    icon: categoryIcons[categoryId] ?? 'label',
+    id: categoryId,
+    label: categoryLabels[categoryId] ?? categoryId,
+  };
+}
+
+function buildTagCategoryDefinition(tag: CustomSkillTag): CategoryDefinition {
+  return {
+    className: 'category-custom',
+    color: tag.color,
+    icon: 'label',
+    id: `${tagCategoryPrefix}${tag.label}`,
+    label: tag.label,
+  };
+}
+
+function getEffectiveSkillCategories(
+  skill: SkillSummary,
+  skillCategoryAssignments: SkillCategoryAssignmentMap,
+  categoryLabels: CategoryLabelMap,
+  categoryColors: CategoryColorMap,
+  categoryIcons: CategoryIconMap,
+) {
+  const assignedCategoryIds = skillCategoryAssignments[skill.path];
+  if (assignedCategoryIds && assignedCategoryIds.length > 0) {
+    return assignedCategoryIds.map((categoryId) => buildCategoryDefinition(categoryId, categoryLabels, categoryColors, categoryIcons));
+  }
+
+  return getInferredSkillCategories(skill);
+}
+
 function getCategoryStyle(category: CategoryDefinition, categoryColors: CategoryColorMap): CSSProperties {
   return { '--category-color': categoryColors[category.id] ?? category.color } as CSSProperties;
 }
 
-function getCategoryLabel(category: CategoryDefinition, categoryLabels: CategoryLabelMap) {
-  return categoryLabels[category.id] ?? category.label;
+function getSkillCardStyle(path: string, skillCardColors: SkillCardColorMap): CSSProperties {
+  const cardColor = skillCardColors[path];
+  return cardColor ? ({ '--skill-card-color': cardColor } as CSSProperties) : {};
+}
+
+function getCategoryIcon(category: CategoryDefinition, categoryIcons: CategoryIconMap) {
+  return categoryIcons[category.id] ?? category.icon ?? (isBuiltInCategoryId(category.id) ? categoryDefaultIcons[category.id] : 'label');
+}
+
+function getCategoryLabel(category: CategoryDefinition, categoryLabels: CategoryLabelMap, t?: TranslateFn) {
+  const customLabel = categoryLabels[category.id];
+  return customLabel && customLabel !== getInitialCategoryLabels()[category.id]
+    ? customLabel
+    : t
+      ? category.labelKey && isBuiltInCategoryId(category.id)
+        ? t(category.labelKey ?? categoryLabelKeys[category.id])
+        : category.label
+      : category.label;
 }
 
 function getTagStyle(color: string): CSSProperties {
@@ -402,11 +671,129 @@ function normalizeSelectableLanguage(languageValue: AppSettings['language']): Ap
   return languageValue === 'system' ? 'zh-CN' : languageValue;
 }
 
-function getSourceDotClass(source: SkillSource) {
-  return `source-dot source-dot-${source.replace(/[^a-z]/g, '-')}`;
+function isWritableSkill(skill: SkillSummary | SkillDetail) {
+  const normalizedPath = skill.path.replaceAll('\\', '/').toLocaleLowerCase();
+  const isProtectedLarkSkill = normalizedPath.includes('/.agents/skills/lark-') || skill.name.toLocaleLowerCase().startsWith('lark-');
+  return !isProtectedLarkSkill && (skill.source === 'codex-user' || skill.source === 'agents-user' || skill.source === 'custom');
 }
 
-function SourceNavIcon({ name }: { name: SourceIconName }) {
+function isReadOnlySkill(skill: SkillSummary | SkillDetail) {
+  return !isWritableSkill(skill);
+}
+
+function getRiskLevelKey(skill: SkillSummary | SkillDetail): TranslationKey {
+  const text = getSkillSearchText(skill);
+  if (text.includes('delete') || text.includes('payment') || text.includes('finance') || text.includes('stock')) {
+    return 'risk.high';
+  }
+  if (text.includes('browser') || text.includes('web') || text.includes('message') || text.includes('mail')) {
+    return 'risk.medium';
+  }
+  return 'risk.low';
+}
+
+function getLikelyTrigger(skill: SkillSummary | SkillDetail, t: TranslateFn) {
+  const description = skill.description.trim();
+  return description
+    ? t('insights.useWhen', { description })
+    : t('insights.requestMatches', { name: skill.name });
+}
+
+function getSkillDependencies(detail: SkillDetail, t: TranslateFn) {
+  const markdown = detail.bodyMarkdown.toLowerCase();
+  const dependencies = new Set<string>();
+  if (markdown.includes('browser') || markdown.includes('playwright') || detail.name.includes('browser')) {
+    dependencies.add(t('dependency.browserAutomation'));
+  }
+  if (markdown.includes('shell') || markdown.includes('powershell') || markdown.includes('command')) {
+    dependencies.add(t('dependency.localCommands'));
+  }
+  if (markdown.includes('api') || markdown.includes('http')) {
+    dependencies.add(t('dependency.externalApi'));
+  }
+  return dependencies.size > 0 ? Array.from(dependencies) : [t('dependency.none')];
+}
+
+function getSkillLintItems(detail: SkillDetail, t: TranslateFn) {
+  const items = [];
+  items.push(detail.description.trim() ? t('lint.descriptionPresent') : t('lint.descriptionMissing'));
+  items.push(/^#/m.test(detail.bodyMarkdown) ? t('lint.markdownHeadingPresent') : t('lint.markdownHeadingMissing'));
+  items.push(/when to use|use when|trigger/i.test(detail.bodyMarkdown) ? t('lint.triggerFound') : t('lint.triggerMissing'));
+  items.push(isWritableSkill(detail) ? t('lint.editableUserSkill') : t('lint.protectedSource'));
+  return items;
+}
+
+function getMarkdownNodeText(value: ReactNode): string {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(getMarkdownNodeText).join('');
+  }
+  return '';
+}
+
+function getMarkdownHeadingId(value: ReactNode) {
+  const text = getMarkdownNodeText(value);
+  const slug = text
+    .toLowerCase()
+    .trim()
+    .replace(/[`~!@#$%^&*()+=[\]{}\\|;:'",.<>/?]/g, '')
+    .replace(/\s+/g, '-');
+  return `markdown-heading-${slug || 'section'}`;
+}
+
+function MarkdownPreviewBlock({
+  ariaLabel,
+  emptyText,
+  markdown,
+  onScroll,
+  previewRef,
+}: {
+  ariaLabel: string;
+  emptyText: string;
+  markdown: string;
+  onScroll?: (event: UIEvent<HTMLDivElement>) => void;
+  previewRef?: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div ref={previewRef} className="markdown-preview markdown-content" role="region" aria-label={ariaLabel} onScroll={onScroll}>
+      {markdown.trim() ? (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ node: _node, ...props }) => <h1 id={getMarkdownHeadingId(props.children)} {...props} />,
+            h2: ({ node: _node, ...props }) => <h2 id={getMarkdownHeadingId(props.children)} {...props} />,
+            h3: ({ node: _node, ...props }) => <h3 id={getMarkdownHeadingId(props.children)} {...props} />,
+            h4: ({ node: _node, ...props }) => <h4 id={getMarkdownHeadingId(props.children)} {...props} />,
+            h5: ({ node: _node, ...props }) => <h5 id={getMarkdownHeadingId(props.children)} {...props} />,
+            h6: ({ node: _node, ...props }) => <h6 id={getMarkdownHeadingId(props.children)} {...props} />,
+          }}
+        >
+          {markdown}
+        </ReactMarkdown>
+      ) : (
+        <p>{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function getSimpleDiffLines(previousDetail: SkillDetail | null, nextName: string, nextDescription: string, nextMarkdown: string) {
+  if (!previousDetail) {
+    return [];
+  }
+
+  const previous = [previousDetail.name, previousDetail.description, previousDetail.bodyMarkdown];
+  const next = [nextName, nextDescription, nextMarkdown];
+  const labels = ['name', 'description', 'markdown'];
+
+  return labels.flatMap((label, index) =>
+    previous[index] === next[index] ? [] : [`- ${previous[index]}`, `+ ${next[index]}`],
+  );
+}
+
+function SourceNavIcon({ icon, name }: { icon?: string; name: SourceIconName }) {
   const iconNames: Record<SourceIconName, string> = {
     all: 'list_alt',
     data: 'table_chart',
@@ -418,7 +805,7 @@ function SourceNavIcon({ name }: { name: SourceIconName }) {
 
   return (
     <span aria-hidden="true" className="material-symbols-outlined source-nav-icon">
-      {iconNames[name]}
+      {icon ?? iconNames[name] ?? 'label'}
     </span>
   );
 }
@@ -536,24 +923,84 @@ export function App() {
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<CategoryId | null>(null);
   const [activeTagLabel, setActiveTagLabel] = useState<string | null>(null);
-  const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => normalizeCategoryColors(settings.categoryColors));
-  const [categoryLabels, setCategoryLabels] = useState<CategoryLabelMap>(() => normalizeCategoryLabels(settings.categoryLabels));
+  const [customCategories, setCustomCategories] = useState<CustomCategoryMap>(() => normalizeCustomCategories(settings.customCategories));
+  const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(() => normalizeCategoryColors(settings.categoryColors, normalizeCustomCategories(settings.customCategories)));
+  const [categoryLabels, setCategoryLabels] = useState<CategoryLabelMap>(() => normalizeCategoryLabels(settings.categoryLabels, normalizeCustomCategories(settings.customCategories)));
+  const [categoryIcons, setCategoryIcons] = useState<CategoryIconMap>(() => normalizeCategoryIcons(settings.categoryIcons, normalizeCustomCategories(settings.customCategories)));
   const [categoryContextMenu, setCategoryContextMenu] = useState<CategoryContextMenu | null>(null);
   const [categoryLabelDraft, setCategoryLabelDraft] = useState('');
   const [skillTagContextMenu, setSkillTagContextMenu] = useState<SkillTagContextMenu | null>(null);
   const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>(() => normalizeSkillTags(settings.skillTags));
+  const [categorySkillOrder, setCategorySkillOrder] = useState<CategorySkillOrderMap>(() => normalizeCategorySkillOrder(settings.categorySkillOrder));
+  const [skillCardColors, setSkillCardColors] = useState<SkillCardColorMap>(() => normalizeSkillCardColors(settings.skillCardColors));
+  const [skillCategoryAssignments, setSkillCategoryAssignments] = useState<SkillCategoryAssignmentMap>(() =>
+    normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides),
+  );
+  const [draggedSkillPath, setDraggedSkillPath] = useState<string | null>(null);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => normalizeDetailPanelWidth(settings.detailPanelWidth));
   const [tagDraft, setTagDraft] = useState('');
   const [tagColor, setTagColor] = useState(defaultCustomTagColor);
   const [sortByNameAscending, setSortByNameAscending] = useState(false);
   const [showIssueSkillsOnly, setShowIssueSkillsOnly] = useState(false);
+  const [activeGovernanceFilter, setActiveGovernanceFilter] = useState<GovernanceFilter | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('original');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showWritableOnly, setShowWritableOnly] = useState(false);
+  const [showReadOnlyOnly, setShowReadOnlyOnly] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const toolbarMenuRef = useRef<HTMLDivElement>(null);
+  const categoryContextMenuRef = useRef<HTMLDivElement>(null);
+  const skillTagContextMenuRef = useRef<HTMLDivElement>(null);
+  const markdownInputRef = useRef<HTMLTextAreaElement>(null);
+  const markdownEditPreviewRef = useRef<HTMLDivElement>(null);
+  const markdownSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
+  const detailResizeRef = useRef<{ startWidth: number; startX: number } | null>(null);
+  const detailPanelWidthRef = useRef(detailPanelWidth);
 
   const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
   const visibleLanguage = normalizeSelectableLanguage(language);
   const visibleSettingsLanguage = normalizeSelectableLanguage(settingsDraft.language);
-  const categorySidebarLabel = visibleLanguage === 'en-US' ? 'Categories' : '类目';
+  const localizedCategorySidebarLabel = t('category.title');
+  const categoryNavItems = useMemo<Array<{ category: CategoryDefinition | null; icon: SourceIconName; labelKey?: TranslationKey }>>(() => {
+    const customItems = Object.entries(customCategories)
+      .map(([categoryId, category]) => ({
+        category: buildCategoryDefinition(categoryId, categoryLabels, categoryColors, categoryIcons),
+        icon: category.icon,
+      }))
+      .sort((leftItem, rightItem) =>
+        getCategoryLabel(leftItem.category, categoryLabels, t).localeCompare(getCategoryLabel(rightItem.category, categoryLabels, t), locale),
+      );
+
+    return [
+      { category: null, icon: 'all', labelKey: 'sources.allSkills' },
+      ...builtInCategoryIds.map((categoryId) => ({ category: categoryDefaults[categoryId], icon: categoryId })),
+      ...customItems,
+    ];
+  }, [categoryColors, categoryIcons, categoryLabels, customCategories, locale, t]);
 
   const filteredSkills = useMemo(() => {
-    const searchMatches = filterSkills(skills, searchQuery).filter((skill) => !showIssueSkillsOnly || skill.parseStatus !== 'parsed');
+    const searchMatches = filterSkills(skills, searchQuery).filter((skill) => {
+      if (showIssueSkillsOnly && skill.parseStatus === 'parsed') {
+        return false;
+      }
+      if (showWritableOnly && !isWritableSkill(skill)) {
+        return false;
+      }
+      if (showReadOnlyOnly && !isReadOnlySkill(skill)) {
+        return false;
+      }
+      if (activeGovernanceFilter === 'needs-attention' && skill.parseStatus === 'parsed') {
+        return false;
+      }
+      if (activeGovernanceFilter === 'user-editable' && !isWritableSkill(skill)) {
+        return false;
+      }
+      if (activeGovernanceFilter === 'read-only-plugins' && skill.source !== 'plugin-cache') {
+        return false;
+      }
+      return true;
+    });
 
     if (activeTagLabel) {
       return searchMatches.filter((skill) => skillTags[skill.path]?.some((tag) => tag.label === activeTagLabel));
@@ -564,39 +1011,107 @@ export function App() {
     }
 
     return searchMatches.filter((skill) =>
-      getSkillCategories(skill).some((category) => category.id === activeCategoryId),
+      getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).some(
+        (category) => category.id === activeCategoryId,
+      ),
     );
-  }, [activeCategoryId, activeTagLabel, searchQuery, showIssueSkillsOnly, skillTags, skills]);
+  }, [
+    activeCategoryId,
+    activeGovernanceFilter,
+    activeTagLabel,
+    searchQuery,
+    showIssueSkillsOnly,
+    showReadOnlyOnly,
+    showWritableOnly,
+    categoryColors,
+    categoryIcons,
+    categoryLabels,
+    skillCategoryAssignments,
+    skillTags,
+    skills,
+  ]);
   const sortedFilteredSkills = useMemo(() => {
-    if (!sortByNameAscending) {
-      return filteredSkills;
+    if (sortMode === 'name' || sortByNameAscending) {
+      return [...filteredSkills].sort((leftSkill, rightSkill) => leftSkill.name.localeCompare(rightSkill.name, locale));
+    }
+    if (sortMode === 'modified') {
+      return [...filteredSkills].sort((leftSkill, rightSkill) => {
+        const leftTime = leftSkill.modifiedAt ? new Date(leftSkill.modifiedAt).getTime() : 0;
+        const rightTime = rightSkill.modifiedAt ? new Date(rightSkill.modifiedAt).getTime() : 0;
+        return rightTime - leftTime;
+      });
     }
 
-    return [...filteredSkills].sort((leftSkill, rightSkill) => leftSkill.name.localeCompare(rightSkill.name, locale));
-  }, [filteredSkills, locale, sortByNameAscending]);
+    return filteredSkills;
+  }, [filteredSkills, locale, sortByNameAscending, sortMode]);
   const totalPages = Math.max(1, Math.ceil(sortedFilteredSkills.length / skillsPerPage));
   const normalizedCurrentPage = Math.min(currentPage, totalPages);
   const paginatedSkills = useMemo(() => {
     const pageStartIndex = (normalizedCurrentPage - 1) * skillsPerPage;
     return sortedFilteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
   }, [normalizedCurrentPage, sortedFilteredSkills]);
+  const categorySections = useMemo<CategorySection[]>(() => {
+    const sectionMap = new Map<CategoryId, { category: CategoryDefinition; skills: SkillSummary[] }>();
+
+    for (const skill of sortedFilteredSkills) {
+      const skillCategories = getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons);
+      const tagCategories =
+        activeCategoryId || activeTagLabel
+          ? []
+          : (skillTags[skill.path] ?? []).map((tag) => buildTagCategoryDefinition(tag));
+
+      for (const category of [...skillCategories, ...tagCategories]) {
+        if (activeCategoryId && category.id !== activeCategoryId) {
+          continue;
+        }
+
+        const section = sectionMap.get(category.id) ?? { category, skills: [] };
+        section.skills.push(skill);
+        sectionMap.set(category.id, section);
+      }
+    }
+
+    return Array.from(sectionMap.values())
+      .map((section) => ({
+        ...section,
+        label: getCategoryLabel(section.category, categoryLabels, t),
+        skills: applyCategorySkillOrder(section.skills, categorySkillOrder[section.category.id]),
+      }))
+      .sort((leftSection, rightSection) => leftSection.label.localeCompare(rightSection.label, locale));
+  }, [
+    activeCategoryId,
+    activeTagLabel,
+    categoryColors,
+    categoryIcons,
+    categoryLabels,
+    categorySkillOrder,
+    locale,
+    skillCategoryAssignments,
+    skillTags,
+    sortedFilteredSkills,
+    t,
+  ]);
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<CategoryId, number> = {
-      data: 0,
-      default: 0,
-      finance: 0,
-      writing: 0,
-    };
+    const counts: Record<CategoryId, number> = Object.fromEntries(categoryNavItems.flatMap((item) => (item.category ? [[item.category.id, 0]] : [])));
 
     for (const skill of skills) {
-      for (const category of getSkillCategories(skill)) {
-        counts[category.id] += 1;
+      for (const category of getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons)) {
+        counts[category.id] = (counts[category.id] ?? 0) + 1;
       }
     }
 
     return counts;
-  }, [skills]);
+  }, [categoryColors, categoryIcons, categoryLabels, categoryNavItems, skillCategoryAssignments, skills]);
+
+  const governanceCounts = useMemo(
+    () => ({
+      needsAttention: skills.filter((skill) => skill.parseStatus !== 'parsed').length,
+      readOnlyPlugins: skills.filter((skill) => skill.source === 'plugin-cache').length,
+      userEditable: skills.filter(isWritableSkill).length,
+    }),
+    [skills],
+  );
 
   const customTagCategories = useMemo(() => {
     const tagMap = new Map<string, CustomTagCategory>();
@@ -636,7 +1151,14 @@ export function App() {
           : visibleScanOutcome === 'failed'
             ? 'sources.failed'
             : 'sources.notScanned';
-
+  const selectedIsReadOnly = selectedDetail ? isReadOnlySkill(selectedDetail) : false;
+  const selectedLintItems = selectedDetail ? getSkillLintItems(selectedDetail, t) : [];
+  const detailHasChanges =
+    Boolean(selectedDetail) &&
+    (selectedDetail?.name !== detailName ||
+      selectedDetail?.description !== detailDescription ||
+      selectedDetail?.bodyMarkdown !== detailMarkdown);
+  const pendingSaveDiffLines = getSimpleDiffLines(selectedDetail, detailName, detailDescription, detailMarkdown);
   const scanSkills = async () => {
     setIsLoadingSkills(true);
     setScanError(null);
@@ -665,10 +1187,21 @@ export function App() {
       ...settings,
       language: normalizeSelectableLanguage(settings.language),
     });
-    setCategoryColors(normalizeCategoryColors(settings.categoryColors));
-    setCategoryLabels(normalizeCategoryLabels(settings.categoryLabels));
+    const nextCustomCategories = normalizeCustomCategories(settings.customCategories);
+    setCustomCategories(nextCustomCategories);
+    setCategoryColors(normalizeCategoryColors(settings.categoryColors, nextCustomCategories));
+    setCategoryLabels(normalizeCategoryLabels(settings.categoryLabels, nextCustomCategories));
+    setCategoryIcons(normalizeCategoryIcons(settings.categoryIcons, nextCustomCategories));
     setSkillTags(normalizeSkillTags(settings.skillTags));
+    setCategorySkillOrder(normalizeCategorySkillOrder(settings.categorySkillOrder));
+    setSkillCardColors(normalizeSkillCardColors(settings.skillCardColors));
+    setSkillCategoryAssignments(normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides));
+    setDetailPanelWidth(normalizeDetailPanelWidth(settings.detailPanelWidth));
   }, [settings]);
+
+  useEffect(() => {
+    detailPanelWidthRef.current = detailPanelWidth;
+  }, [detailPanelWidth]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));
@@ -676,7 +1209,7 @@ export function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategoryId, activeTagLabel, searchQuery, showIssueSkillsOnly, sortByNameAscending]);
+  }, [activeCategoryId, activeGovernanceFilter, activeTagLabel, searchQuery, showIssueSkillsOnly, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -690,22 +1223,95 @@ export function App() {
     }
   }, [showCreateSkill]);
 
+  useEffect(() => {
+    const handleOutsideMenuMouseDown = (event: globalThis.MouseEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if ((showSortMenu || showFilterMenu) && toolbarMenuRef.current && !toolbarMenuRef.current.contains(target)) {
+        setShowSortMenu(false);
+        setShowFilterMenu(false);
+      }
+
+      if (categoryContextMenu && categoryContextMenuRef.current && !categoryContextMenuRef.current.contains(target)) {
+        setCategoryContextMenu(null);
+      }
+
+      if (skillTagContextMenu && skillTagContextMenuRef.current && !skillTagContextMenuRef.current.contains(target)) {
+        setSkillTagContextMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideMenuMouseDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideMenuMouseDown);
+    };
+  }, [categoryContextMenu, showFilterMenu, showSortMenu, skillTagContextMenu]);
+
   const persistUiPreferences = (
     nextCategoryColors: CategoryColorMap,
     nextCategoryLabels: CategoryLabelMap,
     nextSkillTags: Record<string, CustomSkillTag[]>,
+    nextCategorySkillOrder = categorySkillOrder,
+    nextDetailPanelWidth = detailPanelWidthRef.current,
+    nextCategoryIcons = categoryIcons,
+    nextSkillCardColors = skillCardColors,
+    nextSkillCategoryAssignments = skillCategoryAssignments,
+    nextCustomCategories = customCategories,
   ) => {
     const latestSettings = settingsRef.current;
     void saveSettings({
       ...latestSettings,
       language: normalizeSelectableLanguage(latestSettings.language),
+      customCategories: nextCustomCategories,
       categoryColors: nextCategoryColors,
-      categoryLabels: getPersistedCategoryLabels(nextCategoryLabels),
+      categoryLabels: getPersistedCategoryLabels(nextCategoryLabels, nextCustomCategories),
+      categoryIcons: getPersistedCategoryIcons(nextCategoryIcons, nextCustomCategories),
+      categorySkillOrder: getPersistedCategorySkillOrder(nextCategorySkillOrder),
+      detailPanelWidth: getPersistedDetailPanelWidth(nextDetailPanelWidth, latestSettings.detailPanelWidth),
+      skillCardColors: nextSkillCardColors,
+      skillCategoryAssignments: getPersistedSkillCategoryAssignments(nextSkillCategoryAssignments),
+      skillCategoryOverrides: {},
       skillTags: nextSkillTags,
     }).catch(() => {
       // Settings save errors are exposed through the shared settings runtime.
     });
   };
+
+  useEffect(() => {
+    const handleDetailResizeMove = (event: globalThis.MouseEvent) => {
+      if (!detailResizeRef.current) {
+        return;
+      }
+
+      const nextWidth = clampDetailPanelWidth(
+        detailResizeRef.current.startWidth + detailResizeRef.current.startX - event.clientX,
+      );
+      detailPanelWidthRef.current = nextWidth;
+      setDetailPanelWidth(nextWidth);
+    };
+
+    const handleDetailResizeEnd = () => {
+      if (!detailResizeRef.current) {
+        return;
+      }
+
+      detailResizeRef.current = null;
+      persistUiPreferences(categoryColors, categoryLabels, skillTags, categorySkillOrder, detailPanelWidthRef.current);
+    };
+
+    window.addEventListener('mousemove', handleDetailResizeMove);
+    window.addEventListener('mouseup', handleDetailResizeEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleDetailResizeMove);
+      window.removeEventListener('mouseup', handleDetailResizeEnd);
+    };
+  }, [categoryColors, categoryIcons, categoryLabels, categorySkillOrder, customCategories, skillCardColors, skillCategoryAssignments, skillTags]);
 
   const syncDetailForm = (detail: SkillDetail) => {
     setSelectedDetail(detail);
@@ -774,6 +1380,32 @@ export function App() {
     }));
   };
 
+  const applyCreateTemplate = (template: 'automation' | 'research' | 'writing') => {
+    const templates: Record<typeof template, Pick<CreateSkillDraft, 'description' | 'markdown'>> = {
+      automation: {
+        description: 'Run a repeatable local automation with clear safety checks.',
+        markdown:
+          '# Automation Skill\n\n## When To Use\nUse when the user asks for this repeatable local workflow.\n\n## Inputs\n- Required files or folders\n\n## Steps\n1. Inspect context.\n2. Run the smallest safe action.\n3. Verify the result.\n\n## Safety\nAsk before deleting, uploading, or transmitting sensitive data.\n',
+      },
+      research: {
+        description: 'Collect, compare, and synthesize source-backed research.',
+        markdown:
+          '# Research Skill\n\n## When To Use\nUse when the user needs source-backed analysis.\n\n## Source Strategy\n- Prefer primary sources.\n- Record dates and uncertainty.\n\n## Output\nSummarize findings, risks, and next actions.\n',
+      },
+      writing: {
+        description: 'Draft and refine structured writing with a clear voice.',
+        markdown:
+          '# Writing Skill\n\n## When To Use\nUse when the user asks for drafting, rewriting, or editorial polish.\n\n## Voice\nMatch the user context and audience.\n\n## Output\nReturn concise, ready-to-use text.\n',
+      },
+    };
+
+    setCreateSkillDraft((currentDraft) => ({
+      ...currentDraft,
+      description: currentDraft.description || templates[template].description,
+      markdown: currentDraft.markdown || templates[template].markdown,
+    }));
+  };
+
   const selectSkill = async (skill: SkillSummary) => {
     const requestId = detailRequestIdRef.current + 1;
     detailRequestIdRef.current = requestId;
@@ -800,7 +1432,7 @@ export function App() {
     }
   };
 
-  const saveSelectedSkill = async () => {
+  const performSelectedSkillSave = async () => {
     if (!selectedDetail) {
       return;
     }
@@ -826,7 +1458,21 @@ export function App() {
       setDetailError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsSavingDetail(false);
+      setShowSaveConfirm(false);
     }
+  };
+
+  const saveSelectedSkill = async () => {
+    if (!selectedDetail || selectedIsReadOnly) {
+      return;
+    }
+
+    if (detailHasChanges) {
+      setShowSaveConfirm(true);
+      return;
+    }
+
+    await performSelectedSkillSave();
   };
 
   const createSkill = async () => {
@@ -878,11 +1524,26 @@ export function App() {
         setSelectedPath(null);
         setSelectedDetail(null);
       }
-      if (skillTags[targetPath] || settingsRef.current.skillTags?.[targetPath]) {
+      if (skillTags[targetPath] || settingsRef.current.skillTags?.[targetPath] || skillCategoryAssignments[targetPath]) {
         const nextSkillTags = { ...normalizeSkillTags(settingsRef.current.skillTags), ...skillTags };
         delete nextSkillTags[targetPath];
         setSkillTags(nextSkillTags);
-        persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
+        const nextSkillCardColors = { ...skillCardColors };
+        const nextSkillCategoryAssignments = { ...skillCategoryAssignments };
+        delete nextSkillCardColors[targetPath];
+        delete nextSkillCategoryAssignments[targetPath];
+        setSkillCardColors(nextSkillCardColors);
+        setSkillCategoryAssignments(nextSkillCategoryAssignments);
+        persistUiPreferences(
+          categoryColors,
+          categoryLabels,
+          nextSkillTags,
+          categorySkillOrder,
+          detailPanelWidthRef.current,
+          categoryIcons,
+          nextSkillCardColors,
+          nextSkillCategoryAssignments,
+        );
       }
       await scanSkills();
     } catch (error) {
@@ -936,7 +1597,7 @@ export function App() {
   const openCategoryContextMenu = (event: MouseEvent, categoryId: CategoryId) => {
     event.preventDefault();
     setSkillTagContextMenu(null);
-    setCategoryLabelDraft(categoryLabels[categoryId] ?? categoryDefaults[categoryId].label);
+    setCategoryLabelDraft(categoryLabels[categoryId] ?? (isBuiltInCategoryId(categoryId) ? categoryDefaults[categoryId].label : categoryId));
     setCategoryContextMenu({ categoryId, x: event.clientX, y: event.clientY });
   };
 
@@ -946,7 +1607,60 @@ export function App() {
       [categoryId]: color,
     };
     setCategoryColors(nextCategoryColors);
-    persistUiPreferences(nextCategoryColors, categoryLabels, skillTags);
+    const nextCustomCategories = customCategories[categoryId]
+      ? {
+          ...customCategories,
+          [categoryId]: {
+            ...customCategories[categoryId],
+            color,
+          },
+        }
+      : customCategories;
+    if (nextCustomCategories !== customCategories) {
+      setCustomCategories(nextCustomCategories);
+    }
+    persistUiPreferences(
+      nextCategoryColors,
+      categoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      categoryIcons,
+      skillCardColors,
+      skillCategoryAssignments,
+      nextCustomCategories,
+    );
+  };
+
+  const updateCategoryIcon = (categoryId: CategoryId, icon: string) => {
+    const nextCategoryIcons = {
+      ...categoryIcons,
+      [categoryId]: icon,
+    };
+    setCategoryIcons(nextCategoryIcons);
+    const nextCustomCategories = customCategories[categoryId]
+      ? {
+          ...customCategories,
+          [categoryId]: {
+            ...customCategories[categoryId],
+            icon,
+          },
+        }
+      : customCategories;
+    if (nextCustomCategories !== customCategories) {
+      setCustomCategories(nextCustomCategories);
+    }
+    persistUiPreferences(
+      categoryColors,
+      categoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      nextCategoryIcons,
+      skillCardColors,
+      skillCategoryAssignments,
+      nextCustomCategories,
+    );
   };
 
   const saveCategoryLabel = () => {
@@ -954,13 +1668,36 @@ export function App() {
       return;
     }
 
-    const nextLabel = categoryLabelDraft.trim() || getInitialCategoryLabels()[categoryContextMenu.categoryId];
+    const categoryId = categoryContextMenu.categoryId;
+    const nextLabel = categoryLabelDraft.trim() || getInitialCategoryLabels(customCategories)[categoryId] || categoryId;
     const nextCategoryLabels = {
       ...categoryLabels,
-      [categoryContextMenu.categoryId]: nextLabel,
+      [categoryId]: nextLabel,
     };
+    const nextCustomCategories = customCategories[categoryId]
+      ? {
+          ...customCategories,
+          [categoryId]: {
+            ...customCategories[categoryId],
+            label: nextLabel,
+          },
+        }
+      : customCategories;
     setCategoryLabels(nextCategoryLabels);
-    persistUiPreferences(categoryColors, nextCategoryLabels, skillTags);
+    if (nextCustomCategories !== customCategories) {
+      setCustomCategories(nextCustomCategories);
+    }
+    persistUiPreferences(
+      categoryColors,
+      nextCategoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      categoryIcons,
+      skillCardColors,
+      skillCategoryAssignments,
+      nextCustomCategories,
+    );
     setCategoryContextMenu(null);
   };
 
@@ -984,7 +1721,7 @@ export function App() {
       [skillTagContextMenu.path]: [...(skillTags[skillTagContextMenu.path] ?? []), { color: tagColor, label }],
     };
     setSkillTags(nextSkillTags);
-    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
+    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, skillCardColors, skillCategoryAssignments);
     setSkillTagContextMenu(null);
     setTagDraft('');
     setTagColor(defaultCustomTagColor);
@@ -1001,7 +1738,189 @@ export function App() {
     }
 
     setSkillTags(nextSkillTags);
-    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags);
+    persistUiPreferences(categoryColors, categoryLabels, nextSkillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, skillCardColors, skillCategoryAssignments);
+  };
+
+  const setSkillCategoryAssignmentsForPath = (path: string, categoryIds: CategoryId[]) => {
+    const cleanCategoryIds = Array.from(new Set(categoryIds.filter((categoryId) => categoryId.trim().length > 0)));
+    const nextSkillCategoryAssignments = { ...skillCategoryAssignments };
+
+    if (cleanCategoryIds.length > 0) {
+      nextSkillCategoryAssignments[path] = cleanCategoryIds;
+    } else {
+      delete nextSkillCategoryAssignments[path];
+    }
+
+    setSkillCategoryAssignments(nextSkillCategoryAssignments);
+    persistUiPreferences(categoryColors, categoryLabels, skillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, skillCardColors, nextSkillCategoryAssignments);
+  };
+
+  const addSkillCategoryAssignment = (path: string, categoryId: CategoryId) => {
+    const currentCategoryIds =
+      skillCategoryAssignments[path] ??
+      (skills.find((skill) => skill.path === path)
+        ? getInferredSkillCategories(skills.find((skill) => skill.path === path) as SkillSummary).map((category) => category.id)
+        : []);
+    setSkillCategoryAssignmentsForPath(path, [...currentCategoryIds, categoryId]);
+  };
+
+  const removeSkillCategoryAssignment = (path: string, categoryId: CategoryId) => {
+    const currentCategoryIds =
+      skillCategoryAssignments[path] ??
+      (skills.find((skill) => skill.path === path)
+        ? getInferredSkillCategories(skills.find((skill) => skill.path === path) as SkillSummary).map((category) => category.id)
+        : []);
+    setSkillCategoryAssignmentsForPath(
+      path,
+      currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryId),
+    );
+  };
+
+  const createCustomCategoryForSkill = (path: string, label: string) => {
+    const trimmedLabel = label.trim();
+    if (!trimmedLabel) {
+      return;
+    }
+
+    const baseId = `custom-${trimmedLabel
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, '') || Date.now().toString(36)}`;
+    let categoryId = baseId;
+    let suffix = 2;
+    while (categoryDefaults[categoryId as BuiltInCategoryId] || customCategories[categoryId]) {
+      categoryId = `${baseId}-${suffix}`;
+      suffix += 1;
+    }
+
+    const nextCustomCategories = {
+      ...customCategories,
+      [categoryId]: {
+        color: tagColor,
+        icon: 'label',
+        label: trimmedLabel,
+      },
+    };
+    const nextCategoryColors = {
+      ...categoryColors,
+      [categoryId]: tagColor,
+    };
+    const nextCategoryLabels = {
+      ...categoryLabels,
+      [categoryId]: trimmedLabel,
+    };
+    const nextCategoryIcons = {
+      ...categoryIcons,
+      [categoryId]: 'label',
+    };
+    const nextSkillCategoryAssignments = {
+      ...skillCategoryAssignments,
+      [path]: Array.from(new Set([...(skillCategoryAssignments[path] ?? []), categoryId])),
+    };
+
+    setCustomCategories(nextCustomCategories);
+    setCategoryColors(nextCategoryColors);
+    setCategoryLabels(nextCategoryLabels);
+    setCategoryIcons(nextCategoryIcons);
+    setSkillCategoryAssignments(nextSkillCategoryAssignments);
+    persistUiPreferences(
+      nextCategoryColors,
+      nextCategoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      nextCategoryIcons,
+      skillCardColors,
+      nextSkillCategoryAssignments,
+      nextCustomCategories,
+    );
+    setTagDraft('');
+  };
+
+  const updateSkillCardColor = (path: string, color: string) => {
+    const nextSkillCardColors = { ...skillCardColors };
+
+    if (color) {
+      nextSkillCardColors[path] = color;
+    } else {
+      delete nextSkillCardColors[path];
+    }
+
+    setSkillCardColors(nextSkillCardColors);
+    persistUiPreferences(categoryColors, categoryLabels, skillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, nextSkillCardColors, skillCategoryAssignments);
+  };
+
+  const startCategorySkillDrag = (event: DragEvent<HTMLElement>, path: string) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', path);
+    setDraggedSkillPath(path);
+  };
+
+  const reorderCategorySkill = (categoryId: CategoryId, targetPath: string, sourcePath = draggedSkillPath) => {
+    if (!sourcePath || sourcePath === targetPath) {
+      return;
+    }
+
+    const section = categorySections.find((currentSection) => currentSection.category.id === categoryId);
+    if (!section || !section.skills.some((skill) => skill.path === sourcePath)) {
+      return;
+    }
+
+    const nextOrder = section.skills.map((skill) => skill.path).filter((path) => path !== sourcePath);
+    const targetIndex = nextOrder.indexOf(targetPath);
+    nextOrder.splice(targetIndex === -1 ? nextOrder.length : targetIndex, 0, sourcePath);
+    const nextCategorySkillOrder = {
+      ...categorySkillOrder,
+      [categoryId]: nextOrder,
+    };
+
+    setCategorySkillOrder(nextCategorySkillOrder);
+    persistUiPreferences(categoryColors, categoryLabels, skillTags, nextCategorySkillOrder);
+  };
+
+  const restoreCategoryDefaultOrder = (categoryId: CategoryId) => {
+    const nextCategorySkillOrder = { ...categorySkillOrder };
+    delete nextCategorySkillOrder[categoryId];
+    setCategorySkillOrder(nextCategorySkillOrder);
+    persistUiPreferences(categoryColors, categoryLabels, skillTags, nextCategorySkillOrder);
+  };
+
+  const startDetailResize = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    detailResizeRef.current = {
+      startWidth: detailPanelWidthRef.current,
+      startX: event.clientX,
+    };
+  };
+
+  const syncMarkdownPreviewScroll = (source: HTMLTextAreaElement | HTMLDivElement, target: HTMLTextAreaElement | HTMLDivElement) => {
+    if (markdownSyncSourceRef.current) {
+      return;
+    }
+
+    const sourceScrollable = source.scrollHeight - source.clientHeight;
+    const targetScrollable = target.scrollHeight - target.clientHeight;
+    const ratio = sourceScrollable > 0 ? source.scrollTop / sourceScrollable : 0;
+    markdownSyncSourceRef.current = source === markdownInputRef.current ? 'editor' : 'preview';
+    target.scrollTop = targetScrollable * ratio;
+    window.requestAnimationFrame(() => {
+      markdownSyncSourceRef.current = null;
+    });
+  };
+
+  const syncMarkdownPreviewFromEditor = (event?: { currentTarget: HTMLTextAreaElement }) => {
+    const editor = event?.currentTarget ?? markdownInputRef.current;
+    const preview = markdownEditPreviewRef.current;
+    if (editor && preview) {
+      syncMarkdownPreviewScroll(editor, preview);
+    }
+  };
+
+  const syncMarkdownEditorFromPreview = (event: UIEvent<HTMLDivElement>) => {
+    const editor = markdownInputRef.current;
+    if (editor) {
+      syncMarkdownPreviewScroll(event.currentTarget, editor);
+    }
   };
 
   const saveSettingsDraft = async () => {
@@ -1009,8 +1928,15 @@ export function App() {
       await saveSettings({
         ...settingsDraft,
         language: normalizeSelectableLanguage(settingsDraft.language),
+        customCategories,
         categoryColors,
-        categoryLabels: getPersistedCategoryLabels(categoryLabels),
+        categoryIcons: getPersistedCategoryIcons(categoryIcons, customCategories),
+        categoryLabels: getPersistedCategoryLabels(categoryLabels, customCategories),
+        categorySkillOrder: getPersistedCategorySkillOrder(categorySkillOrder),
+        detailPanelWidth: getPersistedDetailPanelWidth(detailPanelWidth, settingsRef.current.detailPanelWidth),
+        skillCardColors,
+        skillCategoryAssignments: getPersistedSkillCategoryAssignments(skillCategoryAssignments),
+        skillCategoryOverrides: {},
         skillTags,
       });
     } catch {
@@ -1037,6 +1963,37 @@ export function App() {
 
     return 'ready';
   })();
+
+  const detailActions = (
+    <div className="detail-actions detail-actions-pinned" style={{ position: 'static' }}>
+      <button type="button" className="primary-action" disabled={!selectedDetail || selectedIsReadOnly || isSavingDetail} onClick={() => void saveSelectedSkill()}>
+        <MaterialIcon name="save" />
+        {t('actions.save')}
+      </button>
+      <button
+        type="button"
+        className="secondary-action"
+        disabled={!selectedDetail || selectedIsReadOnly}
+        onClick={() => {
+          setDeleteConfirmPath(selectedDetail?.path ?? null);
+          setShowDeleteConfirm(true);
+        }}
+      >
+        <MaterialIcon name="delete" />
+        {t('actions.delete')}
+      </button>
+      <button type="button" className="secondary-action" disabled={!selectedDetail} onClick={() => void openSelectedSkillFolder()}>
+        <MaterialIcon name="folder_open" />
+        {selectedDetail ? t('actions.openFolder') : t('actions.openPath')}
+      </button>
+    </div>
+  );
+  const contextMenuSkill = skillTagContextMenu ? skills.find((skill) => skill.path === skillTagContextMenu.path) : null;
+  const contextMenuCategoryIds =
+    skillTagContextMenu && contextMenuSkill
+      ? skillCategoryAssignments[skillTagContextMenu.path] ?? getInferredSkillCategories(contextMenuSkill).map((category) => category.id)
+      : ['default'];
+  const contextMenuAvailableCategories = categoryNavItems.flatMap((item) => (item.category ? [item.category] : []));
 
   return (
     <main className="app-shell fluid-app-shell">
@@ -1225,6 +2182,15 @@ export function App() {
                 <p className="muted">{t('settings.noCustomDirectories')}</p>
               )}
             </section>
+            <section className="settings-card migration-card" aria-label="Migration">
+              <h3>Migration</h3>
+              <p className="muted">Move settings, category colors, custom tags, and local skills between machines.</p>
+              <div className="migration-actions">
+                <button type="button">Export migration package</button>
+                <button type="button">Import migration package</button>
+                <button type="button">Validate migration</button>
+              </div>
+            </section>
           </div>
 
           <div className="settings-actions">
@@ -1235,16 +2201,70 @@ export function App() {
         </section>
       ) : null}
 
-      <section className="dashboard-grid fluid-dashboard-grid" aria-label={t('layout.dashboard')}>
-        <aside className="panel sidebar fluid-sidebar-panel" aria-label={categorySidebarLabel}>
+      <section
+        className="dashboard-grid fluid-dashboard-grid"
+        aria-label={t('layout.dashboard')}
+        style={{ '--detail-panel-width': `${detailPanelWidth}px` } as CSSProperties}
+      >
+        <aside className="panel sidebar fluid-sidebar-panel" aria-label={localizedCategorySidebarLabel}>
           <div className="sidebar-kicker">
-            <h2>{categorySidebarLabel}</h2>
-            <p>{`${skills.length} Total Skills`}</p>
+            <h2>{localizedCategorySidebarLabel}</h2>
+            <p>{t('category.totalSkills', { count: String(skills.length) })}</p>
           </div>
-          <nav aria-label={categorySidebarLabel}>
+          <section className="sidebar-section governance-section" aria-label={t('governance.title')}>
+            <h3>{t('governance.title')}</h3>
+            <div className="button-stack">
+              <button
+                type="button"
+                aria-label={`${t('governance.needsAttention')} ${governanceCounts.needsAttention}`}
+                className={activeGovernanceFilter === 'needs-attention' ? 'active' : undefined}
+                onClick={() => {
+                  setActiveGovernanceFilter((current) => (current === 'needs-attention' ? null : 'needs-attention'));
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(null);
+                }}
+              >
+                <SourceNavIcon name="all" />
+                <span className="source-nav-label">{t('governance.needsAttention')}</span>
+                <span className="source-nav-count">{governanceCounts.needsAttention}</span>
+              </button>
+              <button
+                type="button"
+                aria-label={`${t('governance.userEditable')} ${governanceCounts.userEditable}`}
+                className={activeGovernanceFilter === 'user-editable' ? 'active' : undefined}
+                onClick={() => {
+                  setActiveGovernanceFilter((current) => (current === 'user-editable' ? null : 'user-editable'));
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(null);
+                }}
+              >
+                <SourceNavIcon name="default" />
+                <span className="source-nav-label">{t('governance.userEditable')}</span>
+                <span className="source-nav-count">{governanceCounts.userEditable}</span>
+              </button>
+              <button
+                type="button"
+                aria-label={`${t('governance.readOnlyPlugins')} ${governanceCounts.readOnlyPlugins}`}
+                className={activeGovernanceFilter === 'read-only-plugins' ? 'active' : undefined}
+                onClick={() => {
+                  setActiveGovernanceFilter((current) => (current === 'read-only-plugins' ? null : 'read-only-plugins'));
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(null);
+                }}
+              >
+                <SourceNavIcon name="tag" />
+                <span className="source-nav-label">{t('governance.readOnlyPlugins')}</span>
+                <span className="source-nav-count">{governanceCounts.readOnlyPlugins}</span>
+              </button>
+            </div>
+          </section>
+          <section className="sidebar-section topic-section" aria-label={t('category.topicsAndTags')}>
+            <h3>{t('category.topicsAndTags')}</h3>
+          </section>
+          <nav aria-label={localizedCategorySidebarLabel}>
             {categoryNavItems.map((item) => {
-              const label = item.category ? getCategoryLabel(item.category, categoryLabels) : t(item.labelKey ?? 'sources.allSkills');
-              const count = item.category ? categoryCounts[item.category.id] : skills.length;
+              const label = item.category ? getCategoryLabel(item.category, categoryLabels, t) : t(item.labelKey ?? 'sources.allSkills');
+              const count = item.category ? (categoryCounts[item.category.id] ?? 0) : skills.length;
               const isActive = item.category
                 ? activeTagLabel === null && activeCategoryId === item.category.id
                 : activeCategoryId === null && activeTagLabel === null;
@@ -1259,6 +2279,7 @@ export function App() {
                   onClick={() => {
                     setActiveCategoryId(item.category?.id ?? null);
                     setActiveTagLabel(null);
+                    setActiveGovernanceFilter(null);
                     setCurrentPage(1);
                   }}
                   onContextMenu={(event) => {
@@ -1267,7 +2288,7 @@ export function App() {
                     }
                   }}
                 >
-                  <SourceNavIcon name={item.icon} />
+                  <SourceNavIcon name={item.icon} icon={item.category ? getCategoryIcon(item.category, categoryIcons) : undefined} />
                   <span className="source-nav-label">{label}</span>
                   <span className="source-nav-count">{count}</span>
                 </button>
@@ -1286,6 +2307,7 @@ export function App() {
                   onClick={() => {
                     setActiveCategoryId(null);
                     setActiveTagLabel(tag.label);
+                    setActiveGovernanceFilter(null);
                     setCurrentPage(1);
                   }}
                 >
@@ -1339,17 +2361,17 @@ export function App() {
           <div className="section-heading">
             <div>
               <h2>{t('skills.title')}</h2>
-              <p>{`Showing ${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</p>
+              <p>{t('skills.showingCount', { count: String(sortedFilteredSkills.length), unit: t('skills.countUnit') })}</p>
               <span className="visually-hidden">{`${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</span>
             </div>
-            <div className="list-toolbar">
-              <div className="view-switcher" role="tablist" aria-label="Skill view">
+            <div className="list-toolbar" ref={toolbarMenuRef}>
+              <div className="view-switcher" role="tablist" aria-label={t('view.skillView')}>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={skillViewMode === 'list'}
                   className={skillViewMode === 'list' ? 'active' : undefined}
-                  title="List View"
+                  title={t('view.list')}
                   onClick={() => setSkillViewMode('list')}
                 >
                   <MaterialIcon name="format_list_bulleted" />
@@ -1359,7 +2381,7 @@ export function App() {
                   role="tab"
                   aria-selected={skillViewMode === 'cards'}
                   className={skillViewMode === 'cards' ? 'active' : undefined}
-                  title="Card View"
+                  title={t('view.cards')}
                   onClick={() => setSkillViewMode('cards')}
                 >
                   <MaterialIcon name="grid_view" />
@@ -1368,74 +2390,157 @@ export function App() {
               <button
                 type="button"
                 className={sortByNameAscending ? 'icon-button active' : 'icon-button'}
-                aria-label="Sort skills"
+                aria-label={t('toolbar.sortSkills')}
                 aria-pressed={sortByNameAscending}
-                onClick={() => setSortByNameAscending((isActive) => !isActive)}
+                onClick={() => {
+                  setSortByNameAscending((isActive) => !isActive);
+                  setSortMode('name');
+                  setShowSortMenu((isOpen) => !isOpen);
+                }}
               >
                 <MaterialIcon name="sort" />
               </button>
+              {showSortMenu ? (
+                <div className="toolbar-menu" role="menu" aria-label={t('toolbar.sortSkills')}>
+                  <button type="button" role="menuitemradio" aria-checked={sortMode === 'name'} onClick={() => setSortMode('name')}>
+                    {t('toolbar.nameAz')}
+                  </button>
+                  <button type="button" role="menuitemradio" aria-checked={sortMode === 'modified'} onClick={() => setSortMode('modified')}>
+                    {t('toolbar.modifiedTime')}
+                  </button>
+                </div>
+              ) : null}
               <button
                 type="button"
                 className={showIssueSkillsOnly ? 'icon-button active' : 'icon-button'}
-                aria-label="Filter skills"
+                aria-label={t('toolbar.filterSkills')}
                 aria-pressed={showIssueSkillsOnly}
-                onClick={() => setShowIssueSkillsOnly((isActive) => !isActive)}
+                onClick={() => {
+                  setShowIssueSkillsOnly((isActive) => !isActive);
+                  setShowFilterMenu((isOpen) => !isOpen);
+                }}
               >
                 <MaterialIcon name="filter_list" />
               </button>
+              {showFilterMenu ? (
+                <div className="toolbar-menu" role="menu" aria-label={t('toolbar.filterSkills')}>
+                  <button type="button" role="menuitemcheckbox" aria-checked={showIssueSkillsOnly} onClick={() => setShowIssueSkillsOnly((isActive) => !isActive)}>
+                    {t('governance.needsAttention')}
+                  </button>
+                  <button type="button" role="menuitemcheckbox" aria-checked={showWritableOnly} onClick={() => setShowWritableOnly((isActive) => !isActive)}>
+                    {t('toolbar.writableOnly')}
+                  </button>
+                  <button type="button" role="menuitemcheckbox" aria-checked={showReadOnlyOnly} onClick={() => setShowReadOnlyOnly((isActive) => !isActive)}>
+                    {t('governance.readOnlyPlugins')}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
           {listState === 'ready' ? (
             <div className="skill-list-scroll fluid-table-region">
               <div className={skillViewMode === 'cards' ? 'skill-card-grid active' : 'skill-card-grid'}>
-                {paginatedSkills.map((skill) => {
-                  const selected = selectedPath === skill.path;
-                  const customTags = skillTags[skill.path] ?? [];
-                  return (
-                    <button
-                      key={skill.path}
-                      type="button"
-                      className={`skill-card ${selected ? 'selected-card' : ''}`}
-                      aria-pressed={selected}
-                      onClick={() => void selectSkill(skill)}
-                      onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
+                {categorySections.map((section) => (
+                  <section
+                    key={section.category.id}
+                    className="category-card-section"
+                    aria-label={`Skill category: ${section.label}`}
+                    style={getCategoryStyle(section.category, categoryColors)}
+                  >
+                    <div className="category-card-heading">
+                      <div>
+                        <h3>{section.label}</h3>
+                        <span>{`${section.skills.length} ${t('skills.countUnit')}`}</span>
+                      </div>
+                      <button type="button" className="restore-order-button" onClick={() => restoreCategoryDefaultOrder(section.category.id)}>
+                        {t('actions.restoreDefault')}
+                      </button>
+                    </div>
+                    <div
+                      className="category-card-scroll two-row-card-scroll"
+                      style={{ overflowY: 'auto' }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                      }}
                     >
-                      <span className="skill-card-topline">
-                        <span className="skill-card-icon">
-                          <MaterialIcon name={getSkillIcon(skill)} size={24} />
-                        </span>
-                        <span className={`source-code source-code-${skill.source.replace(/[^a-z]/g, '-')}`}>{getSourceCode(skill.source)}</span>
-                      </span>
-                      <span className="skill-card-body">
-                        <strong>{skill.name}</strong>
-                        <span className="skill-description">{skill.description}</span>
-                      </span>
-                      <span className="skill-card-tags">
-                        {getSkillCategories(skill).map((category) => (
-                          <span
-                            key={`${skill.path}-${category.id}`}
-                            className={`category-chip ${category.className}`}
-                            data-testid={`skill-category-${skill.path}-${category.id}`}
-                            style={getCategoryStyle(category, categoryColors)}
-                            aria-hidden="true"
+                      {section.skills.map((skill) => {
+                        const selected = selectedPath === skill.path;
+                        const customTags = skillTags[skill.path] ?? [];
+                        return (
+                          <div
+                            key={`${section.category.id}-${skill.path}`}
+                            role="button"
+                            tabIndex={0}
+                            className={`skill-card ${selected ? 'selected-card' : ''}`}
+                            aria-pressed={selected}
+                            draggable
+                            style={getSkillCardStyle(skill.path, skillCardColors)}
+                            onDragStart={(event) => startCategorySkillDrag(event, skill.path)}
+                            onDragEnd={() => setDraggedSkillPath(null)}
+                            onDragEnter={(event) => {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              reorderCategorySkill(section.category.id, skill.path, event.dataTransfer.getData('text/plain') || draggedSkillPath);
+                              setDraggedSkillPath(null);
+                            }}
+                            onClick={() => void selectSkill(skill)}
+                            onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                void selectSkill(skill);
+                              }
+                            }}
                           >
-                            {getCategoryLabel(category, categoryLabels)}
-                          </span>
-                        ))}
-                        {customTags.map((tag, index) => (
-                          <span
-                            key={`${skill.path}-${tag.label}-${index}`}
-                            className="category-chip custom-skill-tag"
-                            style={getTagStyle(tag.color)}
-                            aria-hidden="true"
-                          >
-                            {tag.label}
-                          </span>
-                        ))}
-                      </span>
-                    </button>
-                  );
-                })}
+                            <span className="skill-card-topline">
+                              <span className="skill-card-icon">
+                                <MaterialIcon name={getSkillIcon(skill)} size={24} />
+                              </span>
+                              <span className="skill-card-drag-hint" aria-hidden="true">
+                                <MaterialIcon name="drag_indicator" size={18} />
+                              </span>
+                            </span>
+                            <span className="skill-card-body">
+                              <strong>{skill.name}</strong>
+                              <span className="skill-description">{skill.description}</span>
+                            </span>
+                            <span className="skill-card-tags">
+                              {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
+                                <span
+                                  key={`${skill.path}-${category.id}`}
+                                  className={`category-chip ${category.className}`}
+                                  data-testid={`skill-category-${skill.path}-${category.id}`}
+                                  style={getCategoryStyle(category, categoryColors)}
+                                  aria-hidden="true"
+                                >
+                                  {getCategoryLabel(category, categoryLabels, t)}
+                                </span>
+                              ))}
+                              {customTags.map((tag, index) => (
+                                <span
+                                  key={`${skill.path}-${tag.label}-${index}`}
+                                  className="category-chip custom-skill-tag"
+                                  style={getTagStyle(tag.color)}
+                                  aria-hidden="true"
+                                >
+                                  {tag.label}
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
 
               <div className={skillViewMode === 'list' ? 'skill-table-wrap fluid-table-region active' : 'skill-table-wrap fluid-table-region semantic-table'}>
@@ -1443,7 +2548,6 @@ export function App() {
                   <thead>
                     <tr>
                       <th scope="col">{t('skills.columnName')}</th>
-                      <th scope="col">{t('skills.columnSource')}</th>
                       <th scope="col">{t('skills.columnDescription')}</th>
                       <th scope="col">{t('skills.columnModified')}</th>
                       <th scope="col">{t('skills.columnPath')}</th>
@@ -1471,16 +2575,15 @@ export function App() {
                               <MaterialIcon name={getSkillIcon(skill)} />
                             </span>
                             <strong>{skill.name}</strong>
-                            <span className="source-code compact">{getSourceCode(skill.source)}</span>
                           </span>
                           <span className="table-skill-tags">
-                            {getSkillCategories(skill).map((category) => (
+                            {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
                               <span
                                 key={`${skill.path}-table-${category.id}`}
                                 className={`category-chip ${category.className}`}
                                 style={getCategoryStyle(category, categoryColors)}
                               >
-                                {getCategoryLabel(category, categoryLabels)}
+                                {getCategoryLabel(category, categoryLabels, t)}
                               </span>
                             ))}
                             {(skillTags[skill.path] ?? []).map((tag, index) => (
@@ -1495,9 +2598,6 @@ export function App() {
                           </span>
                         </td>
                         <td>
-                          <span className="status-pill">{t(sourceLabelKeys[skill.source])}</span>
-                        </td>
-                        <td>
                           {skillViewMode === 'list' ? <span className="skill-description">{skill.description}</span> : null}
                         </td>
                         <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
@@ -1509,57 +2609,96 @@ export function App() {
                   </tbody>
                 </table>
               </div>
-              <div className="pagination-controls" aria-label={t('pagination.label')}>
-                <span>
-                  {`Showing ${paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1}-${Math.min(
-                    normalizedCurrentPage * skillsPerPage,
-                    sortedFilteredSkills.length,
-                  )} of ${sortedFilteredSkills.length} ${t('skills.countUnit')}`}
-                </span>
-                <div className="pagination-stepper">
-                  <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
-                <button
-                  type="button"
-                  disabled={normalizedCurrentPage === 1}
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                >
-                    <MaterialIcon name="chevron_left" />
-                  {t('pagination.previous')}
-                </button>
-                <button
-                  type="button"
-                  disabled={normalizedCurrentPage === totalPages}
-                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                >
-                  {t('pagination.next')}
-                    <MaterialIcon name="chevron_right" />
-                </button>
+              {skillViewMode === 'list' ? (
+                <div className="pagination-controls" aria-label={t('pagination.label')}>
+                  <span>
+                    {t('pagination.range', {
+                      end: String(Math.min(normalizedCurrentPage * skillsPerPage, sortedFilteredSkills.length)),
+                      start: String(paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1),
+                      total: String(sortedFilteredSkills.length),
+                      unit: t('skills.countUnit'),
+                    })}
+                  </span>
+                  <div className="pagination-stepper">
+                    <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
+                    <button
+                      type="button"
+                      disabled={normalizedCurrentPage === 1}
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    >
+                      <MaterialIcon name="chevron_left" />
+                      {t('pagination.previous')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={normalizedCurrentPage === totalPages}
+                      onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    >
+                      {t('pagination.next')}
+                      <MaterialIcon name="chevron_right" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           ) : (
             <div className={`empty-state ${listState === 'error' ? 'error-state' : ''}`}>
-              <strong>
-                {listState === 'loading'
-                  ? t('skills.loadingTitle')
-                  : listState === 'error'
-                    ? t('skills.errorTitle')
-                    : listState === 'filtered-empty'
-                      ? t('skills.noMatchesTitle')
-                      : t('skills.emptyTitle')}
-              </strong>
-              <p>
-                {listState === 'loading'
-                  ? t('skills.loadingDescription')
-                  : listState === 'error'
-                    ? scanError
-                    : listState === 'filtered-empty'
-                      ? t('skills.noMatchesDescription')
-                      : t('skills.emptyDescription')}
-              </p>
+              {listState === 'error' ? (
+                <section className="scan-diagnostics" aria-label={t('diagnostics.scanDiagnostics')}>
+                  <strong>{t('skills.errorTitle')}</strong>
+                  {isTauriUnavailable(scanError ?? '') ? <h3>{t('diagnostics.desktopBridgeUnavailable')}</h3> : null}
+                  <p>
+                    {isTauriUnavailable(scanError ?? '')
+                      ? t('diagnostics.desktopBridgeUnavailableDescription')
+                      : scanError}
+                  </p>
+                  {scanError && isTauriUnavailable(scanError) ? <code>{scanError}</code> : null}
+                  <div className="diagnostic-paths">
+                    {[...sidebarStoragePaths, ...settings.customScanDirectories].map((path) => (
+                      <span key={path}>{t('diagnostics.scanPath', { path })}</span>
+                    ))}
+                  </div>
+                  <div className="diagnostic-actions">
+                    <button type="button" onClick={() => void scanSkills()}>
+                      {t('actions.rescan')}
+                    </button>
+                    <button type="button" onClick={() => setShowSettings(true)}>
+                      {t('diagnostics.reviewScanSettings')}
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                <>
+                  <strong>
+                    {listState === 'loading'
+                      ? t('skills.loadingTitle')
+                      : listState === 'filtered-empty'
+                        ? t('skills.noMatchesTitle')
+                        : t('skills.emptyTitle')}
+                  </strong>
+                  <p>
+                    {listState === 'loading'
+                      ? t('skills.loadingDescription')
+                      : listState === 'filtered-empty'
+                        ? t('skills.noMatchesDescription')
+                        : t('skills.emptyDescription')}
+                  </p>
+                </>
+              )}
             </div>
           )}
         </section>
+
+        <button
+          type="button"
+          className="detail-resize-handle"
+          role="separator"
+          aria-label={t('details.resizePanel')}
+          aria-orientation="vertical"
+          onMouseDown={startDetailResize}
+        >
+          <span />
+        </button>
 
         <aside className="panel detail-panel fluid-detail-panel" aria-label={t('details.ariaLabel')}>
           <div className="detail-panel-heading">
@@ -1601,16 +2740,16 @@ export function App() {
               <section className="detail-hero-section" aria-label={t('details.metadata')}>
                 <label className="field-stack detail-name-field title-field">
                   <span>{t('details.name')}</span>
-                  <input value={detailName} onChange={(event) => setDetailName(event.target.value)} />
+                  <input disabled={selectedIsReadOnly} value={detailName} onChange={(event) => setDetailName(event.target.value)} />
                 </label>
                 <div className="detail-tag-row">
-                  {getSkillCategories(selectedDetail).map((category) => (
+                  {getEffectiveSkillCategories(selectedDetail, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
                     <span
                       key={`${selectedDetail.path}-${category.id}`}
                       className={`category-chip ${category.className}`}
                       style={getCategoryStyle(category, categoryColors)}
                     >
-                      {getCategoryLabel(category, categoryLabels)}
+                      {getCategoryLabel(category, categoryLabels, t)}
                     </span>
                   ))}
                   <button type="button" className="tag-edit-button" aria-label={t('details.tags')}>
@@ -1618,13 +2757,6 @@ export function App() {
                   </button>
                 </div>
                 <dl className="detail-meta-strip">
-                  <div>
-                    <dt>{t('details.source')}</dt>
-                    <dd>
-                      <span className={getSourceDotClass(selectedDetail.source)} />
-                      {t(sourceLabelKeys[selectedDetail.source])}
-                    </dd>
-                  </div>
                   <div>
                     <dt>{t('details.modified')}</dt>
                     <dd>{formatDateTime(selectedDetail.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
@@ -1643,6 +2775,13 @@ export function App() {
                 </dl>
               </section>
 
+              {selectedIsReadOnly ? (
+                <section className="detail-section warning-state" aria-label={t('details.readOnlySource')}>
+                  <strong>{t('details.readOnlySource')}</strong>
+                  <p>{t('details.readOnlySourceDescription')}</p>
+                </section>
+              ) : null}
+
               <section className="detail-description-section">
                 {detailMode === 'preview' ? (
                   <div className="field-stack">
@@ -1654,6 +2793,7 @@ export function App() {
                     <span>{t('details.description')}</span>
                     <textarea
                       className="detail-description-input"
+                      disabled={selectedIsReadOnly}
                       value={detailDescription}
                       onChange={(event) => setDetailDescription(event.target.value)}
                     />
@@ -1662,18 +2802,47 @@ export function App() {
               </section>
               <section className="detail-markdown-section detail-body-section fluid-markdown-region">
                 {detailMode === 'preview' ? (
-                  <pre className="markdown-preview markdown-content">{detailMarkdown.trim() || t('details.markdownEmpty')}</pre>
+                  <div className="markdown-preview-shell">
+                    <MarkdownPreviewBlock ariaLabel={t('details.markdownPreview')} emptyText={t('details.markdownEmpty')} markdown={detailMarkdown} />
+                  </div>
                 ) : (
-                  <label className="field-stack detail-markdown-field">
-                    <span>{t('details.markdownBody')}</span>
-                    <textarea
-                      className="detail-markdown-input fluid-markdown-input"
-                      value={detailMarkdown}
-                      onChange={(event) => setDetailMarkdown(event.target.value)}
+                  <div className="markdown-edit-layout">
+                    <label className="field-stack detail-markdown-field">
+                      <span>{t('details.markdownBody')}</span>
+                      <textarea
+                        ref={markdownInputRef}
+                        className="detail-markdown-input fluid-markdown-input"
+                        disabled={selectedIsReadOnly}
+                        value={detailMarkdown}
+                        onChange={(event) => {
+                          setDetailMarkdown(event.target.value);
+                          syncMarkdownPreviewFromEditor(event);
+                        }}
+                        onClick={() => syncMarkdownPreviewFromEditor()}
+                        onKeyUp={() => syncMarkdownPreviewFromEditor()}
+                        onScroll={syncMarkdownPreviewFromEditor}
+                      />
+                    </label>
+                    <MarkdownPreviewBlock
+                      ariaLabel={t('details.markdownEditPreview')}
+                      emptyText={t('details.markdownEmpty')}
+                      markdown={detailMarkdown}
+                      onScroll={syncMarkdownEditorFromPreview}
+                      previewRef={markdownEditPreviewRef}
                     />
-                  </label>
+                  </div>
                 )}
               </section>
+
+              <section className="detail-section lint-section" aria-label={t('lint.title')}>
+                <h3>{t('lint.title')}</h3>
+                <ul>
+                  {selectedLintItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+              {detailActions}
             </div>
           ) : (
             <div className="detail-content detail-content-empty">
@@ -1682,10 +2851,6 @@ export function App() {
                 <dl>
                   <div>
                     <dt>{t('details.name')}</dt>
-                    <dd>{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('details.source')}</dt>
                     <dd>{isLoadingDetail ? t('details.loading') : t('details.placeholder')}</dd>
                   </div>
                   <div>
@@ -1716,71 +2881,132 @@ export function App() {
                   </div>
                 </div>
               </section>
+              {detailActions}
             </div>
           )}
-          <div className="detail-actions detail-actions-pinned">
-            <button type="button" className="primary-action" disabled={!selectedDetail || isSavingDetail} onClick={() => void saveSelectedSkill()}>
-              <MaterialIcon name="save" />
-              {t('actions.save')}
-            </button>
-            <button
-              type="button"
-              className="secondary-action"
-              disabled={!selectedDetail}
-              onClick={() => {
-                setDeleteConfirmPath(selectedDetail?.path ?? null);
-                setShowDeleteConfirm(true);
-              }}
-            >
-              <MaterialIcon name="delete" />
-              {t('actions.delete')}
-            </button>
-            <button type="button" className="secondary-action" disabled={!selectedDetail} onClick={() => void openSelectedSkillFolder()}>
-              <MaterialIcon name="folder_open" />
-              {selectedDetail ? t('actions.openFolder') : t('actions.openPath')}
-            </button>
-          </div>
         </aside>
       </section>
       {categoryContextMenu ? (
+        (() => {
+          const activeCategory = buildCategoryDefinition(categoryContextMenu.categoryId, categoryLabels, categoryColors, categoryIcons);
+          return (
         <div
+          ref={categoryContextMenuRef}
           className="context-menu color-context-menu"
           role="menu"
           style={{ left: categoryContextMenu.x, top: categoryContextMenu.y }}
         >
-          <strong>{getCategoryLabel(categoryDefaults[categoryContextMenu.categoryId], categoryLabels)}</strong>
+          <strong>{getCategoryLabel(activeCategory, categoryLabels, t)}</strong>
           <label className="field-stack">
-            <span>类目名称</span>
-            <input aria-label="类目名称" value={categoryLabelDraft} onChange={(event) => setCategoryLabelDraft(event.target.value)} />
+            <span>{t('customize.categoryName')}</span>
+            <input aria-label={t('customize.categoryName')} value={categoryLabelDraft} onChange={(event) => setCategoryLabelDraft(event.target.value)} />
           </label>
           <div className="context-menu-actions">
             <button type="button" onClick={() => setCategoryContextMenu(null)}>
-              取消
+              {t('actions.cancel')}
             </button>
             <button type="button" className="primary-action" onClick={saveCategoryLabel}>
-              保存类目
+              {t('customize.saveCategory')}
             </button>
           </div>
-          {colorChoices.map((choice) => (
-            <button
-              key={choice.color}
-              type="button"
-              aria-label={`将 ${categoryDefaults[categoryContextMenu.categoryId].label} 设置为${choice.label}`}
-              onClick={() => updateCategoryColor(categoryContextMenu.categoryId, choice.color)}
-            >
-              <span className="color-swatch" style={{ background: choice.color }} />
-              {choice.label}
-            </button>
-          ))}
+          <div className="context-menu-group" role="group" aria-label={t('customize.categoryColor')}>
+            {colorChoices.map((choice) => (
+              <button
+                key={choice.color}
+                type="button"
+                aria-label={t('customize.categoryColorChoice', {
+                  category: getCategoryLabel(activeCategory, categoryLabels, t),
+                  color: choice.labelKey ? t(choice.labelKey) : choice.label,
+                })}
+                onClick={() => updateCategoryColor(categoryContextMenu.categoryId, choice.color)}
+              >
+                <span className="color-swatch" style={{ background: choice.color }} />
+                {choice.labelKey ? t(choice.labelKey) : choice.label}
+              </button>
+            ))}
+          </div>
+          <div className="context-menu-group" role="group" aria-label={t('customize.categoryIcon')}>
+            {categoryIconChoices.map((choice) => (
+              <button
+                key={choice.icon}
+                type="button"
+                className={getCategoryIcon(activeCategory, categoryIcons) === choice.icon ? 'active-choice' : undefined}
+                aria-label={t('customize.categoryIconChoice', { icon: t(choice.labelKey) })}
+                onClick={() => updateCategoryIcon(categoryContextMenu.categoryId, choice.icon)}
+              >
+                <MaterialIcon name={choice.icon} />
+                {t(choice.labelKey)}
+              </button>
+            ))}
+          </div>
         </div>
+          );
+        })()
       ) : null}
       {skillTagContextMenu ? (
         <div
+          ref={skillTagContextMenuRef}
           className="context-menu tag-context-menu"
           role="dialog"
-          aria-label="添加标签"
+          aria-label={t('customize.skillMenu')}
           style={{ left: skillTagContextMenu.x, top: skillTagContextMenu.y }}
         >
+          <strong>{contextMenuSkill?.name ?? t('customize.skillMenu')}</strong>
+          <div className="context-menu-group existing-tag-list" role="group" aria-label={t('customize.defaultCategory')}>
+            <span className="context-menu-caption">{t('customize.currentCategories')}</span>
+            {contextMenuCategoryIds.map((categoryId) => {
+              const category = buildCategoryDefinition(categoryId, categoryLabels, categoryColors, categoryIcons);
+              return (
+                <div key={`${skillTagContextMenu.path}-${categoryId}`} className="existing-tag-item">
+                  <span className={`category-chip ${category.className}`} style={getCategoryStyle(category, categoryColors)}>
+                    {getCategoryLabel(category, categoryLabels, t)}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={t('customize.removeCategory', { label: getCategoryLabel(category, categoryLabels, t) })}
+                    onClick={() => removeSkillCategoryAssignment(skillTagContextMenu.path, categoryId)}
+                  >
+                    {t('customize.delete')}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <label className="field-stack">
+            <span>{t('customize.addDefaultCategory')}</span>
+            <select
+              aria-label={t('customize.addDefaultCategory')}
+              defaultValue=""
+              onChange={(event) => {
+                const categoryId = event.currentTarget.value;
+                if (categoryId) {
+                  addSkillCategoryAssignment(skillTagContextMenu.path, categoryId);
+                  event.currentTarget.value = '';
+                }
+              }}
+            >
+              <option value="">{t('customize.chooseCategory')}</option>
+              {contextMenuAvailableCategories.map((category) => (
+                <option key={category.id} value={category.id} disabled={contextMenuCategoryIds.includes(category.id)}>
+                  {getCategoryLabel(category, categoryLabels, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="context-menu-group color-choice-grid" role="group" aria-label={t('customize.cardColor')}>
+            {skillCardColorChoices.map((choice) => (
+              <button
+                key={choice.labelKey ?? choice.label}
+                type="button"
+                className={(skillCardColors[skillTagContextMenu.path] ?? '') === choice.color ? 'active-choice' : undefined}
+                aria-label={t('customize.cardColorChoice', { color: choice.labelKey ? t(choice.labelKey) : choice.label })}
+                onClick={() => updateSkillCardColor(skillTagContextMenu.path, choice.color)}
+              >
+                <span className="color-swatch" style={{ background: choice.color || '#ffffff' }} />
+                {choice.labelKey ? t(choice.labelKey) : choice.label}
+              </button>
+            ))}
+          </div>
           {(skillTags[skillTagContextMenu.path] ?? []).length > 0 ? (
             <div className="existing-tag-list">
               {(skillTags[skillTagContextMenu.path] ?? []).map((tag, index) => (
@@ -1788,24 +3014,24 @@ export function App() {
                   <span className="category-chip custom-skill-tag" style={getTagStyle(tag.color)}>
                     {tag.label}
                   </span>
-                  <button type="button" aria-label={`移除 ${tag.label}`} onClick={() => removeSkillTag(skillTagContextMenu.path, index)}>
-                    移除
+                  <button type="button" aria-label={t('customize.removeTag', { label: tag.label })} onClick={() => removeSkillTag(skillTagContextMenu.path, index)}>
+                    {t('customize.delete')}
                   </button>
                 </div>
               ))}
             </div>
           ) : null}
           <label className="field-stack">
-            <span>标签名称</span>
-            <input aria-label="标签名称" value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} />
+            <span>{t('customize.tagName')}</span>
+            <input aria-label={t('customize.tagName')} value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} />
           </label>
-          <div className="tag-color-picker" aria-label="标签颜色">
+          <div className="tag-color-picker" aria-label={t('customize.tagColor')}>
             {colorChoices.map((choice) => (
               <button
                 key={choice.color}
                 type="button"
                 className={tagColor === choice.color ? 'active-color' : undefined}
-                aria-label={`标签颜色 ${choice.label}`}
+                aria-label={t('customize.tagColorChoice', { color: choice.labelKey ? t(choice.labelKey) : choice.label })}
                 onClick={() => setTagColor(choice.color)}
               >
                 <span className="color-swatch" style={{ background: choice.color }} />
@@ -1814,10 +3040,13 @@ export function App() {
           </div>
           <div className="context-menu-actions">
             <button type="button" onClick={() => setSkillTagContextMenu(null)}>
-              取消
+              {t('actions.cancel')}
+            </button>
+            <button type="button" onClick={() => createCustomCategoryForSkill(skillTagContextMenu.path, tagDraft)}>
+              {t('customize.addCategory')}
             </button>
             <button type="button" className="primary-action" onClick={addSkillTag}>
-              添加标签
+              {t('customize.addTag')}
             </button>
           </div>
         </div>
@@ -1827,6 +3056,7 @@ export function App() {
           <div role="dialog" aria-modal="true" aria-labelledby="delete-skill-title" className="confirm-dialog">
             <h2 id="delete-skill-title">{t('actions.delete')}</h2>
             <p>{t('details.deleteConfirm')}</p>
+            <p className="muted">{t('details.deleteBackupNotice')}</p>
             <div className="dialog-actions">
               <button
                 type="button"
@@ -1850,6 +3080,29 @@ export function App() {
           </div>
         </div>
       ) : null}
+      {showSaveConfirm && selectedDetail ? (
+        <div className="dialog-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="save-skill-title" className="confirm-dialog diff-dialog">
+            <h2 id="save-skill-title">{t('saveReview.title')}</h2>
+            <p>{t('saveReview.backupNotice')}</p>
+            <div className="diff-preview">
+              {pendingSaveDiffLines.length > 0 ? (
+                pendingSaveDiffLines.map((line, index) => <code key={`${line}-${index}`}>{line}</code>)
+              ) : (
+                <code>{t('saveReview.noChanges')}</code>
+              )}
+            </div>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setShowSaveConfirm(false)}>
+                {t('actions.cancel')}
+              </button>
+              <button type="button" className="primary-action" disabled={isSavingDetail} onClick={() => void performSelectedSkillSave()}>
+                {t('saveReview.saveWithBackup')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showCreateSkill ? (
         <div className="dialog-backdrop">
           <div role="dialog" aria-modal="true" aria-labelledby="create-skill-title" className="create-dialog">
@@ -1865,6 +3118,20 @@ export function App() {
                 <p>{createSkillError}</p>
               </div>
             ) : null}
+            <section className="create-template-panel" aria-label={t('create.intentTemplates')}>
+              <h3>{t('create.intentStep')}</h3>
+              <div className="template-actions">
+                <button type="button" onClick={() => applyCreateTemplate('automation')}>
+                  {t('create.automationTemplate')}
+                </button>
+                <button type="button" onClick={() => applyCreateTemplate('research')}>
+                  {t('create.researchTemplate')}
+                </button>
+                <button type="button" onClick={() => applyCreateTemplate('writing')}>
+                  {t('create.writingTemplate')}
+                </button>
+              </div>
+            </section>
             <div className="create-form-grid">
               <label className="field-stack">
                 <span>{t('create.targetDirectory')}</span>
@@ -1882,7 +3149,7 @@ export function App() {
               <label className="field-stack">
                 <span>{t('create.source')}</span>
                 <select
-                  aria-label="Skill source"
+                  aria-label={t('create.source')}
                   value={createSkillDraft.source}
                   onChange={(event) => updateCreateSkillDraft('source', event.target.value as WritableSkillSource)}
                 >
@@ -1925,3 +3192,4 @@ export function App() {
     </main>
   );
 }
+

@@ -71,14 +71,36 @@ pub struct CustomSkillTagSetting {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CustomCategorySetting {
+    pub color: String,
+    pub icon: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub language: Language,
     pub custom_scan_directories: Vec<String>,
     pub show_default_scan_directories: bool,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub custom_categories: HashMap<String, CustomCategorySetting>,
     #[serde(default)]
     pub category_colors: HashMap<String, String>,
     #[serde(default)]
     pub category_labels: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub category_icons: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub category_skill_order: HashMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_panel_width: Option<u16>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skill_card_colors: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skill_category_overrides: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skill_category_assignments: HashMap<String, Vec<String>>,
     #[serde(default)]
     pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
 }
@@ -89,8 +111,15 @@ impl Default for AppSettings {
             language: Language::System,
             custom_scan_directories: Vec::new(),
             show_default_scan_directories: true,
+            custom_categories: HashMap::new(),
             category_colors: HashMap::new(),
             category_labels: HashMap::new(),
+            category_icons: HashMap::new(),
+            category_skill_order: HashMap::new(),
+            detail_panel_width: None,
+            skill_card_colors: HashMap::new(),
+            skill_category_overrides: HashMap::new(),
+            skill_category_assignments: HashMap::new(),
             skill_tags: HashMap::new(),
         }
     }

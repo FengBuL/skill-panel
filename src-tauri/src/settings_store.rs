@@ -62,7 +62,7 @@ fn home_dir() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::{load_app_settings_from_path, save_app_settings_to_path};
-    use crate::models::{AppSettings, Language};
+    use crate::models::{AppSettings, CustomCategorySetting, Language};
     use std::{
         fs,
         path::PathBuf,
@@ -95,6 +95,35 @@ mod tests {
             language: Language::EnUs,
             custom_scan_directories: vec!["D:\\Team\\skills".to_string()],
             show_default_scan_directories: false,
+            custom_categories: std::collections::HashMap::from([(
+                "custom-lark".to_string(),
+                CustomCategorySetting {
+                    color: "#e0f2fe".to_string(),
+                    icon: "chat_bubble".to_string(),
+                    label: "飞书".to_string(),
+                },
+            )]),
+            category_skill_order: std::collections::HashMap::from([(
+                "data".to_string(),
+                vec!["D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string()],
+            )]),
+            category_icons: std::collections::HashMap::from([(
+                "finance".to_string(),
+                "star".to_string(),
+            )]),
+            detail_panel_width: Some(520),
+            skill_card_colors: std::collections::HashMap::from([(
+                "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
+                "#fee2e2".to_string(),
+            )]),
+            skill_category_overrides: std::collections::HashMap::from([(
+                "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
+                "finance".to_string(),
+            )]),
+            skill_category_assignments: std::collections::HashMap::from([(
+                "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
+                vec!["custom-lark".to_string(), "finance".to_string()],
+            )]),
             ..AppSettings::default()
         };
 

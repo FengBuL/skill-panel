@@ -117,6 +117,15 @@ const categorizedScanResults: SkillSummary[] = [
   },
 ];
 
+const manyDataSkills: SkillSummary[] = Array.from({ length: 9 }, (_, index) => ({
+  path: `C:\\Users\\demo\\.codex\\skills\\sheet-flow-${index + 1}\\SKILL.md`,
+  name: `sheet-flow-${index + 1}`,
+  description: `Clean CSV sheet data and table exports ${index + 1}.`,
+  source: 'codex-user',
+  parseStatus: 'parsed',
+  modifiedAt: '2026-05-30T08:15:00Z',
+}));
+
 function mockInvoke({
   skills = [],
   settings = {
@@ -195,6 +204,33 @@ describe('App shell', () => {
     expect(screen.queryByText('a-share-daily-update')).not.toBeInTheDocument();
   });
 
+  it('turns scan failures into actionable diagnostics', async () => {
+    mockNavigatorLanguages(['en-US']);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          language: 'en-US',
+          customScanDirectories: ['D:\\Team\\skills'],
+          showDefaultScanDirectories: true,
+        });
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.reject(new Error('__TAURI__ invoke is not available'));
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole('region', { name: 'Scan diagnostics' })).toBeInTheDocument();
+    expect(screen.getByText('Desktop bridge unavailable')).toBeInTheDocument();
+    expect(screen.getByText('The app is running without the desktop bridge, so local skill commands cannot run.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Review scan settings' })).toBeInTheDocument();
+    expect(screen.getByText('D:\\Team\\skills')).toBeInTheDocument();
+  });
+
   it('switches all visible shell text to English and saves the setting', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -254,6 +290,21 @@ describe('App shell', () => {
     expect(screen.getByText('Tools')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open path' })).toBeInTheDocument();
+  });
+
+  it('presents governance-first navigation for sources, safety, and tags', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    const governance = await screen.findByRole('complementary', { name: 'Categories' });
+
+    expect(within(governance).getByText('Governance')).toBeInTheDocument();
+    expect(within(governance).getByRole('button', { name: /Needs attention\s+1/i })).toBeInTheDocument();
+    expect(within(governance).getByRole('button', { name: /User editable\s+2/i })).toBeInTheDocument();
+    expect(within(governance).getByRole('button', { name: /Read-only plugins\s+1/i })).toBeInTheDocument();
+    expect(within(governance).getByText('Topics and tags')).toBeInTheDocument();
   });
 
   it('aligns the top command bar as product name, centered scan status, and right-side commands', async () => {
@@ -327,14 +378,14 @@ describe('App shell', () => {
     const sources = screen.getByRole('complementary', { name: 'Categories' });
     const expectedItems = [
       ['All Skills', '3'],
-      ['金融', '0'],
-      ['表格', '0'],
-      ['文案', '0'],
-      ['技能', '3'],
+      ['Finance', '0'],
+      ['Data', '0'],
+      ['Writing', '0'],
+      ['Skills', '3'],
     ];
 
     for (const [label, count] of expectedItems) {
-      const button = within(sources).getByRole('button', { name: new RegExp(`${label}\\s+${count}`, 'i') });
+      const button = within(sources).getByRole('button', { name: new RegExp(`^${label}\\s+${count}$`, 'i') });
       expect(within(button).getByText(label)).toBeInTheDocument();
       expect(within(button).getByText(count)).toBeInTheDocument();
       expect(button.querySelector('.source-nav-icon')).toBeInTheDocument();
@@ -403,7 +454,7 @@ describe('App shell', () => {
     expect(screen.getByLabelText('Language')).toHaveValue('en-US');
   });
 
-  it('loads and renders scanned skills with source metadata and partial scan state', async () => {
+  it('loads and renders scanned skills without user-facing source metadata and partial scan state', async () => {
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: scanResults });
 
@@ -412,8 +463,8 @@ describe('App shell', () => {
     expect(await screen.findByRole('row', { name: /imagegen/i })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /standup report/i })).toBeInTheDocument();
-    expect(screen.getByText('3 skills')).toBeInTheDocument();
-    expect(screen.getAllByText('Codex user').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3 skills').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Codex user')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Scan status')).toHaveTextContent('Partial success');
     expect(invokeMock).toHaveBeenCalledWith('scan_skills');
   });
@@ -493,7 +544,7 @@ describe('App shell', () => {
       .getAllByRole('columnheader')
       .map((header) => header.textContent);
 
-    expect(headers).toEqual(['Name', 'Source', 'Description', 'Modified', 'Path']);
+    expect(headers).toEqual(['Name', 'Description', 'Modified', 'Path']);
   });
 
   it('paginates the skill list ten skills at a time', async () => {
@@ -502,6 +553,8 @@ describe('App shell', () => {
     mockInvoke({ skills: paginatedScanResults });
 
     render(<App />);
+
+    await user.click(await screen.findByRole('tab', { name: 'List View' }));
 
     expect(await screen.findByRole('row', { name: /skill 01/i })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /skill 10/i })).toBeInTheDocument();
@@ -525,6 +578,8 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await user.click(await screen.findByRole('tab', { name: 'List View' }));
+
     await screen.findByRole('row', { name: /skill 01/i });
     await user.click(screen.getByRole('button', { name: 'Next page' }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'skill 12');
@@ -534,7 +589,7 @@ describe('App shell', () => {
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
     await user.click(screen.getByRole('button', { name: 'Next page' }));
-    await user.click(screen.getByRole('button', { name: /表格 1/i }));
+    await user.click(screen.getByRole('button', { name: /Data 1/i }));
 
     expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
@@ -558,8 +613,9 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /stock-flow/i });
+    await screen.findAllByRole('region', { name: /Skill category:/i });
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
-    expect(await within(cardGrid).findByText('stock-flow')).toBeInTheDocument();
+    expect((await within(cardGrid).findAllByText('stock-flow')).length).toBeGreaterThan(0);
     expect(within(cardGrid).getByText('sheet-flow')).toBeInTheDocument();
     expect(within(cardGrid).getByText('write-flow')).toBeInTheDocument();
 
@@ -569,6 +625,174 @@ describe('App shell', () => {
     expect(within(cardGrid).getByText('stock-flow')).toBeInTheDocument();
     expect(within(cardGrid).queryByText('sheet-flow')).not.toBeInTheDocument();
     expect(within(cardGrid).queryByText('write-flow')).not.toBeInTheDocument();
+  });
+
+  it('groups card view by category sections sorted by visible label', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+        categoryLabels: {
+          data: 'Alpha Tables',
+          finance: 'Beta Finance',
+          writing: 'Gamma Writing',
+        },
+      },
+    });
+
+    render(<App />);
+
+    let sections = await screen.findAllByRole('region', { name: /Skill category:/i });
+    await waitFor(() => {
+      sections = screen.getAllByRole('region', { name: /Skill category:/i });
+      expect(sections.map((section) => within(section).getByRole('heading').textContent)).toEqual([
+        'Alpha Tables',
+        'Beta Finance',
+        'Gamma Writing',
+      ]);
+    });
+    expect(within(sections[0]).getByRole('button', { name: /sheet-flow/i })).toBeInTheDocument();
+  });
+
+  it('caps each category card section to a two-row internal scroller', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: manyDataSkills });
+
+    render(<App />);
+
+    const [section] = await screen.findAllByRole('region', { name: /Skill category:/i });
+    const body = section.querySelector('.category-card-scroll');
+    expect(body).toHaveClass('two-row-card-scroll');
+    expect(body).toHaveStyle({ overflowY: 'auto' });
+  });
+
+  it('keeps category sections free from the list pagination overlay in card view', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: manyDataSkills });
+
+    render(<App />);
+
+    expect((await screen.findAllByRole('region', { name: /Skill category:/i })).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Pagination')).not.toBeInTheDocument();
+  });
+
+  it('uses fixed card rows so skill cards stay the same size', () => {
+    const css = readFileSync('src/styles.css', 'utf8');
+
+    expect(css).toMatch(/--skill-card-width:\s*260px;/);
+    expect(css).toMatch(/\.category-card-scroll\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fill,\s*var\(--skill-card-width\)\);/s);
+    expect(css).toMatch(/\.category-card-scroll\s*\{[^}]*grid-auto-rows:\s*var\(--skill-card-height\);/s);
+    expect(css).toMatch(/\.skill-card\s*\{[^}]*height:\s*100%;/s);
+    expect(css).toMatch(/\.two-row-card-scroll\s*\{[^}]*max-height:\s*calc\(var\(--skill-card-height\) \* 2 \+ var\(--skill-card-row-gap\) \+ 8px\);/s);
+  });
+
+  it('renders draggable card buttons as divs so desktop drag sorting can start reliably', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
+
+    expect(stockCard.tagName).toBe('DIV');
+    expect(stockCard).toHaveAttribute('draggable', 'true');
+    expect(stockCard).toHaveAttribute('tabindex', '0');
+  });
+
+  it('reorders cards within a category by dragging and persists the category order', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const sections = await screen.findAllByRole('region', { name: /Skill category:/i });
+    const dataSection = sections.find((section) => within(section).queryByRole('button', { name: /sheet-flow/i }));
+    expect(dataSection).toBeDefined();
+    if (!dataSection) {
+      return;
+    }
+    const stockCard = within(dataSection).getByRole('button', { name: /stock-flow/i });
+    const sheetCard = within(dataSection).getByRole('button', { name: /sheet-flow/i });
+    const dataTransfer = {
+      dropEffect: '',
+      effectAllowed: '',
+      getData: vi.fn(() => categorizedScanResults[0].path),
+      setData: vi.fn(),
+    };
+    fireEvent.dragStart(stockCard, { dataTransfer });
+    expect(dataTransfer.setData).toHaveBeenCalledWith('text/plain', categorizedScanResults[0].path);
+    fireEvent.drop(sheetCard, { dataTransfer });
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          categorySkillOrder: expect.objectContaining({
+            data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('restores a category card order to the default order', async () => {
+    const customOrder = {
+      data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
+    };
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+        categorySkillOrder: customOrder,
+      },
+    });
+
+    render(<App />);
+
+    const sections = await screen.findAllByRole('region', { name: /Skill category:/i });
+    const dataSection = sections.find((section) => within(section).queryByRole('button', { name: /sheet-flow/i }));
+    expect(dataSection).toBeDefined();
+    if (!dataSection) {
+      return;
+    }
+    await userEvent.click(within(dataSection).getByRole('button', { name: /Restore default/i }));
+
+    await waitFor(() => {
+      const saveCall = invokeMock.mock.calls.find(([command]) => command === 'save_app_settings');
+      expect((saveCall?.[1] as { settings: AppSettings } | undefined)?.settings.categorySkillOrder).toBeUndefined();
+    });
+  });
+
+  it('resizes the detail panel from the divider and persists the width', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const resizeHandle = await screen.findByRole('separator', { name: 'Resize detail panel' });
+    fireEvent.mouseDown(resizeHandle, { clientX: 900 });
+    fireEvent.mouseMove(window, { clientX: 820 });
+    fireEvent.mouseUp(window);
+
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: /Skill management dashboard|Skill 管理控制台/ })).toHaveStyle({
+        '--detail-panel-width': '480px',
+      }),
+    );
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          detailPanelWidth: 480,
+        }),
+      }),
+    );
   });
 
   it('updates category and matching skill tag colors from the category context menu', async () => {
@@ -581,10 +805,10 @@ describe('App shell', () => {
     const categoryRail = screen.getByRole('complementary', { name: '类目' });
     const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
     fireEvent.contextMenu(financeCategory);
-    await user.click(screen.getByRole('button', { name: '将 金融 设置为紫色' }));
+    await user.click(screen.getByRole('button', { name: '将 金融 设置为 紫色' }));
 
     expect(financeCategory).toHaveStyle({ '--category-color': '#f5e8ff' });
-    expect(screen.getByTestId(`skill-category-${categorizedScanResults[0].path}-finance`)).toHaveStyle({
+    expect(screen.getAllByTestId(`skill-category-${categorizedScanResults[0].path}-finance`)[0]).toHaveStyle({
       '--category-color': '#f5e8ff',
     });
     await waitFor(() =>
@@ -622,6 +846,28 @@ describe('App shell', () => {
     );
   });
 
+  it('customizes a category icon from the category context menu and persists it', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const categoryRail = screen.getByRole('complementary', { name: 'Categories' });
+    const financeCategory = await within(categoryRail).findByRole('button', { name: /Finance 1/i });
+    fireEvent.contextMenu(financeCategory);
+    await user.click(screen.getByRole('button', { name: 'Category icon Star' }));
+
+    expect(within(financeCategory).getByText('star')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          categoryIcons: expect.objectContaining({ finance: 'star' }),
+        }),
+      }),
+    );
+  });
+
   it('adds a custom colored tag to a skill from its context menu', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['zh-CN']);
@@ -630,13 +876,14 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /stock-flow/i });
+    await screen.findAllByRole('region', { name: /Skill category:/i });
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
-    const stockCard = await within(cardGrid).findByRole('button', { name: /stock-flow/i });
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
     await user.type(screen.getByLabelText('标签名称'), '重点');
     await user.click(screen.getByRole('button', { name: '添加标签' }));
 
-    const tag = within(cardGrid).getByText('重点');
+    const tag = within(cardGrid).getAllByText('重点')[0];
     expect(tag).toHaveClass('custom-skill-tag');
     expect(tag).toHaveStyle({ '--tag-color': '#e0f2fe' });
     await waitFor(() =>
@@ -644,6 +891,55 @@ describe('App shell', () => {
         settings: expect.objectContaining({
           skillTags: {
             [categorizedScanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('adds a skill default category from the skill context menu and persists assignments', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const sheetCard = (await within(cardGrid).findAllByRole('button', { name: /sheet-flow/i }))[0];
+    fireEvent.contextMenu(sheetCard);
+    await user.selectOptions(screen.getByLabelText('Add default category'), 'finance');
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillCategoryAssignments: {
+            [categorizedScanResults[1].path]: ['data', 'finance'],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('sets a custom skill card color from the skill context menu', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
+    fireEvent.contextMenu(stockCard);
+    await user.click(screen.getByRole('button', { name: 'Card color Red' }));
+
+    expect(stockCard).toHaveStyle({ '--skill-card-color': '#fee2e2' });
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillCardColors: {
+            [categorizedScanResults[0].path]: '#fee2e2',
           },
         }),
       }),
@@ -668,12 +964,13 @@ describe('App shell', () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getAllByText('重点').length).toBeGreaterThan(0));
+    await screen.findAllByRole('region', { name: /Skill category:/i });
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
-    const stockCard = await within(cardGrid).findByRole('button', { name: /stock-flow/i });
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
-    await user.click(screen.getByRole('button', { name: '移除 重点' }));
+    await user.click(screen.getByRole('button', { name: '删除 重点' }));
 
-    expect(within(cardGrid).queryByText('重点')).not.toBeInTheDocument();
+    expect(within(cardGrid).queryAllByText('重点')).toHaveLength(0);
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
         settings: expect.objectContaining({
@@ -719,6 +1016,43 @@ describe('App shell', () => {
     expect(screen.queryByRole('row', { name: /zeta-flow/i })).not.toBeInTheDocument();
   });
 
+  it('uses explicit sort and filter menus for list controls', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /imagegen/i });
+    await user.click(screen.getByRole('button', { name: 'Sort skills' }));
+
+    expect(screen.getByRole('menu', { name: 'Sort skills' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Name A-Z' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'Modified time' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Filter skills' }));
+    expect(screen.getByRole('menu', { name: 'Filter skills' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Needs attention' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Writable only' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Read-only plugins' })).toBeInTheDocument();
+  });
+
+  it('closes toolbar menus when clicking outside them', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /imagegen/i });
+    await user.click(screen.getByRole('button', { name: 'Filter skills' }));
+    expect(screen.getByRole('menu', { name: 'Filter skills' })).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => expect(screen.queryByRole('menu', { name: 'Filter skills' })).not.toBeInTheDocument());
+  });
+
   it('adds custom skill tags to the left category rail and filters by tag', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['zh-CN']);
@@ -727,8 +1061,9 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /stock-flow/i });
+    await screen.findAllByRole('region', { name: /Skill category:/i });
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
-    const stockCard = await within(cardGrid).findByRole('button', { name: /stock-flow/i });
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
     await user.type(screen.getByLabelText('标签名称'), '重点');
     await user.click(screen.getByRole('button', { name: '添加标签' }));
@@ -742,6 +1077,40 @@ describe('App shell', () => {
     expect(screen.getByRole('row', { name: /stock-flow/i })).toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /sheet-flow/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /write-flow/i })).not.toBeInTheDocument();
+  });
+
+  it('closes skill tag context menus when clicking outside them', async () => {
+    mockNavigatorLanguages(['zh-CN']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findByRole('row', { name: /stock-flow/i });
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
+    fireEvent.contextMenu(stockCard);
+    expect(document.querySelector('.tag-context-menu')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => expect(document.querySelector('.tag-context-menu')).not.toBeInTheDocument());
+  });
+
+  it('closes category context menus when clicking outside them', async () => {
+    mockNavigatorLanguages(['zh-CN']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const categoryRail = await screen.findByRole('complementary', { name: /类目/ });
+    const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
+    fireEvent.contextMenu(financeCategory);
+    expect(document.querySelector('.color-context-menu')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => expect(document.querySelector('.color-context-menu')).not.toBeInTheDocument());
   });
 
   it('keeps the pagination controls fixed at the skill list bottom', () => {
@@ -836,7 +1205,7 @@ describe('App shell', () => {
     expect(invokeMock).not.toHaveBeenCalledWith('read_skill', { path: scanResults[1].path });
   });
 
-  it('loads Agents user skill details with metadata, markdown, source, modified time, and path', async () => {
+  it('loads Agents user skill details with metadata, markdown, modified time, and path', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     const agentsDetail: SkillDetail = {
@@ -881,7 +1250,7 @@ describe('App shell', () => {
     expect(await screen.findByDisplayValue('standup report')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Prepare daily task summaries')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Markdown body' })).toHaveValue('# Standup\n\nDaily summary body.');
-    expect(screen.getAllByText('Agents user').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Agents user')).not.toBeInTheDocument();
     expect(screen.getAllByText(expectedDateTime('en-US', '2026-06-01T11:00:00Z')).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: scanResults[2].path }).length).toBeGreaterThan(0);
   });
@@ -921,13 +1290,13 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /stock-flow/i });
-    await user.click(screen.getByRole('button', { name: /表格/i }));
+    await user.click(within(screen.getByRole('complementary', { name: 'Categories' })).getByRole('button', { name: /^Data 2$/i }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'sheet');
 
     expect(screen.getByRole('row', { name: /sheet-flow/i })).toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /stock-flow/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /write-flow/i })).not.toBeInTheDocument();
-    expect(screen.getByText('1 skills')).toBeInTheDocument();
+    expect(screen.getAllByText('1 skills').length).toBeGreaterThan(0);
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'missing skill');
@@ -1020,6 +1389,10 @@ describe('App shell', () => {
     expect(within(settingsPanel).getByText('~/.codex/skills')).toBeInTheDocument();
     expect(within(settingsPanel).getByText('~/.agents/skills')).toBeInTheDocument();
     expect(within(settingsPanel).getByText('D:\\Team\\skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByRole('heading', { name: 'Migration' })).toBeInTheDocument();
+    expect(within(settingsPanel).getByRole('button', { name: 'Export migration package' })).toBeInTheDocument();
+    expect(within(settingsPanel).getByRole('button', { name: 'Import migration package' })).toBeInTheDocument();
+    expect(within(settingsPanel).getByRole('button', { name: 'Validate migration' })).toBeInTheDocument();
   });
 
   it('adds and removes custom directories before saving settings', async () => {
@@ -1155,3 +1528,7 @@ describe('App shell', () => {
     expect(screen.getByText('save failed')).toBeInTheDocument();
   });
 });
+
+
+
+

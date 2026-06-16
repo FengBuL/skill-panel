@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import type { AppSettings, SkillDetail, SkillSummary } from './types/skill';
@@ -147,6 +148,38 @@ describe('App skill editor', () => {
     expect(invokeMock).toHaveBeenCalledWith('read_skill', { path: scanResults[0].path });
   });
 
+  it('shows selected skill lint guidance without quick understanding or prompt tester sections', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+    expect(await within(detailPanel).findByRole('region', { name: 'Skill lint' })).toHaveTextContent('Description is present');
+    expect(within(detailPanel).queryByRole('heading', { name: 'Quick understanding' })).not.toBeInTheDocument();
+    expect(within(detailPanel).queryByRole('region', { name: 'Prompt match tester' })).not.toBeInTheDocument();
+  });
+
+  it('does not render duplicate prompt match testing content in the detail panel', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    expect(screen.queryByRole('textbox', { name: 'Test a prompt against these skills' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Likely match: imagegen')).not.toBeInTheDocument();
+  });
+
+  it('treats plugin cache skills as read-only in the editor', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /browser control/i }));
+
+    expect(await screen.findByText('Read-only source')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete Skill' })).toBeDisabled();
+  });
+
   it('shows description as read-only content in preview mode and editable in edit mode', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -161,6 +194,146 @@ describe('App skill editor', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Edit' }));
     expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('Generate or edit raster images');
+  });
+
+  it('shows a standard Markdown preview while editing the Markdown body', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+
+    const editPreview = await screen.findByRole('region', { name: 'Markdown edit preview' });
+    expect(within(editPreview).getByRole('heading', { level: 1, name: 'Imagegen' })).toBeInTheDocument();
+    expect(editPreview).toHaveClass('markdown-preview');
+    expect(screen.getByRole('textbox', { name: 'Markdown body' })).toHaveValue('# Imagegen\n\nCreate bitmap assets.');
+  });
+
+  it('localizes detail lint and create dialog chrome in Chinese mode', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['zh-CN']);
+    invokeMock.mockImplementation((command: string, payload?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          ...settings,
+          language: 'zh-CN',
+        });
+      }
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+      if (command === 'read_skill') {
+        return Promise.resolve(skillDetails[(payload as { path: string }).path]);
+      }
+      if (command === 'save_app_settings') {
+        return Promise.resolve({ ...settings, language: 'zh-CN' });
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill 详情' });
+    expect(await within(detailPanel).findByRole('region', { name: 'Skill 检查' })).toHaveTextContent('描述已填写');
+    expect(within(detailPanel).queryByRole('region', { name: 'Prompt 匹配测试' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '新建 Skill' }));
+    expect(screen.getByRole('dialog', { name: '新建 Skill' })).toHaveTextContent('步骤 1：Skill 意图');
+    expect(screen.queryByText('Quick understanding')).not.toBeInTheDocument();
+    expect(screen.queryByText('Automation template')).not.toBeInTheDocument();
+  });
+
+  it('renders markdown preview with standard heading, list, quote, and code block semantics', async () => {
+    const user = userEvent.setup();
+    const markdownSkill: SkillSummary = {
+      path: 'C:\\Users\\demo\\.codex\\skills\\markdown-preview\\SKILL.md',
+      name: 'markdown preview',
+      description: 'Preview markdown using standard formatting',
+      source: 'codex-user',
+      parseStatus: 'parsed',
+      modifiedAt: '2026-06-14T08:00:00Z',
+    };
+    const markdownBody = [
+      '# Main Title',
+      '',
+      '## Section Title',
+      '',
+      '- First item',
+      '- Second item',
+      '',
+      '> Important note',
+      '',
+      '```ts',
+      'const value = 1;',
+      '```',
+    ].join('\n');
+    invokeMock.mockImplementation((command: string, payload?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve(settings);
+      }
+
+      if (command === 'scan_skills') {
+        return Promise.resolve([markdownSkill]);
+      }
+
+      if (command === 'read_skill') {
+        expect(payload).toEqual({ path: markdownSkill.path });
+        return Promise.resolve({
+          ...markdownSkill,
+          markdown: markdownBody,
+          bodyMarkdown: markdownBody,
+          rawContent: markdownBody,
+          frontmatter: {
+            name: markdownSkill.name,
+            description: markdownSkill.description,
+          },
+        });
+      }
+
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /markdown preview/i }));
+    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+
+    const preview = await screen.findByRole('region', { name: 'Markdown preview' });
+    expect(within(preview).getByRole('heading', { level: 1, name: 'Main Title' })).toBeInTheDocument();
+    expect(within(preview).getByRole('heading', { level: 2, name: 'Section Title' })).toBeInTheDocument();
+    expect(within(preview).getByRole('list')).toHaveTextContent('First item');
+    expect(preview.querySelector('blockquote')).toHaveTextContent('Important note');
+    expect(preview.querySelector('pre code')).toHaveTextContent('const value = 1;');
+    expect(screen.queryByRole('navigation', { name: 'Markdown outline' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Main Title')).toHaveLength(1);
+    expect(readFileSync('src/styles.css', 'utf8')).toMatch(/\.markdown-preview\s*\{[^}]*overflow-y:\s*auto;/s);
+  });
+
+  it('keeps detail actions inside the scrollable detail content so they cannot cover markdown content', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+    expect(detailPanel.querySelector('.detail-content .detail-actions')).toBeInTheDocument();
+    expect(detailPanel.querySelector(':scope > .detail-actions')).not.toBeInTheDocument();
+  });
+
+  it('keeps markdown preview and detail actions in normal flow without forced overlap heights', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+
+    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
+    const markdownPreview = await within(detailPanel).findByRole('region', { name: 'Markdown preview' });
+    const actions = detailPanel.querySelector('.detail-actions') as HTMLElement;
+
+    expect(window.getComputedStyle(markdownPreview).minHeight).not.toBe('500px');
+    expect(window.getComputedStyle(actions).position).toBe('static');
+    expect(Boolean(markdownPreview.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
   });
 
   it('keeps the latest selected skill when detail responses resolve out of order', async () => {
@@ -257,6 +430,12 @@ describe('App skill editor', () => {
     await user.type(screen.getByLabelText('Markdown body'), '# Updated\n\nNew body');
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
+    expect(await screen.findByRole('dialog', { name: 'Review changes before saving' })).toBeInTheDocument();
+    expect(screen.getByText('A backup will be created before writing the file.')).toBeInTheDocument();
+    expect(screen.getByText('- imagegen')).toBeInTheDocument();
+    expect(screen.getByText('+ imagegen updated')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save with backup' }));
+
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('update_skill', {
         input: {
@@ -268,6 +447,18 @@ describe('App skill editor', () => {
       }),
     );
     expect(screen.getByRole('row', { name: /imagegen updated/i })).toBeInTheDocument();
+  });
+
+  it('renders markdown preview once without duplicating headings in an outline', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+
+    expect(screen.getByRole('heading', { name: 'Imagegen' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Markdown outline' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Imagegen')).toHaveLength(1);
   });
 
   it('does not replace the current editor when a previous save resolves after another selection', async () => {
@@ -355,6 +546,7 @@ describe('App skill editor', () => {
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
     await user.click(screen.getByRole('button', { name: 'Delete Skill' }));
     expect(screen.getByRole('dialog', { name: 'Delete Skill' })).toBeInTheDocument();
+    expect(screen.getByText('A backup will be created before deletion.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Confirm delete' })).toHaveFocus();
 
     await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
@@ -489,7 +681,6 @@ describe('App skill editor', () => {
     const markdownEditor = screen.getByRole('textbox', { name: 'Markdown body' });
 
     expect(detailPanel.querySelector('.detail-content')).toBeInTheDocument();
-    expect(detailPanel.querySelector('.detail-meta-strip')).toHaveTextContent('Agents user');
     expect(detailPanel.querySelector('.detail-meta-strip')).toHaveTextContent('Jun 13, 2026');
     expect(descriptionField.closest('.detail-description-section')).toHaveClass('detail-description-section');
     expect(descriptionField).toHaveValue(agentsSkill.description);

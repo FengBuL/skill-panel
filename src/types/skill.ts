@@ -38,12 +38,25 @@ export interface CustomSkillTagSetting {
   label: string;
 }
 
+export interface CustomCategorySetting {
+  color: string;
+  icon: string;
+  label: string;
+}
+
 export interface AppSettings {
   language: 'system' | 'zh-CN' | 'en-US';
   customScanDirectories: string[];
   showDefaultScanDirectories: boolean;
+  customCategories?: Record<string, CustomCategorySetting>;
   categoryColors?: Record<string, string>;
   categoryLabels?: Record<string, string>;
+  categoryIcons?: Record<string, string>;
+  categorySkillOrder?: Record<string, string[]>;
+  detailPanelWidth?: number;
+  skillCardColors?: Record<string, string>;
+  skillCategoryOverrides?: Record<string, 'data' | 'default' | 'finance' | 'writing'>;
+  skillCategoryAssignments?: Record<string, string[]>;
   skillTags?: Record<string, CustomSkillTagSetting[]>;
 }
 

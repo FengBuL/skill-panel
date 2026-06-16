@@ -17,6 +17,11 @@ const defaultSettings: AppSettings = {
   showDefaultScanDirectories: true,
   categoryColors: {},
   categoryLabels: {},
+  categoryIcons: {},
+  customCategories: {},
+  skillCardColors: {},
+  skillCategoryAssignments: {},
+  skillCategoryOverrides: {},
   skillTags: {},
 };
 
@@ -42,11 +47,105 @@ function normalizeSettings(settings: AppSettings): AppSettings {
       settings.categoryLabels && typeof settings.categoryLabels === 'object' && !Array.isArray(settings.categoryLabels)
         ? settings.categoryLabels
         : {},
+    categoryIcons:
+      settings.categoryIcons && typeof settings.categoryIcons === 'object' && !Array.isArray(settings.categoryIcons)
+        ? settings.categoryIcons
+        : {},
+    customCategories:
+      settings.customCategories && typeof settings.customCategories === 'object' && !Array.isArray(settings.customCategories)
+        ? Object.fromEntries(
+            Object.entries(settings.customCategories).filter(
+              (entry): entry is [string, { color: string; icon: string; label: string }] => {
+                const [, category] = entry;
+                return (
+                  category !== null &&
+                  typeof category === 'object' &&
+                  !Array.isArray(category) &&
+                  typeof category.color === 'string' &&
+                  typeof category.icon === 'string' &&
+                  typeof category.label === 'string'
+                );
+              },
+            ),
+          )
+        : {},
+    categorySkillOrder:
+      settings.categorySkillOrder && typeof settings.categorySkillOrder === 'object' && !Array.isArray(settings.categorySkillOrder)
+        ? Object.fromEntries(
+            Object.entries(settings.categorySkillOrder).filter((entry): entry is [string, string[]] => Array.isArray(entry[1])),
+          )
+        : {},
+    detailPanelWidth:
+      typeof settings.detailPanelWidth === 'number' && Number.isFinite(settings.detailPanelWidth)
+        ? settings.detailPanelWidth
+        : undefined,
     skillTags:
       settings.skillTags && typeof settings.skillTags === 'object' && !Array.isArray(settings.skillTags)
         ? settings.skillTags
         : {},
+    skillCardColors:
+      settings.skillCardColors && typeof settings.skillCardColors === 'object' && !Array.isArray(settings.skillCardColors)
+        ? settings.skillCardColors
+        : {},
+    skillCategoryOverrides:
+      settings.skillCategoryOverrides && typeof settings.skillCategoryOverrides === 'object' && !Array.isArray(settings.skillCategoryOverrides)
+        ? Object.fromEntries(
+            Object.entries(settings.skillCategoryOverrides).filter(([, categoryId]) =>
+              ['data', 'default', 'finance', 'writing'].includes(String(categoryId)),
+            ),
+          )
+        : {},
+    skillCategoryAssignments:
+      settings.skillCategoryAssignments && typeof settings.skillCategoryAssignments === 'object' && !Array.isArray(settings.skillCategoryAssignments)
+        ? Object.fromEntries(
+            Object.entries(settings.skillCategoryAssignments)
+              .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]))
+              .map(([path, categoryIds]) => [
+                path,
+                Array.from(new Set(categoryIds.filter((categoryId) => typeof categoryId === 'string' && categoryId.trim()).map((categoryId) => categoryId.trim()))),
+              ])
+              .filter(([, categoryIds]) => categoryIds.length > 0),
+          )
+        : Object.fromEntries(
+            Object.entries(settings.skillCategoryOverrides ?? {}).flatMap(([path, categoryId]) =>
+              typeof categoryId === 'string' && categoryId.trim() ? [[path, [categoryId.trim()]]] : [],
+            ),
+          ),
   };
+}
+
+function getPersistableSettings(settings: AppSettings): AppSettings {
+  const persistableSettings = { ...settings };
+
+  if (!persistableSettings.categorySkillOrder || Object.keys(persistableSettings.categorySkillOrder).length === 0) {
+    delete persistableSettings.categorySkillOrder;
+  }
+
+  if (!persistableSettings.categoryIcons || Object.keys(persistableSettings.categoryIcons).length === 0) {
+    delete persistableSettings.categoryIcons;
+  }
+
+  if (!persistableSettings.customCategories || Object.keys(persistableSettings.customCategories).length === 0) {
+    delete persistableSettings.customCategories;
+  }
+
+  if (!persistableSettings.skillCardColors || Object.keys(persistableSettings.skillCardColors).length === 0) {
+    delete persistableSettings.skillCardColors;
+  }
+
+  if (!persistableSettings.skillCategoryAssignments || Object.keys(persistableSettings.skillCategoryAssignments).length === 0) {
+    delete persistableSettings.skillCategoryAssignments;
+  }
+
+  if (!persistableSettings.skillCategoryOverrides || Object.keys(persistableSettings.skillCategoryOverrides).length === 0) {
+    delete persistableSettings.skillCategoryOverrides;
+  }
+
+  if (persistableSettings.detailPanelWidth === undefined) {
+    delete persistableSettings.detailPanelWidth;
+  }
+
+  return persistableSettings;
 }
 
 export function useI18nRuntime() {
@@ -96,7 +195,7 @@ export function useI18nRuntime() {
     setSettingsSaveStatus('saving');
 
     try {
-      await invoke<AppSettings>('save_app_settings', { settings: normalizedSettings });
+      await invoke<AppSettings>('save_app_settings', { settings: getPersistableSettings(normalizedSettings) });
       setSettings(normalizedSettings);
       setLanguage(normalizedSettings.language);
       setSettingsSaveStatus('saved');
