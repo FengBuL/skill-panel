@@ -315,7 +315,7 @@ async function runScenario(browser, scenario) {
     } else {
       await page.locator('.skill-table-wrap.active tbody tr').filter({ hasText: 'visual qa skill' }).click();
     }
-    await page.getByRole('textbox', { name: scenario.language === 'zh-CN' ? 'Markdown 正文' : 'Markdown body' }).waitFor({
+    await page.getByRole('region', { name: scenario.language === 'zh-CN' ? 'Markdown 预览' : 'Markdown preview' }).waitFor({
       timeout: 5000,
     });
   }

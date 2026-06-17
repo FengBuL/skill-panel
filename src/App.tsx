@@ -1,5 +1,17 @@
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type MouseEvent, type ReactNode, type RefObject, type UIEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+  type RefObject,
+  type UIEvent,
+} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
@@ -48,6 +60,13 @@ type SkillTagContextMenu = {
   path: string;
   x: number;
   y: number;
+};
+type PointerCardDrag = {
+  categoryId: CategoryId;
+  hasMoved: boolean;
+  path: string;
+  startX: number;
+  startY: number;
 };
 type CustomSkillTag = {
   color: string;
@@ -569,6 +588,10 @@ function normalizeDetailPanelWidth(width: AppSettings['detailPanelWidth']) {
   return typeof width === 'number' && Number.isFinite(width) ? clampDetailPanelWidth(width) : defaultDetailPanelWidth;
 }
 
+function normalizeSkillViewMode(viewMode: AppSettings['skillViewMode']): SkillViewMode {
+  return viewMode === 'list' ? 'list' : 'cards';
+}
+
 function getPersistedDetailPanelWidth(width: number, persistedWidth: AppSettings['detailPanelWidth']) {
   if (width === defaultDetailPanelWidth && persistedWidth === undefined) {
     return undefined;
@@ -671,14 +694,21 @@ function normalizeSelectableLanguage(languageValue: AppSettings['language']): Ap
   return languageValue === 'system' ? 'zh-CN' : languageValue;
 }
 
-function isWritableSkill(skill: SkillSummary | SkillDetail) {
+function isProtectedLarkSkill(skill: SkillSummary | SkillDetail) {
   const normalizedPath = skill.path.replaceAll('\\', '/').toLocaleLowerCase();
-  const isProtectedLarkSkill = normalizedPath.includes('/.agents/skills/lark-') || skill.name.toLocaleLowerCase().startsWith('lark-');
-  return !isProtectedLarkSkill && (skill.source === 'codex-user' || skill.source === 'agents-user' || skill.source === 'custom');
+  return normalizedPath.includes('/.agents/skills/lark-') || skill.name.toLocaleLowerCase().startsWith('lark-');
+}
+
+function isWritableSkill(skill: SkillSummary | SkillDetail) {
+  return !isProtectedLarkSkill(skill) && (skill.source === 'codex-user' || skill.source === 'agents-user' || skill.source === 'custom');
 }
 
 function isReadOnlySkill(skill: SkillSummary | SkillDetail) {
   return !isWritableSkill(skill);
+}
+
+function canDeleteSkill(skill: SkillSummary | SkillDetail) {
+  return isWritableSkill(skill) || isProtectedLarkSkill(skill);
 }
 
 function getRiskLevelKey(skill: SkillSummary | SkillDetail): TranslationKey {
@@ -894,8 +924,8 @@ export function App() {
   const [detailName, setDetailName] = useState('');
   const [detailDescription, setDetailDescription] = useState('');
   const [detailMarkdown, setDetailMarkdown] = useState('');
-  const [detailMode, setDetailMode] = useState<'preview' | 'edit'>('edit');
-  const [skillViewMode, setSkillViewMode] = useState<SkillViewMode>('cards');
+  const [detailMode, setDetailMode] = useState<'preview' | 'edit'>('preview');
+  const [skillViewMode, setSkillViewMode] = useState<SkillViewMode>(() => normalizeSkillViewMode(settings.skillViewMode));
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
@@ -937,6 +967,8 @@ export function App() {
     normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides),
   );
   const [draggedSkillPath, setDraggedSkillPath] = useState<string | null>(null);
+  const pointerCardDragRef = useRef<PointerCardDrag | null>(null);
+  const suppressNextCardClickRef = useRef(false);
   const [detailPanelWidth, setDetailPanelWidth] = useState(() => normalizeDetailPanelWidth(settings.detailPanelWidth));
   const [tagDraft, setTagDraft] = useState('');
   const [tagColor, setTagColor] = useState(defaultCustomTagColor);
@@ -1152,6 +1184,7 @@ export function App() {
             ? 'sources.failed'
             : 'sources.notScanned';
   const selectedIsReadOnly = selectedDetail ? isReadOnlySkill(selectedDetail) : false;
+  const selectedCanDelete = selectedDetail ? canDeleteSkill(selectedDetail) : false;
   const selectedLintItems = selectedDetail ? getSkillLintItems(selectedDetail, t) : [];
   const detailHasChanges =
     Boolean(selectedDetail) &&
@@ -1197,6 +1230,7 @@ export function App() {
     setSkillCardColors(normalizeSkillCardColors(settings.skillCardColors));
     setSkillCategoryAssignments(normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides));
     setDetailPanelWidth(normalizeDetailPanelWidth(settings.detailPanelWidth));
+    setSkillViewMode(normalizeSkillViewMode(settings.skillViewMode));
   }, [settings]);
 
   useEffect(() => {
@@ -1262,11 +1296,12 @@ export function App() {
     nextSkillCardColors = skillCardColors,
     nextSkillCategoryAssignments = skillCategoryAssignments,
     nextCustomCategories = customCategories,
+    nextSkillViewMode = skillViewMode,
   ) => {
     const latestSettings = settingsRef.current;
-    void saveSettings({
+    const nextSettings = {
       ...latestSettings,
-      language: normalizeSelectableLanguage(latestSettings.language),
+      language: latestSettings.language,
       customCategories: nextCustomCategories,
       categoryColors: nextCategoryColors,
       categoryLabels: getPersistedCategoryLabels(nextCategoryLabels, nextCustomCategories),
@@ -1277,7 +1312,10 @@ export function App() {
       skillCategoryAssignments: getPersistedSkillCategoryAssignments(nextSkillCategoryAssignments),
       skillCategoryOverrides: {},
       skillTags: nextSkillTags,
-    }).catch(() => {
+      skillViewMode: nextSkillViewMode,
+    };
+    settingsRef.current = nextSettings;
+    void saveSettings(nextSettings).catch(() => {
       // Settings save errors are exposed through the shared settings runtime.
     });
   };
@@ -1318,6 +1356,7 @@ export function App() {
     setDetailName(detail.name);
     setDetailDescription(detail.description);
     setDetailMarkdown(detail.bodyMarkdown);
+    setDetailMode('preview');
   };
 
   const mergeDetailIntoSkills = (detail: SkillDetail) => {
@@ -1856,6 +1895,77 @@ export function App() {
     setDraggedSkillPath(path);
   };
 
+  const startPointerCategorySkillDrag = (event: PointerEvent<HTMLElement>, categoryId: CategoryId, path: string) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is best effort across WebViews.
+    }
+    pointerCardDragRef.current = {
+      categoryId,
+      hasMoved: false,
+      path,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+  };
+
+  const movePointerCategorySkillDrag = (event: PointerEvent<HTMLElement>) => {
+    const dragState = pointerCardDragRef.current;
+    if (!dragState) {
+      return;
+    }
+
+    const distanceX = Math.abs(event.clientX - dragState.startX);
+    const distanceY = Math.abs(event.clientY - dragState.startY);
+    if (distanceX > 6 || distanceY > 6) {
+      pointerCardDragRef.current = {
+        ...dragState,
+        hasMoved: true,
+      };
+      setDraggedSkillPath(dragState.path);
+    }
+  };
+
+  const finishPointerCategorySkillDrag = (event: PointerEvent<HTMLElement>, categoryId: CategoryId, fallbackTargetPath: string) => {
+    const dragState = pointerCardDragRef.current;
+    pointerCardDragRef.current = null;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Some WebViews release capture automatically.
+    }
+
+    if (!dragState || !dragState.hasMoved || dragState.categoryId !== categoryId) {
+      setDraggedSkillPath(null);
+      return;
+    }
+
+    const elementAtPointer =
+      typeof document.elementFromPoint === 'function' ? document.elementFromPoint(event.clientX, event.clientY) : event.currentTarget;
+    const targetElement = elementAtPointer?.closest<HTMLElement>('[data-skill-card-category][data-skill-card-path]');
+    const targetCategoryId = (targetElement?.dataset.skillCardCategory as CategoryId | undefined) ?? categoryId;
+    const targetPath = targetElement?.dataset.skillCardPath ?? fallbackTargetPath;
+
+    if (targetCategoryId !== dragState.categoryId || targetPath === dragState.path) {
+      setDraggedSkillPath(null);
+      return;
+    }
+
+    suppressNextCardClickRef.current = true;
+    reorderCategorySkill(targetCategoryId, targetPath, dragState.path);
+    setDraggedSkillPath(null);
+    window.setTimeout(() => {
+      suppressNextCardClickRef.current = false;
+    }, 0);
+  };
+
   const reorderCategorySkill = (categoryId: CategoryId, targetPath: string, sourcePath = draggedSkillPath) => {
     if (!sourcePath || sourcePath === targetPath) {
       return;
@@ -1938,6 +2048,7 @@ export function App() {
         skillCategoryAssignments: getPersistedSkillCategoryAssignments(skillCategoryAssignments),
         skillCategoryOverrides: {},
         skillTags,
+        skillViewMode,
       });
     } catch {
       // Error state is stored by the i18n runtime for the settings panel.
@@ -1973,7 +2084,7 @@ export function App() {
       <button
         type="button"
         className="secondary-action"
-        disabled={!selectedDetail || selectedIsReadOnly}
+        disabled={!selectedDetail || !selectedCanDelete}
         onClick={() => {
           setDeleteConfirmPath(selectedDetail?.path ?? null);
           setShowDeleteConfirm(true);
@@ -2372,7 +2483,10 @@ export function App() {
                   aria-selected={skillViewMode === 'list'}
                   className={skillViewMode === 'list' ? 'active' : undefined}
                   title={t('view.list')}
-                  onClick={() => setSkillViewMode('list')}
+                  onClick={() => {
+                    setSkillViewMode('list');
+                    persistUiPreferences(categoryColors, categoryLabels, skillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, skillCardColors, skillCategoryAssignments, customCategories, 'list');
+                  }}
                 >
                   <MaterialIcon name="format_list_bulleted" />
                 </button>
@@ -2382,7 +2496,10 @@ export function App() {
                   aria-selected={skillViewMode === 'cards'}
                   className={skillViewMode === 'cards' ? 'active' : undefined}
                   title={t('view.cards')}
-                  onClick={() => setSkillViewMode('cards')}
+                  onClick={() => {
+                    setSkillViewMode('cards');
+                    persistUiPreferences(categoryColors, categoryLabels, skillTags, categorySkillOrder, detailPanelWidthRef.current, categoryIcons, skillCardColors, skillCategoryAssignments, customCategories, 'cards');
+                  }}
                 >
                   <MaterialIcon name="grid_view" />
                 </button>
@@ -2467,17 +2584,27 @@ export function App() {
                       {section.skills.map((skill) => {
                         const selected = selectedPath === skill.path;
                         const customTags = skillTags[skill.path] ?? [];
+                        const locked = isReadOnlySkill(skill);
                         return (
                           <div
                             key={`${section.category.id}-${skill.path}`}
                             role="button"
                             tabIndex={0}
-                            className={`skill-card ${selected ? 'selected-card' : ''}`}
+                            className={`skill-card ${selected ? 'selected-card' : ''} ${draggedSkillPath === skill.path ? 'dragging-card' : ''}`}
                             aria-pressed={selected}
                             draggable
+                            data-skill-card-category={section.category.id}
+                            data-skill-card-path={skill.path}
                             style={getSkillCardStyle(skill.path, skillCardColors)}
                             onDragStart={(event) => startCategorySkillDrag(event, skill.path)}
                             onDragEnd={() => setDraggedSkillPath(null)}
+                            onPointerDown={(event) => startPointerCategorySkillDrag(event, section.category.id, skill.path)}
+                            onPointerMove={movePointerCategorySkillDrag}
+                            onPointerCancel={() => {
+                              pointerCardDragRef.current = null;
+                              setDraggedSkillPath(null);
+                            }}
+                            onPointerUp={(event) => finishPointerCategorySkillDrag(event, section.category.id, skill.path)}
                             onDragEnter={(event) => {
                               event.preventDefault();
                               event.dataTransfer.dropEffect = 'move';
@@ -2491,7 +2618,12 @@ export function App() {
                               reorderCategorySkill(section.category.id, skill.path, event.dataTransfer.getData('text/plain') || draggedSkillPath);
                               setDraggedSkillPath(null);
                             }}
-                            onClick={() => void selectSkill(skill)}
+                            onClick={() => {
+                              if (suppressNextCardClickRef.current) {
+                                return;
+                              }
+                              void selectSkill(skill);
+                            }}
                             onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
                             onKeyDown={(event) => {
                               if (event.key === 'Enter' || event.key === ' ') {
@@ -2504,8 +2636,12 @@ export function App() {
                               <span className="skill-card-icon">
                                 <MaterialIcon name={getSkillIcon(skill)} size={24} />
                               </span>
-                              <span className="skill-card-drag-hint" aria-hidden="true">
-                                <MaterialIcon name="drag_indicator" size={18} />
+                              <span
+                                className={`skill-card-lock-state ${locked ? 'locked' : 'unlocked'}`}
+                                aria-label={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                                title={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                              >
+                                <MaterialIcon name={locked ? 'lock' : 'lock_open'} size={18} />
                               </span>
                             </span>
                             <span className="skill-card-body">

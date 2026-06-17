@@ -95,6 +95,8 @@ pub struct AppSettings {
     pub category_skill_order: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail_panel_width: Option<u16>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_view_mode: Option<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub skill_card_colors: HashMap<String, String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -117,6 +119,7 @@ impl Default for AppSettings {
             category_icons: HashMap::new(),
             category_skill_order: HashMap::new(),
             detail_panel_width: None,
+            skill_view_mode: None,
             skill_card_colors: HashMap::new(),
             skill_category_overrides: HashMap::new(),
             skill_category_assignments: HashMap::new(),

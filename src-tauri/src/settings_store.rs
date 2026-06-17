@@ -112,6 +112,7 @@ mod tests {
                 "star".to_string(),
             )]),
             detail_panel_width: Some(520),
+            skill_view_mode: Some("list".to_string()),
             skill_card_colors: std::collections::HashMap::from([(
                 "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
                 "#fee2e2".to_string(),

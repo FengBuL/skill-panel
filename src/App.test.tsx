@@ -739,6 +739,52 @@ describe('App shell', () => {
     );
   });
 
+  it('reorders cards within a category with pointer dragging for desktop webviews', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    const sections = await screen.findAllByRole('region', { name: /Skill category:/i });
+    const dataSection = sections.find((section) => within(section).queryByRole('button', { name: /sheet-flow/i }));
+    expect(dataSection).toBeDefined();
+    if (!dataSection) {
+      return;
+    }
+
+    const stockCard = within(dataSection).getByRole('button', { name: /stock-flow/i });
+    const sheetCard = within(dataSection).getByRole('button', { name: /sheet-flow/i });
+
+    fireEvent.pointerDown(stockCard, { clientX: 30, clientY: 30, pointerId: 1, pointerType: 'mouse' });
+    fireEvent.pointerMove(stockCard, { clientX: 90, clientY: 34, pointerId: 1, pointerType: 'mouse' });
+    fireEvent.pointerUp(sheetCard, { clientX: 120, clientY: 34, pointerId: 1, pointerType: 'mouse' });
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          categorySkillOrder: expect.objectContaining({
+            data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('shows lock state on read-only cards and unlock state on editable cards', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const editableCard = (await within(cardGrid).findAllByRole('button', { name: /imagegen/i }))[0];
+    const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
+
+    expect(within(editableCard).getByLabelText('Editable skill')).toHaveTextContent('lock_open');
+    expect(within(pluginCard).getByLabelText('Locked skill')).toHaveTextContent('lock');
+  });
+
   it('restores a category card order to the default order', async () => {
     const customOrder = {
       data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
@@ -1182,6 +1228,7 @@ describe('App shell', () => {
     expect(listPanel.querySelector('.skill-table-wrap')).toHaveClass('fluid-table-region');
 
     await user.click(screen.getByRole('row', { name: /skill 01/i }));
+    await user.click(await screen.findByRole('tab', { name: 'Edit' }));
 
     const markdownInput = await screen.findByRole('textbox', { name: 'Markdown body' });
     expect(markdownInput.closest('.detail-markdown-section')).toHaveClass('fluid-markdown-region');
@@ -1246,6 +1293,7 @@ describe('App shell', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /standup report/i }));
+    await user.click(await screen.findByRole('tab', { name: 'Edit' }));
 
     expect(await screen.findByDisplayValue('standup report')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Prepare daily task summaries')).toBeInTheDocument();

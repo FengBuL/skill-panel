@@ -23,6 +23,7 @@ const defaultSettings: AppSettings = {
   skillCategoryAssignments: {},
   skillCategoryOverrides: {},
   skillTags: {},
+  skillViewMode: 'cards',
 };
 
 function getErrorMessage(error: unknown) {
@@ -79,6 +80,7 @@ function normalizeSettings(settings: AppSettings): AppSettings {
       typeof settings.detailPanelWidth === 'number' && Number.isFinite(settings.detailPanelWidth)
         ? settings.detailPanelWidth
         : undefined,
+    skillViewMode: settings.skillViewMode === 'list' ? 'list' : 'cards',
     skillTags:
       settings.skillTags && typeof settings.skillTags === 'object' && !Array.isArray(settings.skillTags)
         ? settings.skillTags
@@ -145,6 +147,10 @@ function getPersistableSettings(settings: AppSettings): AppSettings {
     delete persistableSettings.detailPanelWidth;
   }
 
+  if (persistableSettings.skillViewMode === 'cards') {
+    delete persistableSettings.skillViewMode;
+  }
+
   return persistableSettings;
 }
 
@@ -156,6 +162,7 @@ export function useI18nRuntime() {
   const [settingsSaveStatus, setSettingsSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [systemLanguages] = useState(() => getSystemLanguages(window.navigator));
   const hasUserSelectedLanguage = useRef(false);
+  const saveRequestIdRef = useRef(0);
 
   const locale = useMemo(() => resolveLocale(language, systemLanguages), [language, systemLanguages]);
   const t = useCallback(
@@ -191,18 +198,24 @@ export function useI18nRuntime() {
 
   const saveSettings = useCallback(async (nextSettings: AppSettings) => {
     const normalizedSettings = normalizeSettings(nextSettings);
+    const requestId = saveRequestIdRef.current + 1;
+    saveRequestIdRef.current = requestId;
     setSettingsSaveError(null);
     setSettingsSaveStatus('saving');
 
     try {
       await invoke<AppSettings>('save_app_settings', { settings: getPersistableSettings(normalizedSettings) });
-      setSettings(normalizedSettings);
-      setLanguage(normalizedSettings.language);
-      setSettingsSaveStatus('saved');
+      if (requestId === saveRequestIdRef.current) {
+        setSettings(normalizedSettings);
+        setLanguage(normalizedSettings.language);
+        setSettingsSaveStatus('saved');
+      }
       return normalizedSettings;
     } catch (error) {
-      setSettingsSaveError(getErrorMessage(error));
-      setSettingsSaveStatus('idle');
+      if (requestId === saveRequestIdRef.current) {
+        setSettingsSaveError(getErrorMessage(error));
+        setSettingsSaveStatus('idle');
+      }
       throw error;
     }
   }, []);

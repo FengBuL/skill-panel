@@ -132,12 +132,16 @@ describe('App skill editor', () => {
     mockEditorInvoke();
   });
 
-  it('loads selected skill details into editable fields', async () => {
+  it('opens selected skill details in preview mode by default and switches to editable fields', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
 
+    expect(await screen.findByRole('region', { name: 'Markdown preview' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Preview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByLabelText('Markdown body')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
     expect(await screen.findByDisplayValue('imagegen')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Generate or edit raster images')).toBeInTheDocument();
     expect(screen.getByLabelText('Markdown body')).toHaveValue('# Imagegen\n\nCreate bitmap assets.');
@@ -201,6 +205,7 @@ describe('App skill editor', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
 
     const editPreview = await screen.findByRole('region', { name: 'Markdown edit preview' });
     expect(within(editPreview).getByRole('heading', { level: 1, name: 'Imagegen' })).toBeInTheDocument();
@@ -365,6 +370,7 @@ describe('App skill editor', () => {
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
     await user.click(screen.getByRole('row', { name: /browser control/i }));
+    await user.click(await screen.findByRole('tab', { name: 'Edit' }));
     expect(await screen.findByDisplayValue('browser control')).toBeInTheDocument();
 
     await act(async () => {
@@ -382,6 +388,7 @@ describe('App skill editor', () => {
     const row = await screen.findByRole('row', { name: /imagegen/i });
     row.focus();
     await user.keyboard('{Enter}');
+    await user.click(await screen.findByRole('tab', { name: 'Edit' }));
 
     expect(await screen.findByDisplayValue('imagegen')).toBeInTheDocument();
   });
@@ -422,6 +429,7 @@ describe('App skill editor', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
     await user.clear(await screen.findByLabelText('Name'));
     await user.type(screen.getByLabelText('Name'), 'imagegen updated');
     await user.clear(screen.getByLabelText('Description'));
@@ -492,8 +500,13 @@ describe('App skill editor', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
+    await user.clear(await screen.findByLabelText('Description'));
+    await user.type(screen.getByLabelText('Description'), 'Late save description');
     await user.click(await screen.findByRole('button', { name: 'Save Changes' }));
+    await user.click(await screen.findByRole('button', { name: 'Save with backup' }));
     await user.click(screen.getByRole('row', { name: /browser control/i }));
+    await user.click(await screen.findByRole('tab', { name: 'Edit' }));
     expect(await screen.findByDisplayValue('browser control')).toBeInTheDocument();
 
     await act(async () => {
@@ -621,6 +634,7 @@ describe('App skill editor', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
 
     const markdownEditor = await screen.findByLabelText('Markdown body');
     expect(markdownEditor).toHaveClass('detail-markdown-input');
@@ -675,6 +689,7 @@ describe('App skill editor', () => {
     render(<App />);
 
     await user.click(await screen.findByRole('row', { name: /deep research/i }));
+    await user.click(screen.getByRole('tab', { name: 'Edit' }));
 
     const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
     const descriptionField = await screen.findByRole('textbox', { name: 'Description' });

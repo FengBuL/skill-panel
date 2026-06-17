@@ -75,6 +75,7 @@ describe('skill type contracts', () => {
       categoryIcons?: Record<string, string>;
       categorySkillOrder?: Record<string, string[]>;
       detailPanelWidth?: number;
+      skillViewMode?: 'cards' | 'list';
       skillCardColors?: Record<string, string>;
       skillCategoryOverrides?: Record<string, 'data' | 'default' | 'finance' | 'writing'>;
       skillCategoryAssignments?: Record<string, string[]>;
