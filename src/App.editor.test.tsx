@@ -184,6 +184,34 @@ describe('App skill editor', () => {
     expect(screen.getByRole('button', { name: 'Delete Skill' })).toBeDisabled();
   });
 
+  it('keeps a user-locked skill in preview mode and disables editing', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string, payload?: unknown) => {
+      if (command === 'load_app_settings') {
+        return Promise.resolve({
+          ...settings,
+          skillLocks: { [scanResults[0].path]: true },
+        });
+      }
+      if (command === 'scan_skills') {
+        return Promise.resolve(scanResults);
+      }
+      if (command === 'read_skill') {
+        return Promise.resolve(skillDetails[(payload as { path: string }).path]);
+      }
+      return Promise.reject(new Error(`Unexpected command: ${command}`));
+    });
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('row', { name: /imagegen/i }));
+
+    expect(await screen.findByRole('region', { name: 'Markdown preview' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Edit' })).toBeDisabled();
+    expect(screen.getByText('Locked by user')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled();
+  });
+
   it('shows description as read-only content in preview mode and editable in edit mode', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -350,6 +378,12 @@ describe('App skill editor', () => {
           ...settings,
           skillTags: {
             [scanResults[0].path]: [{ color: '#e0f2fe', label: '重点' }],
+          },
+          skillCardColors: {
+            [scanResults[0].path]: '#fee2e2',
+          },
+          skillLocks: {
+            [scanResults[0].path]: true,
           },
         });
       }
@@ -567,9 +601,18 @@ describe('App skill editor', () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: scanResults[0].path }));
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
-        settings: expect.objectContaining({ skillTags: {} }),
+        settings: expect.objectContaining({
+          skillTags: {},
+        }),
       }),
     );
+    const saveCall = invokeMock.mock.calls.find(([command]) => command === 'save_app_settings');
+    expect(saveCall?.[1]).toEqual({
+      settings: expect.not.objectContaining({
+        skillCardColors: expect.anything(),
+        skillLocks: expect.anything(),
+      }),
+    });
     expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
   });
 

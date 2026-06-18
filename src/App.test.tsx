@@ -154,6 +154,10 @@ function mockInvoke({
       return Promise.resolve();
     }
 
+    if (command === 'delete_skill') {
+      return Promise.resolve();
+    }
+
     return Promise.reject(new Error(`Unexpected command: ${command}`));
   });
 }
@@ -301,7 +305,7 @@ describe('App shell', () => {
     const governance = await screen.findByRole('complementary', { name: 'Categories' });
 
     expect(within(governance).getByText('Governance')).toBeInTheDocument();
-    expect(within(governance).getByRole('button', { name: /Needs attention\s+1/i })).toBeInTheDocument();
+    expect(within(governance).queryByRole('button', { name: /Needs attention/i })).not.toBeInTheDocument();
     expect(within(governance).getByRole('button', { name: /User editable\s+2/i })).toBeInTheDocument();
     expect(within(governance).getByRole('button', { name: /Read-only plugins\s+1/i })).toBeInTheDocument();
     expect(within(governance).getByText('Topics and tags')).toBeInTheDocument();
@@ -726,13 +730,19 @@ describe('App shell', () => {
     };
     fireEvent.dragStart(stockCard, { dataTransfer });
     expect(dataTransfer.setData).toHaveBeenCalledWith('text/plain', categorizedScanResults[0].path);
+    fireEvent.dragEnter(sheetCard, { dataTransfer });
+    expect(stockCard).toHaveClass('dragging-card');
+    expect(sheetCard).toHaveClass('drag-over-card');
     fireEvent.drop(sheetCard, { dataTransfer });
+
+    expect(stockCard).not.toHaveClass('dragging-card');
+    expect(sheetCard).not.toHaveClass('drag-over-card');
 
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
         settings: expect.objectContaining({
           categorySkillOrder: expect.objectContaining({
-            data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
+            data: [categorizedScanResults[1].path, categorizedScanResults[0].path],
           }),
         }),
       }),
@@ -763,7 +773,7 @@ describe('App shell', () => {
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
         settings: expect.objectContaining({
           categorySkillOrder: expect.objectContaining({
-            data: [categorizedScanResults[0].path, categorizedScanResults[1].path],
+            data: [categorizedScanResults[1].path, categorizedScanResults[0].path],
           }),
         }),
       }),
@@ -783,6 +793,117 @@ describe('App shell', () => {
 
     expect(within(editableCard).getByLabelText('Editable skill')).toHaveTextContent('lock_open');
     expect(within(pluginCard).getByLabelText('Locked skill')).toHaveTextContent('lock');
+  });
+
+  it('locks and unlocks editable skills from the context menu and persists the choice', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
+
+    fireEvent.contextMenu(stockCard);
+    await user.click(screen.getByRole('button', { name: 'Lock skill' }));
+
+    expect(within(stockCard).getByLabelText('Locked skill')).toHaveTextContent('lock');
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillLocks: { [categorizedScanResults[0].path]: true },
+        }),
+      }),
+    );
+
+    fireEvent.contextMenu(stockCard);
+    await user.click(screen.getByRole('button', { name: 'Unlock skill' }));
+    expect(within(stockCard).getByLabelText('Editable skill')).toHaveTextContent('lock_open');
+  });
+
+  it('keeps protected skills permanently locked in the context menu', async () => {
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
+    fireEvent.contextMenu(pluginCard);
+
+    expect(screen.getByRole('button', { name: 'Permanently locked' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Unlock skill' })).not.toBeInTheDocument();
+  });
+
+  it('selects all skills or one category and applies bulk metadata changes', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await user.click(screen.getByRole('button', { name: 'Batch select' }));
+    await user.click(screen.getByRole('button', { name: 'Select all results' }));
+    expect(screen.getByRole('toolbar', { name: 'Bulk actions' })).toHaveTextContent('3 selected');
+
+    await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+    await user.click(screen.getByRole('button', { name: 'Select category Data' }));
+    expect(screen.getByRole('toolbar', { name: 'Bulk actions' })).toHaveTextContent('2 selected');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Bulk category' }), 'finance');
+    await user.click(screen.getByRole('button', { name: 'Change category' }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillCategoryAssignments: expect.objectContaining({
+            [categorizedScanResults[0].path]: ['finance'],
+            [categorizedScanResults[1].path]: ['finance'],
+          }),
+        }),
+      }),
+    );
+
+    await user.type(screen.getByRole('textbox', { name: 'Bulk tag' }), 'Priority');
+    await user.click(screen.getByRole('button', { name: 'Add tag to selected' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Bulk color' }), '#fee2e2');
+    await user.click(screen.getByRole('button', { name: 'Apply color' }));
+    await user.click(screen.getByRole('button', { name: 'Lock selected' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillLocks: expect.objectContaining({
+            [categorizedScanResults[0].path]: true,
+            [categorizedScanResults[1].path]: true,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('deletes selected skills through real desktop commands after confirmation', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await user.click(screen.getByRole('button', { name: 'Batch select' }));
+    await user.click(screen.getByRole('button', { name: 'Select category Data' }));
+    await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Delete selected skills' });
+    expect(dialog).toHaveTextContent('2 selected');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm delete' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[0].path }));
+    expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[1].path });
+    expect(invokeMock.mock.calls.filter(([command]) => command === 'scan_skills').length).toBeGreaterThan(1);
   });
 
   it('restores a category card order to the default order', async () => {
@@ -1059,7 +1180,7 @@ describe('App shell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Filter skills' }));
     expect(screen.getByRole('row', { name: /alpha-broken/i })).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /zeta-flow/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /zeta-flow/i })).toBeInTheDocument();
   });
 
   it('uses explicit sort and filter menus for list controls', async () => {
@@ -1078,7 +1199,7 @@ describe('App shell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Filter skills' }));
     expect(screen.getByRole('menu', { name: 'Filter skills' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitemcheckbox', { name: 'Needs attention' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Needs attention' })).not.toBeInTheDocument();
     expect(screen.getByRole('menuitemcheckbox', { name: 'Writable only' })).toBeInTheDocument();
     expect(screen.getByRole('menuitemcheckbox', { name: 'Read-only plugins' })).toBeInTheDocument();
   });

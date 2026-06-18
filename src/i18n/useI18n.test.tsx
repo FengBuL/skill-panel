@@ -88,6 +88,27 @@ function SettingsSaveProbe() {
   );
 }
 
+function SkillLockSaveProbe() {
+  const i18n = useI18nRuntime();
+
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        void i18n.saveSettings({
+          ...i18n.settings,
+          skillLocks: {
+            'C:\\Users\\demo\\.codex\\skills\\imagegen\\SKILL.md': true,
+            'C:\\Users\\demo\\.codex\\skills\\unlocked\\SKILL.md': false,
+          },
+        })
+      }
+    >
+      Save locks
+    </button>
+  );
+}
+
 describe('useI18n', () => {
   beforeEach(() => {
     invokeMock.mockReset();
@@ -169,5 +190,22 @@ describe('useI18n', () => {
 
     await waitFor(() => expect(screen.getByTestId('settings-json')).toHaveTextContent('New label'));
     expect(screen.getByTestId('settings-json')).not.toHaveTextContent('Old label');
+  });
+
+  it('persists only active user skill locks', async () => {
+    const user = userEvent.setup();
+    render(<SkillLockSaveProbe />);
+
+    await user.click(await screen.findByRole('button', { name: 'Save locks' }));
+
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillLocks: {
+            'C:\\Users\\demo\\.codex\\skills\\imagegen\\SKILL.md': true,
+          },
+        }),
+      }),
+    );
   });
 });

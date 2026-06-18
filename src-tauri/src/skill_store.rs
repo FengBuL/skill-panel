@@ -916,6 +916,11 @@ mod tests {
         assert_eq!(updated.summary.description, "Updated description");
         assert!(updated.raw_content.contains("name: Updated Skill\n"));
         assert_eq!(updated.body_markdown, "## Updated\n\nEdited body.\n");
+        let disk_content = fs::read_to_string(&updated.summary.path)
+            .expect("updated SKILL.md should exist on disk");
+        assert!(disk_content.contains("name: Updated Skill\n"));
+        assert!(disk_content.contains("description: Updated description\n"));
+        assert!(disk_content.contains("## Updated\n\nEdited body.\n"));
 
         let skill_dir = PathBuf::from(&updated.summary.path)
             .parent()

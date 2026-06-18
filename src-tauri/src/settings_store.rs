@@ -125,6 +125,10 @@ mod tests {
                 "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
                 vec!["custom-lark".to_string(), "finance".to_string()],
             )]),
+            skill_locks: std::collections::HashMap::from([(
+                "D:\\Team\\skills\\sheet-flow\\SKILL.md".to_string(),
+                true,
+            )]),
             ..AppSettings::default()
         };
 

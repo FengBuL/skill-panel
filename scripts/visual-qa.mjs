@@ -102,6 +102,7 @@ const scenarios = [
     cardView: true,
     selectFirstSkill: true,
     previewMarkdown: true,
+    bulkSelection: true,
   },
   {
     id: 'en-success-1280x800-long-markdown',
@@ -325,6 +326,12 @@ async function runScenario(browser, scenario) {
     await page.locator('.markdown-preview').waitFor({ timeout: 5000 });
   }
 
+  if (scenario.bulkSelection) {
+    await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '批量选择' : 'Batch select' }).click();
+    await page.locator('.select-category-button').first().click();
+    await page.getByRole('toolbar', { name: scenario.language === 'zh-CN' ? '批量操作' : 'Bulk actions' }).waitFor({ timeout: 5000 });
+  }
+
   const checks = await page.evaluate(() => {
     const appShell = document.querySelector('.app-shell');
     const topBar = document.querySelector('.top-bar');
@@ -336,6 +343,7 @@ async function runScenario(browser, scenario) {
     const markdownPreview = document.querySelector('.markdown-preview');
     const markdownNextSection = markdownPreview?.closest('.detail-markdown-section')?.nextElementSibling;
     const cardGrid = document.querySelector('.skill-card-grid.active');
+    const bulkToolbar = document.querySelector('.bulk-action-bar');
     const cardHeights = Array.from(document.querySelectorAll('.skill-card-grid.active .skill-card'))
       .slice(0, 8)
       .map((element) => Math.round(element.getBoundingClientRect().height));
@@ -359,6 +367,7 @@ async function runScenario(browser, scenario) {
         : true,
       tableRendered: Boolean(table),
       cardGridRendered: Boolean(cardGrid),
+      bulkToolbarVisible: Boolean(bulkToolbar && bulkToolbar.getBoundingClientRect().height > 0),
       cardPaginationHidden: !document.querySelector('.skill-card-grid.active ~ .pagination-controls'),
       cardHeightsMatch: cardHeights.length > 0 ? Math.max(...cardHeights) - Math.min(...cardHeights) <= 1 : true,
       detailPanelVisible: detailPanel ? detailPanel.getBoundingClientRect().height > 0 : false,
@@ -408,6 +417,10 @@ async function runScenario(browser, scenario) {
   if (scenario.previewMarkdown) {
     assertions.push(['Markdown preview does not duplicate an outline', checks.markdownOutlineAbsent]);
     assertions.push(['Markdown preview does not overlap following detail sections', checks.markdownPreviewContained]);
+  }
+
+  if (scenario.bulkSelection) {
+    assertions.push(['bulk selection toolbar is visible', checks.bulkToolbarVisible]);
   }
 
   const failedAssertions = assertions.filter(([, passed]) => !passed).map(([name]) => name);

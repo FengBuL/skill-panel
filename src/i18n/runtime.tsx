@@ -22,6 +22,7 @@ const defaultSettings: AppSettings = {
   skillCardColors: {},
   skillCategoryAssignments: {},
   skillCategoryOverrides: {},
+  skillLocks: {},
   skillTags: {},
   skillViewMode: 'cards',
 };
@@ -113,6 +114,10 @@ function normalizeSettings(settings: AppSettings): AppSettings {
               typeof categoryId === 'string' && categoryId.trim() ? [[path, [categoryId.trim()]]] : [],
             ),
           ),
+    skillLocks:
+      settings.skillLocks && typeof settings.skillLocks === 'object' && !Array.isArray(settings.skillLocks)
+        ? Object.fromEntries(Object.entries(settings.skillLocks).filter(([path, locked]) => Boolean(path.trim()) && locked === true))
+        : {},
   };
 }
 
@@ -141,6 +146,10 @@ function getPersistableSettings(settings: AppSettings): AppSettings {
 
   if (!persistableSettings.skillCategoryOverrides || Object.keys(persistableSettings.skillCategoryOverrides).length === 0) {
     delete persistableSettings.skillCategoryOverrides;
+  }
+
+  if (!persistableSettings.skillLocks || Object.keys(persistableSettings.skillLocks).length === 0) {
+    delete persistableSettings.skillLocks;
   }
 
   if (persistableSettings.detailPanelWidth === undefined) {

@@ -263,3 +263,14 @@
 - 浏览器验证：Node REPL 浏览器通道仍报 `failed to write kernel assets: 系统找不到指定的路径。 (os error 3)`，未完成截图验证。
 - 交付包：已刷新 `output\migration\Skill-Panel-v2.0.0-migration.zip` 和 `output\send\Skill-Panel-v2.0.0-complete.zip`。
 - 发送包校验：文件数 `453`，文件夹内容大小约 `22989703` bytes，zip 大小约 `11679554` bytes；最终 SHA256 以生成后的校验命令输出为准。
+
+### U028 v2.0.1 批量管理、锁定与拖拽反馈
+
+- 分支：`codex/skill-panel-app`
+- 版本：应用、Tauri 配置和 Rust 包统一更新到 `2.0.1`。
+- 拖拽：源卡片抬升并显示阴影，目标卡片显示边框与位移，释放后交换位置并持久化排序。
+- 锁定：只读来源与受保护 lark Skill 永久锁定；可编辑 Skill 支持右键和批量锁定、解锁，状态写入 `skillLocks`。
+- 批量管理：支持全选当前结果、按类目选择、批量更改类目、添加标签、设置颜色、锁定、解锁和确认删除。
+- 文件边界：正文编辑继续调用 `update_skill`，单项与批量删除调用 `delete_skill`，完成后重新扫描磁盘；Rust 测试直接核对文件内容和目录删除结果。
+- 导航：移除“需要关注”入口与筛选项。
+- 交付：桌面程序和完整发送包统一采用 `v2.0.1` 文件名，替换旧的 v2.0.0 发送包。
