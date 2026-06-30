@@ -115,6 +115,10 @@ type ParsedEditorMarkdown = {
   description: string;
   name: string;
 };
+type FrontmatterConflict = {
+  markdown: string;
+  parsed: ParsedEditorMarkdown;
+};
 
 const skillsPerPage = 10;
 const defaultDetailPanelWidth = 400;
@@ -1147,6 +1151,7 @@ export function App() {
   const [recentEditorPaths, setRecentEditorPaths] = useState<string[]>(loadStoredRecentEditorPaths);
   const [editorSaveCompleted, setEditorSaveCompleted] = useState<SaveCompletionState>('idle');
   const [showEditorSaveConfirm, setShowEditorSaveConfirm] = useState(false);
+  const [frontmatterConflict, setFrontmatterConflict] = useState<FrontmatterConflict | null>(null);
   const toolbarMenuRef = useRef<HTMLDivElement>(null);
   const categoryContextMenuRef = useRef<HTMLDivElement>(null);
   const skillTagContextMenuRef = useRef<HTMLDivElement>(null);
@@ -1788,6 +1793,14 @@ export function App() {
     setEditorSaveCompleted('idle');
     setEditorDraft((currentDraft) => {
       const parsed = parseEditorMarkdown(markdown, currentDraft.name, currentDraft.description);
+      if (parsed.name !== currentDraft.name || parsed.description !== currentDraft.description) {
+        setFrontmatterConflict({ markdown, parsed });
+        return {
+          ...currentDraft,
+          markdown,
+        };
+      }
+
       return {
         ...currentDraft,
         description: parsed.description,
@@ -1795,6 +1808,32 @@ export function App() {
         name: parsed.name,
       };
     });
+  };
+
+  const keepMarkdownFrontmatter = () => {
+    if (!frontmatterConflict) {
+      return;
+    }
+
+    setEditorDraft((currentDraft) => ({
+      ...currentDraft,
+      description: frontmatterConflict.parsed.description,
+      markdown: frontmatterConflict.markdown,
+      name: frontmatterConflict.parsed.name,
+    }));
+    setFrontmatterConflict(null);
+  };
+
+  const keepFormFrontmatter = () => {
+    if (!frontmatterConflict) {
+      return;
+    }
+
+    setEditorDraft((currentDraft) => ({
+      ...currentDraft,
+      markdown: replaceEditorFrontmatter(frontmatterConflict.markdown, currentDraft.name, currentDraft.description),
+    }));
+    setFrontmatterConflict(null);
   };
 
   const showEditorSavedState = () => {
@@ -4272,6 +4311,26 @@ export function App() {
               </button>
               <button type="button" className="primary-action" disabled={isSavingDetail} onClick={() => void performEditorSave()}>
                 {t('saveReview.saveWithBackup')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {frontmatterConflict ? (
+        <div className="dialog-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="frontmatter-conflict-title" className="confirm-dialog diff-dialog">
+            <h2 id="frontmatter-conflict-title">{t('editor.frontmatterConflictTitle')}</h2>
+            <p>{t('editor.frontmatterConflictDescription')}</p>
+            <div className="diff-preview">
+              <code>{`Form: ${editorDraft.name} / ${editorDraft.description}`}</code>
+              <code>{`Markdown: ${frontmatterConflict.parsed.name} / ${frontmatterConflict.parsed.description}`}</code>
+            </div>
+            <div className="dialog-actions">
+              <button type="button" onClick={keepFormFrontmatter}>
+                {t('editor.keepForm')}
+              </button>
+              <button type="button" className="primary-action" onClick={keepMarkdownFrontmatter}>
+                {t('editor.keepMarkdown')}
               </button>
             </div>
           </div>

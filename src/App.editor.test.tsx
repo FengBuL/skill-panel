@@ -937,11 +937,33 @@ describe('App skill editor', () => {
       screen.getByRole('textbox', { name: 'Markdown body' }),
       '---\nname: markdown-wins\ndescription: Synced from markdown\n---\n\n# Markdown Wins',
     );
+    expect(await screen.findByRole('dialog', { name: 'Frontmatter conflict' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Keep Markdown' }));
 
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('markdown-wins');
     expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue('Synced from markdown');
     expect(within(screen.getAllByRole('region', { name: 'Markdown preview' }).at(-1)!).getByRole('heading', { name: 'Markdown Wins' })).toBeInTheDocument();
   });
+
+  it('can keep form fields when markdown frontmatter conflicts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Name' }));
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'form-wins');
+    await user.clear(screen.getByRole('textbox', { name: 'Markdown body' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Markdown body' }),
+      '---\nname: markdown-loses\ndescription: Markdown description\n---\n\n# Body',
+    );
+
+    expect(await screen.findByRole('dialog', { name: 'Frontmatter conflict' })).toHaveTextContent('markdown-loses');
+    await user.click(screen.getByRole('button', { name: 'Keep form' }));
+
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('form-wins');
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Markdown body' }).value).toContain('name: "form-wins"');
+   });
 
   it('prompts before leaving the editor with unsaved content', async () => {
     const user = userEvent.setup();
