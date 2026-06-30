@@ -89,7 +89,12 @@ fn app_settings_serializes_skill_roots_and_default_source() {
             "showDefaultScanDirectories": true,
             "categoryColors": {},
             "categoryLabels": {},
-            "skillTags": {}
+            "skillTags": {},
+            "skillFavorites": {},
+            "skillUsage": {},
+            "skillOrganizationSuggestions": {},
+            "skillHealth": {},
+            "skillDrafts": {}
         })
     );
 }

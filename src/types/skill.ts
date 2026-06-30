@@ -44,6 +44,31 @@ export interface CustomCategorySetting {
   label: string;
 }
 
+export interface SkillUsageSetting {
+  callCount: number;
+  lastCalledAt?: string | null;
+}
+
+export interface SkillOrganizationSuggestionSetting {
+  dismissed?: boolean;
+  kind: 'category' | 'tag' | 'health' | 'draft';
+  label: string;
+  message: string;
+}
+
+export interface SkillHealthSetting {
+  issues: string[];
+  score: number;
+  status: 'healthy' | 'warning' | 'critical';
+}
+
+export interface SkillDraftSetting {
+  description: string;
+  markdown: string;
+  name: string;
+  updatedAt: string;
+}
+
 export interface AppSettings {
   language: 'system' | 'zh-CN' | 'en-US';
   customScanDirectories: string[];
@@ -60,6 +85,11 @@ export interface AppSettings {
   skillCategoryAssignments?: Record<string, string[]>;
   skillLocks?: Record<string, boolean>;
   skillTags?: Record<string, CustomSkillTagSetting[]>;
+  skillFavorites?: Record<string, boolean>;
+  skillUsage?: Record<string, SkillUsageSetting>;
+  skillOrganizationSuggestions?: Record<string, SkillOrganizationSuggestionSetting[]>;
+  skillHealth?: Record<string, SkillHealthSetting>;
+  skillDrafts?: Record<string, SkillDraftSetting>;
 }
 
 export interface CreateSkillInput {

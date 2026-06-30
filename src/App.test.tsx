@@ -328,7 +328,8 @@ describe('App shell', () => {
     expect(scanStatus).toHaveTextContent(/Last scan:/);
 
     expect(within(actions as HTMLElement).getByRole('button', { name: 'Rescan' })).toBeInTheDocument();
-    expect(within(actions as HTMLElement).getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
+    expect(within(actions as HTMLElement).queryByRole('button', { name: 'New Skill' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
     const languageSelect = within(actions as HTMLElement).getByRole('combobox', { name: 'Language' });
     const settingsButton = within(actions as HTMLElement).getByRole('button', { name: 'Settings' });
     expect(Boolean(languageSelect.compareDocumentPosition(settingsButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
@@ -1697,7 +1698,6 @@ describe('App shell', () => {
     expect(screen.getByText('save failed')).toBeInTheDocument();
   });
 });
-
 
 
 

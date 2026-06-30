@@ -22,6 +22,10 @@
   --warning-soft: #fffaeb;
   --danger: #ba1a1a;
   --danger-soft: #ffdad6;
+  --v3-rail-width: 260px;
+  --v3-card-radius: 8px;
+  --v3-focus-ring: rgb(33 112 228 / 24%);
+  --v3-metric-bg: #f8fafc;
   --shadow-soft: 0 1px 3px rgb(15 23 42 / 5%);
   --shadow-lift: 0 10px 15px -3px rgb(15 23 42 / 10%), 0 4px 6px -2px rgb(15 23 42 / 5%);
   color: var(--on-surface);
@@ -417,6 +421,15 @@ a:focus-visible {
   transform: translateX(2px);
 }
 
+.workspace-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-nav button {
+  min-height: 44px;
+}
+
 .category-nav-button {
   border-left: 5px solid var(--category-color, var(--outline-variant));
   background: color-mix(in srgb, var(--category-color, transparent) 46%, #fff);
@@ -656,7 +669,7 @@ button.category-chip {
 
 .list-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
   background: var(--surface-bright);
   min-height: 0;
 }
@@ -682,6 +695,93 @@ button.category-chip {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.foundation-insights {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  gap: 10px;
+  border-bottom: 1px solid rgb(198 198 205 / 35%);
+  padding: 12px 24px;
+}
+
+.foundation-insights div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--v3-card-radius);
+  background: var(--v3-metric-bg);
+  padding: 10px 12px;
+}
+
+.foundation-insights span,
+.library-filter-strip span {
+  color: var(--outline);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.foundation-insights strong {
+  color: var(--on-surface);
+  font-size: 22px;
+  line-height: 28px;
+}
+
+.library-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgb(198 198 205 / 35%);
+  padding: 12px 24px;
+}
+
+.library-filter-strip h3 {
+  margin: 0 2px 0 0;
+  color: rgb(69 70 77 / 72%);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.library-filter-group {
+  display: contents;
+}
+
+.library-storage-summary {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgb(198 198 205 / 35%);
+  padding-top: 10px;
+}
+
+.library-filter-strip button {
+  gap: 8px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.library-filter-strip button.active {
+  border-color: var(--secondary-container);
+  background: var(--secondary-container);
+  color: #fff;
+}
+
+.library-filter-strip button.active span {
+  color: rgb(255 255 255 / 78%);
+}
+
+.editor-insight-card dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editor-create-action {
+  width: fit-content;
+  margin-top: 8px;
 }
 
 .toolbar-menu {
@@ -1056,12 +1156,12 @@ button.category-chip {
 
 .skill-table tbody td:first-child {
   border-left: 1px solid rgb(198 198 205 / 45%);
-  border-radius: 12px 0 0 12px;
+  border-radius: 8px 0 0 8px;
 }
 
 .skill-table tbody td:last-child {
   border-right: 1px solid rgb(198 198 205 / 45%);
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 8px 8px 0;
 }
 
 .skill-table tbody tr:hover td {
@@ -1183,7 +1283,7 @@ button.category-chip {
   min-height: 360px;
   margin: 24px;
   border: 1px dashed var(--outline-variant);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--outline);
   padding: 28px;
@@ -1772,7 +1872,7 @@ button.category-chip {
   overflow-x: auto;
   overflow-y: auto;
   border: 1px solid rgb(198 198 205 / 30%);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
   color: #5f6470;
   padding: 28px 30px;
@@ -1809,7 +1909,7 @@ button.category-chip {
   min-height: 560px;
   max-height: min(76vh, 820px);
   border: 1px solid rgb(198 198 205 / 30%);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -1926,7 +2026,7 @@ button.category-chip {
   margin: 16px 0 22px;
   overflow: auto;
   border: 1px solid #dbe7f7;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f6f9ff;
   padding: 14px;
 }
@@ -2005,7 +2105,7 @@ button.category-chip {
   width: calc(100% - 32px);
   margin: 16px;
   border: 1px solid var(--outline-variant);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgb(255 255 255 / 90%);
   box-shadow: var(--shadow-lift);
   padding: 16px;
@@ -2064,7 +2164,7 @@ button.category-chip {
   align-content: start;
   gap: 12px;
   border: 1px solid rgb(198 198 205 / 45%);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface-container-lowest);
   padding: 14px;
 }
@@ -2182,7 +2282,7 @@ button.category-chip {
 .confirm-dialog,
 .create-dialog {
   border: 1px solid var(--outline-variant);
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgb(255 255 255 / 88%);
   box-shadow: var(--shadow-lift);
 }
