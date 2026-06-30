@@ -572,26 +572,32 @@ describe('App shell', () => {
     expect(headers).toEqual(['Name', 'Description', 'Modified', 'Path']);
   });
 
-  it('paginates the skill list ten skills at a time', async () => {
+  it('paginates the skill list twenty-four skills at a time by default', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
-    mockInvoke({ skills: paginatedScanResults });
+    const manyPaginatedSkills = Array.from({ length: 30 }, (_, index) => ({
+      ...paginatedScanResults[index % paginatedScanResults.length],
+      description: `Description for skill ${String(index + 1).padStart(2, '0')}`,
+      name: `skill ${String(index + 1).padStart(2, '0')}`,
+      path: `C:\\Users\\demo\\.codex\\skills\\skill-${String(index + 1).padStart(2, '0')}\\SKILL.md`,
+    }));
+    mockInvoke({ skills: manyPaginatedSkills });
 
     render(<App />);
 
     await user.click(await screen.findByRole('tab', { name: 'List View' }));
 
     expect(await screen.findByRole('row', { name: /skill 01/i })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /skill 10/i })).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /skill 11/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 24/i })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /skill 25/i })).not.toBeInTheDocument();
     expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Next page' }));
 
     expect(screen.queryByRole('row', { name: /skill 01/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /skill 11/i })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 25/i })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /skill 30/i })).toBeInTheDocument();
     expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
@@ -694,14 +700,14 @@ describe('App shell', () => {
     expect(body).toHaveStyle({ overflowY: 'auto' });
   });
 
-  it('keeps category sections free from the list pagination overlay in card view', async () => {
+  it('keeps card view on the shared twenty-four item pagination model', async () => {
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: manyDataSkills });
 
     render(<App />);
 
     expect((await screen.findAllByRole('region', { name: /Skill category:/i })).length).toBeGreaterThan(0);
-    expect(screen.queryByLabelText('Pagination')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Pagination')).toHaveTextContent('Showing 1-9 of 9 skills');
   });
 
   it('uses fixed card rows so skill cards stay the same size', () => {

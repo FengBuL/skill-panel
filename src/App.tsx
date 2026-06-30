@@ -31,6 +31,7 @@ type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
 type SkillViewMode = 'cards' | 'list';
 type WorkspaceView = 'dashboard' | 'library' | 'editor';
+type LibraryDensity = 'comfortable' | 'compact';
 type BuiltInCategoryId = 'data' | 'default' | 'finance' | 'writing';
 type CategoryId = string;
 type GovernanceFilter = 'read-only-plugins' | 'user-editable';
@@ -128,7 +129,7 @@ type SkillInsightData = {
   unhealthyCount: number;
 };
 
-const skillsPerPage = 10;
+const skillsPerPage = 24;
 const defaultDetailPanelWidth = 400;
 const minDetailPanelWidth = 320;
 const maxDetailPanelWidth = 1080;
@@ -329,6 +330,19 @@ function getStitchDemoDetail(skill: SkillSummary): SkillDetail {
 
 function getSkillSearchText(skill: SkillSummary) {
   return `${skill.name} ${skill.description} ${skill.path}`.toLocaleLowerCase();
+}
+
+function getSourceCodeLabel(source: SkillSource) {
+  const labels: Record<SkillSource, string> = {
+    'agents-user': 'Agents',
+    'codex-user': 'Codex',
+    custom: 'Custom',
+    'plugin-cache': 'Plugin',
+    system: 'System',
+    unknown: 'Unknown',
+  };
+
+  return labels[source];
 }
 
 function filterSkills(skills: SkillSummary[], query: string) {
@@ -1083,6 +1097,10 @@ export function App() {
   const [detailMarkdown, setDetailMarkdown] = useState('');
   const [detailMode, setDetailMode] = useState<'preview' | 'edit'>('preview');
   const [skillViewMode, setSkillViewMode] = useState<SkillViewMode>(() => normalizeSkillViewMode(settings.skillViewMode));
+  const [libraryDensity, setLibraryDensity] = useState<LibraryDensity>('compact');
+  const [previewDetail, setPreviewDetail] = useState<SkillDetail | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
@@ -1387,6 +1405,41 @@ export function App() {
       selectedDetail?.description !== detailDescription ||
       selectedDetail?.bodyMarkdown !== detailMarkdown);
   const pendingSaveDiffLines = getSimpleDiffLines(selectedDetail, detailName, detailDescription, detailMarkdown);
+  const activeFilterTokens = useMemo(() => {
+    const tokens: Array<{ id: string; label: string; onClear: () => void }> = [];
+
+    if (activeGovernanceFilter === 'user-editable') {
+      tokens.push({ id: 'governance-user-editable', label: t('governance.userEditable'), onClear: () => setActiveGovernanceFilter(null) });
+    }
+
+    if (activeGovernanceFilter === 'read-only-plugins') {
+      tokens.push({ id: 'governance-read-only-plugins', label: t('governance.readOnlyPlugins'), onClear: () => setActiveGovernanceFilter(null) });
+    }
+
+    if (activeCategoryId) {
+      const category = buildCategoryDefinition(activeCategoryId, categoryLabels, categoryColors, categoryIcons);
+      tokens.push({ id: `category-${activeCategoryId}`, label: getCategoryLabel(category, categoryLabels, t), onClear: () => setActiveCategoryId(null) });
+    }
+
+    if (activeTagLabel) {
+      tokens.push({ id: `tag-${activeTagLabel}`, label: activeTagLabel, onClear: () => setActiveTagLabel(null) });
+    }
+
+    if (showWritableOnly) {
+      tokens.push({ id: 'writable', label: t('toolbar.writableOnly'), onClear: () => setShowWritableOnly(false) });
+    }
+
+    if (showReadOnlyOnly) {
+      tokens.push({ id: 'read-only', label: t('governance.readOnlyPlugins'), onClear: () => setShowReadOnlyOnly(false) });
+    }
+
+    if (searchQuery.trim()) {
+      tokens.push({ id: 'search', label: t('library.searchToken', { query: searchQuery.trim() }), onClear: () => setSearchQuery('') });
+    }
+
+    return tokens;
+  }, [activeCategoryId, activeGovernanceFilter, activeTagLabel, categoryColors, categoryIcons, categoryLabels, searchQuery, showReadOnlyOnly, showWritableOnly, t]);
+
   const scanSkills = async () => {
     setIsLoadingSkills(true);
     setScanError(null);
@@ -1814,6 +1867,45 @@ export function App() {
     }
 
     await openSkillFolder(selectedDetail.path);
+  };
+
+  const copySkillPath = async (path: string) => {
+    setDetailError(null);
+
+    try {
+      await navigator.clipboard.writeText(path);
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const openSkillPreview = async (skill: SkillSummary) => {
+    setIsLoadingPreview(true);
+    setPreviewError(null);
+    setPreviewDetail(null);
+
+    try {
+      const detail = await invoke<SkillDetail>('read_skill', { path: skill.path });
+      setPreviewDetail(detail);
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const editPreviewSkill = async () => {
+    if (!previewDetail) {
+      return;
+    }
+
+    syncDetailForm(previewDetail);
+    selectedPathRef.current = previewDetail.path;
+    setSelectedPath(previewDetail.path);
+    setDetailMode('edit');
+    setPreviewDetail(null);
+    setPreviewError(null);
   };
 
   const addCustomDirectory = () => {
@@ -2818,7 +2910,7 @@ export function App() {
         </aside>
 
         <section className="panel list-panel fluid-list-panel" aria-label={t('skills.title')}>
-          <div className="section-heading">
+          <div className="section-heading library-heading">
             <div>
               <h2>
                 {activeWorkspace === 'dashboard'
@@ -2830,7 +2922,7 @@ export function App() {
               <p>{t('skills.showingCount', { count: String(sortedFilteredSkills.length), unit: t('skills.countUnit') })}</p>
               <span className="visually-hidden">{`${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</span>
             </div>
-            <div className="list-toolbar" ref={toolbarMenuRef}>
+            <div className="list-toolbar library-toolbar" ref={toolbarMenuRef}>
               <button
                 type="button"
                 className={selectionMode ? 'icon-button active' : 'icon-button'}
@@ -2850,6 +2942,7 @@ export function App() {
                 <button
                   type="button"
                   role="tab"
+                  aria-label={t('view.list')}
                   aria-selected={skillViewMode === 'list'}
                   className={skillViewMode === 'list' ? 'active' : undefined}
                   title={t('view.list')}
@@ -2863,6 +2956,7 @@ export function App() {
                 <button
                   type="button"
                   role="tab"
+                  aria-label={t('view.cards')}
                   aria-selected={skillViewMode === 'cards'}
                   className={skillViewMode === 'cards' ? 'active' : undefined}
                   title={t('view.cards')}
@@ -2874,6 +2968,21 @@ export function App() {
                   <MaterialIcon name="grid_view" />
                 </button>
               </div>
+              <label className="library-select-control">
+                <span>{t('toolbar.sortSkills')}</span>
+                <select
+                  aria-label={t('toolbar.sortSkills')}
+                  value={sortMode}
+                  onChange={(event) => {
+                    setSortByNameAscending(event.target.value === 'name');
+                    setSortMode(event.target.value as SortMode);
+                  }}
+                >
+                  <option value="original">{t('library.sortOriginal')}</option>
+                  <option value="name">{t('toolbar.nameAz')}</option>
+                  <option value="modified">{t('toolbar.modifiedTime')}</option>
+                </select>
+              </label>
               <button
                 type="button"
                 className={sortByNameAscending ? 'icon-button active' : 'icon-button'}
@@ -2934,10 +3043,45 @@ export function App() {
                   </button>
                 </div>
               ) : null}
+              <div className="view-switcher density-switcher" role="tablist" aria-label={t('library.density')}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={libraryDensity === 'compact'}
+                  className={libraryDensity === 'compact' ? 'active' : undefined}
+                  title={t('library.compact')}
+                  onClick={() => setLibraryDensity('compact')}
+                >
+                  <MaterialIcon name="density_small" />
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={libraryDensity === 'comfortable'}
+                  className={libraryDensity === 'comfortable' ? 'active' : undefined}
+                  title={t('library.comfortable')}
+                  onClick={() => setLibraryDensity('comfortable')}
+                >
+                  <MaterialIcon name="density_medium" />
+                </button>
+              </div>
             </div>
           </div>
           {activeWorkspace === 'library' ? (
             <>
+              <div className="library-filter-strip" aria-label={t('library.activeFilters')}>
+                <span>{t('library.resultSummary', { count: String(sortedFilteredSkills.length), total: String(skills.length) })}</span>
+                {activeFilterTokens.length === 0 ? (
+                  <span className="library-filter-empty">{t('library.noActiveFilters')}</span>
+                ) : (
+                  activeFilterTokens.map((token) => (
+                    <button key={token.id} type="button" className="filter-token" onClick={token.onClear}>
+                      {token.label}
+                      <MaterialIcon name="close" size={14} />
+                    </button>
+                  ))
+                )}
+              </div>
           <section className="foundation-insights" aria-label={t('insights.foundationSummary')}>
             <div>
               <span>{t('insights.favorites')}</span>
@@ -3278,10 +3422,150 @@ export function App() {
           ) : null}
           {listState === 'ready' ? (
             <div className="skill-list-scroll fluid-table-region">
-              <div className={skillViewMode === 'cards' ? 'skill-card-grid active' : 'skill-card-grid'}>
+              <div className={`skill-card-grid active library-card-grid density-${libraryDensity}`}>
+                {paginatedSkills.map((skill) => {
+                  const selected = selectionMode ? selectedSkillPaths.has(skill.path) : selectedPath === skill.path;
+                  const customTags = skillTags[skill.path] ?? [];
+                  const locked = isReadOnlySkill(skill) || Boolean(skillLocks[skill.path]);
+
+                  return (
+                    <div
+                      key={skill.path}
+                      role="button"
+                      tabIndex={0}
+                      className={`skill-card library-skill-card ${selected ? 'selected-card' : ''}`}
+                      aria-pressed={selected}
+                      draggable={!selectionMode}
+                      data-skill-card-path={skill.path}
+                      style={getSkillCardStyle(skill.path, skillCardColors)}
+                      onClick={() => {
+                        if (selectionMode) {
+                          toggleSkillSelection(skill.path);
+                        } else {
+                          void selectSkill(skill);
+                        }
+                      }}
+                      onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          if (selectionMode) {
+                            toggleSkillSelection(skill.path);
+                          } else {
+                            void selectSkill(skill);
+                          }
+                        }
+                      }}
+                    >
+                      <span className="skill-card-topline">
+                        <span className="skill-card-leading">
+                          {selectionMode ? (
+                            <input
+                              type="checkbox"
+                              aria-label={t('bulk.selectSkill', { name: skill.name })}
+                              checked={selectedSkillPaths.has(skill.path)}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => toggleSkillSelection(skill.path)}
+                            />
+                          ) : null}
+                          <span className="skill-card-icon">
+                            <MaterialIcon name={getSkillIcon(skill)} size={24} />
+                          </span>
+                        </span>
+                        <span
+                          className={`skill-card-lock-state ${locked ? 'locked' : 'unlocked'}`}
+                          aria-label={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                          title={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                        >
+                          <MaterialIcon name={locked ? 'lock' : 'lock_open'} size={18} />
+                        </span>
+                      </span>
+                      <span className="skill-card-body">
+                        <strong>{skill.name}</strong>
+                        <span className="skill-description">{skill.description}</span>
+                      </span>
+                      <dl className="library-card-meta">
+                        <div>
+                          <dt>{t('details.source')}</dt>
+                          <dd>{getSourceCodeLabel(skill.source)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('skills.columnStatus')}</dt>
+                          <dd>{t(parseStatusLabelKeys[skill.parseStatus])}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('details.modified')}</dt>
+                          <dd>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
+                        </div>
+                        <div>
+                          <dt>{t('details.path')}</dt>
+                          <dd title={skill.path}>{skill.path}</dd>
+                        </div>
+                      </dl>
+                      <span className="skill-card-tags">
+                        {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
+                          <span
+                            key={`${skill.path}-${category.id}`}
+                            className={`category-chip ${category.className}`}
+                            data-testid={`skill-category-${skill.path}-${category.id}`}
+                            style={getCategoryStyle(category, categoryColors)}
+                            aria-hidden="true"
+                          >
+                            {getCategoryLabel(category, categoryLabels, t)}
+                          </span>
+                        ))}
+                        {customTags.map((tag, index) => (
+                          <span
+                            key={`${skill.path}-${tag.label}-${index}`}
+                            className="category-chip custom-skill-tag"
+                            style={getTagStyle(tag.color)}
+                            aria-hidden="true"
+                          >
+                            {tag.label}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="library-card-actions">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void openSkillPreview(skill);
+                          }}
+                        >
+                          <MaterialIcon name="visibility" size={16} />
+                          {t('details.preview')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={locked}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void selectSkill(skill).then(() => setDetailMode('edit'));
+                          }}
+                        >
+                          <MaterialIcon name="edit" size={16} />
+                          {t('details.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void copySkillPath(skill.path);
+                          }}
+                        >
+                          <MaterialIcon name="content_copy" size={16} />
+                          {t('library.copyPath')}
+                        </button>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="legacy-category-grid" aria-hidden={false}>
                 {categorySections.map((section) => (
                   <section
-                    key={section.category.id}
+                    key={`legacy-${section.category.id}`}
                     className="category-card-section"
                     aria-label={`Skill category: ${section.label}`}
                     style={getCategoryStyle(section.category, categoryColors)}
@@ -3319,9 +3603,10 @@ export function App() {
                         const selected = selectionMode ? selectedSkillPaths.has(skill.path) : selectedPath === skill.path;
                         const customTags = skillTags[skill.path] ?? [];
                         const locked = isReadOnlySkill(skill) || Boolean(skillLocks[skill.path]);
+
                         return (
                           <div
-                            key={`${section.category.id}-${skill.path}`}
+                            key={`legacy-${section.category.id}-${skill.path}`}
                             role="button"
                             tabIndex={0}
                             className={`skill-card ${selected ? 'selected-card' : ''} ${draggedSkillPath === skill.path ? 'dragging-card' : ''} ${dragOverSkillPath === skill.path ? 'drag-over-card' : ''}`}
@@ -3361,9 +3646,6 @@ export function App() {
                               setDragOverSkillPath(null);
                             }}
                             onClick={() => {
-                              if (suppressNextCardClickRef.current) {
-                                return;
-                              }
                               if (selectionMode) {
                                 toggleSkillSelection(skill.path);
                               } else {
@@ -3371,16 +3653,6 @@ export function App() {
                               }
                             }}
                             onContextMenu={(event) => openSkillTagContextMenu(event, skill.path)}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault();
-                                if (selectionMode) {
-                                  toggleSkillSelection(skill.path);
-                                } else {
-                                  void selectSkill(skill);
-                                }
-                              }
-                            }}
                           >
                             <span className="skill-card-topline">
                               <span className="skill-card-leading">
@@ -3407,12 +3679,12 @@ export function App() {
                             </span>
                             <span className="skill-card-body">
                               <strong>{skill.name}</strong>
-                              <span className="skill-description">{skill.description}</span>
+                              <span className="skill-description" aria-label={skill.description} />
                             </span>
                             <span className="skill-card-tags">
                               {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
                                 <span
-                                  key={`${skill.path}-${category.id}`}
+                                  key={`legacy-${skill.path}-${category.id}`}
                                   className={`category-chip ${category.className}`}
                                   data-testid={`skill-category-${skill.path}-${category.id}`}
                                   style={getCategoryStyle(category, categoryColors)}
@@ -3423,7 +3695,7 @@ export function App() {
                               ))}
                               {customTags.map((tag, index) => (
                                 <span
-                                  key={`${skill.path}-${tag.label}-${index}`}
+                                  key={`legacy-${skill.path}-${tag.label}-${index}`}
                                   className="category-chip custom-skill-tag"
                                   style={getTagStyle(tag.color)}
                                   aria-hidden="true"
@@ -3525,37 +3797,35 @@ export function App() {
                   </tbody>
                 </table>
               </div>
-              {skillViewMode === 'list' ? (
-                <div className="pagination-controls" aria-label={t('pagination.label')}>
-                  <span>
-                    {t('pagination.range', {
-                      end: String(Math.min(normalizedCurrentPage * skillsPerPage, sortedFilteredSkills.length)),
-                      start: String(paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1),
-                      total: String(sortedFilteredSkills.length),
-                      unit: t('skills.countUnit'),
-                    })}
-                  </span>
-                  <div className="pagination-stepper">
-                    <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
-                    <button
-                      type="button"
-                      disabled={normalizedCurrentPage === 1}
-                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    >
-                      <MaterialIcon name="chevron_left" />
-                      {t('pagination.previous')}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={normalizedCurrentPage === totalPages}
-                      onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                    >
-                      {t('pagination.next')}
-                      <MaterialIcon name="chevron_right" />
-                    </button>
-                  </div>
+              <div className="pagination-controls" aria-label={t('pagination.label')}>
+                <span>
+                  {t('pagination.range', {
+                    end: String(Math.min(normalizedCurrentPage * skillsPerPage, sortedFilteredSkills.length)),
+                    start: String(paginatedSkills.length === 0 ? 0 : (normalizedCurrentPage - 1) * skillsPerPage + 1),
+                    total: String(sortedFilteredSkills.length),
+                    unit: t('skills.countUnit'),
+                  })}
+                </span>
+                <div className="pagination-stepper">
+                  <span>{t('pagination.status', { currentPage: String(normalizedCurrentPage), totalPages: String(totalPages) })}</span>
+                  <button
+                    type="button"
+                    disabled={normalizedCurrentPage === 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  >
+                    <MaterialIcon name="chevron_left" />
+                    {t('pagination.previous')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={normalizedCurrentPage === totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  >
+                    {t('pagination.next')}
+                    <MaterialIcon name="chevron_right" />
+                  </button>
                 </div>
-              ) : null}
+              </div>
             </div>
           ) : (
             <div className={`empty-state ${listState === 'error' ? 'error-state' : ''}`}>
@@ -3835,6 +4105,82 @@ export function App() {
           )}
         </aside>
       </section>
+      {previewDetail || isLoadingPreview || previewError ? (
+        <div className="modal-backdrop library-preview-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="library-preview-title" className="library-preview-dialog">
+            <div className="dialog-heading library-preview-heading">
+              <div>
+                <span className="detail-eyebrow">{t('library.previewTitle')}</span>
+                <h2 id="library-preview-title">{previewDetail?.name ?? t('details.loading')}</h2>
+                {previewDetail ? <p>{previewDetail.description || t('details.placeholder')}</p> : null}
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={t('actions.close')}
+                onClick={() => {
+                  setPreviewDetail(null);
+                  setPreviewError(null);
+                }}
+              >
+                <MaterialIcon name="close" />
+              </button>
+            </div>
+            {previewError ? (
+              <section className="detail-section error-state" aria-label={t('details.errorTitle')}>
+                <strong>{t('details.errorTitle')}</strong>
+                <p>{previewError}</p>
+              </section>
+            ) : null}
+            {isLoadingPreview ? (
+              <div className="empty-state library-preview-loading">
+                <strong>{t('details.loading')}</strong>
+              </div>
+            ) : previewDetail ? (
+              <>
+                <dl className="library-preview-meta">
+                  <div>
+                    <dt>{t('details.source')}</dt>
+                    <dd>{t(sourceLabelKeys[previewDetail.source])}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('skills.columnStatus')}</dt>
+                    <dd>{t(parseStatusLabelKeys[previewDetail.parseStatus])}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('details.modified')}</dt>
+                    <dd>{formatDateTime(previewDetail.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('details.path')}</dt>
+                    <dd>{previewDetail.path}</dd>
+                  </div>
+                </dl>
+                <MarkdownPreviewBlock ariaLabel={t('details.markdownPreview')} emptyText={t('details.markdownEmpty')} markdown={previewDetail.bodyMarkdown} />
+                <div className="dialog-actions">
+                  <button type="button" className="primary-action" disabled={isReadOnlySkill(previewDetail)} onClick={() => void editPreviewSkill()}>
+                    <MaterialIcon name="edit" />
+                    {t('details.edit')}
+                  </button>
+                  <button type="button" onClick={() => void copySkillPath(previewDetail.path)}>
+                    <MaterialIcon name="content_copy" />
+                    {t('library.copyPath')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewDetail(null);
+                      setPreviewError(null);
+                    }}
+                  >
+                    {t('actions.close')}
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {categoryContextMenu ? (
         (() => {
           const activeCategory = buildCategoryDefinition(categoryContextMenu.categoryId, categoryLabels, categoryColors, categoryIcons);
