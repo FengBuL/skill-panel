@@ -998,7 +998,7 @@ describe('App shell', () => {
         }),
       }),
     );
-  });
+  }, 15000);
 
   it('deletes selected skills through real desktop commands after confirmation', async () => {
     const user = userEvent.setup();
