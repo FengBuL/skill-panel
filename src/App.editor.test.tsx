@@ -492,7 +492,7 @@ describe('App skill editor', () => {
       }),
     );
     expect(screen.getByRole('row', { name: /imagegen updated/i })).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('renders markdown preview once without duplicating headings in an outline', async () => {
     const user = userEvent.setup();

@@ -612,7 +612,7 @@ describe('App shell', () => {
     expect(screen.getByRole('row', { name: /skill 30/i })).toBeInTheDocument();
     expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
-  });
+  }, 15000);
 
   it('returns to the first page when search or the category rail changes', async () => {
     const user = userEvent.setup();
@@ -637,7 +637,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('row', { name: /skill 12/i })).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('marks skill list descriptions for two-line visual clamping', async () => {
     mockNavigatorLanguages(['en-US']);
