@@ -89,11 +89,8 @@ P0 流程已经具备自动化测试覆盖：
 - `pnpm exec vitest run src/packaging.config.test.ts`：1 file / 6 tests passed。
 - `node node_modules/vite/bin/vite.js build`：passed。
 - `node scripts/visual-qa.mjs`：exit 0，7 个视觉场景全部 passed。
+- `cargo test --lib --bins --tests`：35 lib tests + 3 contract tests passed。
 - `git diff --check`：passed。
-
-未执行：
-
-- `cargo test --lib --bins --tests`：当前 macOS shell 找不到 `cargo`。
 
 ## 版本与迁移
 

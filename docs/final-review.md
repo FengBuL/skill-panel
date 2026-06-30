@@ -148,5 +148,5 @@ Result:
 - P0 flows have automated frontend, i18n, packaging, and visual QA coverage.
 - `pnpm exec vitest run` passed: 6 files / 122 tests.
 - `node node_modules/vite/bin/vite.js build` passed with bundled Node.
-- Rust test execution was skipped in this macOS shell because `cargo` is unavailable.
+- `cargo test --lib --bins --tests` passed: 35 lib tests + 3 contract tests.
 - No merge back to `codex/skill-panel-app` was performed in this branch.

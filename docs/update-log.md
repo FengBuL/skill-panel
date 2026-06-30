@@ -284,8 +284,7 @@
 - commit：由本次 QA Release 收口提交承载，最终 hash 以 `git rev-parse HEAD` 为准。
 - 内容：版本统一到 `3.0.0`；顺序合入 v3 01-05 本地实现分支；修复 Organize insights 健康筛选跳转 Library；刷新视觉 QA 到 1024x768、1280x800、1440x960；补齐 P0 自动化覆盖记录、中英文验收、最终审查、发布记录、迁移说明和历史分支清理建议。
 - 文档：新增 `docs/v3-qa-release.md`，更新 `docs/visual-qa-checklist.md`、`docs/final-review.md`、`docs/migration-guide-v2.md`、`README.md`。
-- 测试入口：P0 流程由 `src/App.test.tsx`、`src/App.editor.test.tsx`、`src/i18n/useI18n.test.tsx`、`src/i18n.test.ts`、`src/packaging.config.test.ts`、Rust test files 和 `scripts/visual-qa.mjs` 覆盖；本轮 Rust 命令因缺少 `cargo` 未执行。
-- 验证：`pnpm exec vitest run` 6 files / 122 tests passed；`pnpm exec tsc --noEmit` passed；`pnpm exec vitest run src/packaging.config.test.ts` 1 file / 6 tests passed；`node node_modules/vite/bin/vite.js build` passed；`node scripts/visual-qa.mjs` exit 0，7 个视觉场景全部 passed；`git diff --check` passed。
-- 未执行：`cargo test --lib --bins --tests` 因当前 macOS shell 找不到 `cargo` 未运行。
+- 测试入口：P0 流程由 `src/App.test.tsx`、`src/App.editor.test.tsx`、`src/i18n/useI18n.test.tsx`、`src/i18n.test.ts`、`src/packaging.config.test.ts`、Rust test files 和 `scripts/visual-qa.mjs` 覆盖。
+- 验证：`pnpm exec vitest run` 6 files / 122 tests passed；`pnpm exec tsc --noEmit` passed；`pnpm exec vitest run src/packaging.config.test.ts` 1 file / 6 tests passed；`node node_modules/vite/bin/vite.js build` passed；`node scripts/visual-qa.mjs` exit 0，7 个视觉场景全部 passed；`cargo test --lib --bins --tests` 35 lib tests + 3 contract tests passed；`git diff --check` passed。
 - 分支清理：输出 `active`、`keep-for-audit`、`archive-candidate` 三类清单；归档前建议确认远端历史分支已在集成分支或发布记录中可追溯。
 - 约束：不合并回 `codex/skill-panel-app`。

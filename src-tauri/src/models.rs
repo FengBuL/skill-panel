@@ -140,14 +140,12 @@ pub struct AppSettings {
     pub skill_category_assignments: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub skill_archives: HashMap<String, bool>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default)]
     pub skill_favorites: HashMap<String, bool>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub skill_locks: HashMap<String, bool>,
     #[serde(default)]
     pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
-    #[serde(default)]
-    pub skill_favorites: HashMap<String, bool>,
     #[serde(default)]
     pub skill_usage: HashMap<String, SkillUsageSetting>,
     #[serde(default)]
@@ -178,7 +176,6 @@ impl Default for AppSettings {
             skill_favorites: HashMap::new(),
             skill_locks: HashMap::new(),
             skill_tags: HashMap::new(),
-            skill_favorites: HashMap::new(),
             skill_usage: HashMap::new(),
             skill_organization_suggestions: HashMap::new(),
             skill_health: HashMap::new(),
