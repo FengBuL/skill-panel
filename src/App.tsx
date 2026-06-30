@@ -3274,10 +3274,24 @@ export function App() {
     setSearchQuery('');
     setActiveCategoryId(null);
     setActiveTagLabel(null);
+    setActiveHealthFilter(null);
     setShowReadOnlyOnly(false);
     setShowWritableOnly(false);
     setActiveGovernanceFilter(filter === 'user-editable' ? 'user-editable' : null);
     setActiveDashboardFilter(filter === 'favorites' || filter === 'issues' ? filter : null);
+    setCurrentPage(1);
+  };
+
+  const jumpToHealthFilter = (filter: HealthFilter) => {
+    setSearchQuery('');
+    setActiveCategoryId(null);
+    setActiveTagLabel(null);
+    setShowReadOnlyOnly(false);
+    setShowWritableOnly(false);
+    setActiveGovernanceFilter(null);
+    setActiveDashboardFilter(null);
+    setActiveHealthFilter((current) => (current === filter ? null : filter));
+    setActiveWorkspace('library');
     setCurrentPage(1);
   };
 
@@ -3758,7 +3772,7 @@ export function App() {
                   type="button"
                   aria-label={`${t(rule.labelKey)} ${healthRuleCounts[rule.filter]}`}
                   className={activeHealthFilter === rule.filter ? 'active' : undefined}
-                  onClick={() => setActiveHealthFilter((current) => (current === rule.filter ? null : rule.filter))}
+                  onClick={() => jumpToHealthFilter(rule.filter)}
                 >
                   <MaterialIcon name={rule.icon} size={17} />
                   <span className="source-nav-label">{t(rule.labelKey)}</span>
@@ -3769,7 +3783,7 @@ export function App() {
                 type="button"
                 aria-label={`${t('health.archived')} ${archivedSkillCount}`}
                 className={activeHealthFilter === 'archived' ? 'active' : undefined}
-                onClick={() => setActiveHealthFilter((current) => (current === 'archived' ? null : 'archived'))}
+                onClick={() => jumpToHealthFilter('archived')}
               >
                 <MaterialIcon name="archive" size={17} />
                 <span className="source-nav-label">{t('health.archived')}</span>

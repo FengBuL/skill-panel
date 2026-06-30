@@ -145,6 +145,8 @@ Result:
 
 - PRD acceptance items are recorded as PASS in `docs/v3-qa-release.md`.
 - Visual QA report contains 7 passing scenarios with no page-level horizontal overflow.
-- P0 flows have automated frontend, i18n, packaging, Rust, and visual QA coverage.
+- P0 flows have automated frontend, i18n, packaging, and visual QA coverage.
+- `pnpm exec vitest run` passed: 6 files / 122 tests.
+- `node node_modules/vite/bin/vite.js build` passed with bundled Node.
 - Rust test execution was skipped in this macOS shell because `cargo` is unavailable.
 - No merge back to `codex/skill-panel-app` was performed in this branch.

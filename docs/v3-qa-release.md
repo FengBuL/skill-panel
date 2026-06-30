@@ -8,8 +8,9 @@
 
 - 已读取：`docs/project-plan.md`
 - 已读取：`docs/update-log.md`
-- 当前 worktree 未找到：`docs/skill-panel-redesign-branch-plan.md`
+- 当前 worktree 未包含，已从第二 workspace root 读取：`/Users/shovy/Documents/skill-panel/docs/skill-panel-redesign-branch-plan.md`
 - 辅助读取：`docs/final-review.md`、`docs/visual-qa-checklist.md`
+- 辅助读取：`/Users/shovy/Documents/skill-panel/docs/skill-panel-redesign-prd.md`
 
 ## Release 范围
 
@@ -27,22 +28,28 @@
 
 | 验收项 | 结论 | 证据 |
 | --- | --- | --- |
-| 顶部命令栏、左侧来源导航、中间列表、右侧详情层级清晰 | PASS | `docs/visual-qa-checklist.md`，7 个截图场景 |
-| 列表一页 10 个 Skill，描述最多两行，路径可点击 | PASS | `src/App.test.tsx` 分页、描述 clamp、路径打开测试 |
-| 详情描述完整展示，Markdown 正文区域可阅读长文档 | PASS | `src/App.editor.test.tsx` 详情和长文档测试；视觉 QA 长 Markdown 场景 |
-| 扫描状态显示成功、失败、部分成功、扫描中和空列表 | PASS | `src/App.test.tsx` 扫描状态测试；视觉 QA 五类状态 |
-| Agents 用户 Skill 详情正常加载 | PASS | `src/App.test.tsx`、`src/App.editor.test.tsx` Agents 详情测试 |
-| 修改时间本地化可读 | PASS | `src/App.test.tsx` 本地化时间测试 |
-| 中文和英文切换后无明显溢出、遮挡、错位 | PASS | 视觉 QA 覆盖 `zh-CN` 和 `en-US` |
+| 左侧主导航只保留 Dashboard、Skill Library、Skill Editor | PASS | `src/App.test.tsx` 主导航断言；视觉 QA 截图 |
+| Dashboard 聚焦数据洞察与整理建议 | PASS | `src/App.test.tsx` Dashboard metric、trend、Organize insights 测试 |
+| 顶部全局栏移除 New Skill，保留搜索、重扫、语言和设置 | PASS | `src/App.test.tsx` 顶部命令栏测试 |
+| Skill Library 默认卡片视图 | PASS | `src/App.test.tsx` card view、density、分组卡片测试 |
+| Library 内部支持 category、tag、source、health 筛选 | PASS | `src/App.test.tsx` 类目、标签、治理和健康筛选测试 |
+| Library 分页覆盖 P0 列表与卡片流程 | PASS | `src/App.test.tsx` 24 条分页、搜索/筛选回第一页测试 |
+| 点击卡片可预览 Markdown | PASS | `src/App.test.tsx`、视觉 QA selected detail 场景 |
+| Edit 进入 Skill Editor | PASS | `src/App.editor.test.tsx` 编辑器详情加载和保存测试 |
+| Editor 具备 Markdown 编辑和实时预览 | PASS | `src/App.editor.test.tsx` Markdown 编辑、预览同步、frontmatter 冲突测试 |
+| 自动保存和草稿恢复 | PASS | `src/App.editor.test.tsx` create/edit draft 相关测试 |
+| Dashboard metrics 与趋势图可用 | PASS | `src/App.test.tsx` metric cards、favorite count、trend hover 测试 |
 | 1024x768、1280x800、1440x960 无页面级水平溢出 | PASS | `output/playwright/visual-qa-report.json` 全部 `passed: true` |
-| Windows 和 macOS 打包配置完整 | PASS | `src/packaging.config.test.ts` |
+| 轻量交互状态完整 | PASS | `src/App.test.tsx` toolbar、context menu、bulk actions、drag sorting 测试 |
+| P0 自动化测试覆盖 | PASS | `pnpm exec vitest run` 6 files / 122 tests passed |
 
 ## P0 自动化覆盖
 
 P0 流程已经具备自动化测试覆盖：
 
 - 扫描成功、失败、部分成功、扫描中、空列表：`src/App.test.tsx`
-- 搜索、来源/类目筛选、问题筛选、排序、分页：`src/App.test.tsx`
+- 搜索、类目/标签/来源/健康筛选、排序、分页：`src/App.test.tsx`
+- Dashboard 指标跳转 Library、Organize insights 健康筛选跳转 Library：`src/App.test.tsx`
 - 详情读取、预览/编辑切换、Markdown 渲染、保存：`src/App.editor.test.tsx`
 - 新建 Skill、选择来源、创建错误、创建中锁定：`src/App.editor.test.tsx`
 - 删除单个 Skill、批量删除、确认弹窗：`src/App.editor.test.tsx`、`src/App.test.tsx`
@@ -77,11 +84,11 @@ P0 流程已经具备自动化测试覆盖：
 
 已执行：
 
-- `pnpm exec vitest run`：6 files / 112 tests passed。
+- `pnpm exec vitest run`：6 files / 122 tests passed。
 - `pnpm exec tsc --noEmit`：passed。
 - `pnpm exec vitest run src/packaging.config.test.ts`：1 file / 6 tests passed。
-- `pnpm exec tsc && pnpm exec vite build`：passed。
-- `pnpm exec node scripts/visual-qa.mjs`：passed，7 个视觉场景全部 passed。
+- `node node_modules/vite/bin/vite.js build`：passed。
+- `node scripts/visual-qa.mjs`：exit 0，7 个视觉场景全部 passed。
 - `git diff --check`：passed。
 
 未执行：
@@ -164,7 +171,7 @@ archive-candidate：
 
 ## 可审核风险
 
-- `docs/skill-panel-redesign-branch-plan.md` 在当前 worktree 缺失，本记录只能基于现有 `project-plan`、`update-log`、最终审查和视觉 QA 文档收口。
-- v3 本地分支 01-05 当前与 `codex/skill-panel-app` 指向同一提交，未看到独立远端 v3 refs。
+- `docs/skill-panel-redesign-branch-plan.md` 在当前 worktree 缺失，本记录已从 `/Users/shovy/Documents/skill-panel` 读取同名文档补齐验收口径。
+- v3 本地分支 01-05 已顺序合入 QA Release 分支，远端未看到独立 v3 refs。
 - 本次不生成 Windows/macOS 安装包，只完成 QA Release 代码、文档和自动化证据收口。
 - 插件缓存 Skill 仍具备编辑/删除风险，正式发布前仍建议增加备份或更强提示。

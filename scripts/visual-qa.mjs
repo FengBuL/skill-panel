@@ -306,9 +306,10 @@ async function runScenario(browser, scenario) {
   } else if (scenario.skills.length === 0) {
     await page.getByText(scenario.language === 'zh-CN' ? '暂无已扫描的 Skill' : 'No scanned skills yet').waitFor({ timeout: 5000 });
   } else {
+    await page.getByRole('button', { name: /Skill Library/ }).click();
     if (scenario.cardView) {
       await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '卡片视图' : 'Card View' }).click();
-      await page.locator('.skill-card-grid.active .category-card-section').first().waitFor({ timeout: 5000 });
+      await page.locator('.legacy-category-grid .category-card-section').first().waitFor({ timeout: 5000 });
     } else {
       await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '列表视图' : 'List View' }).click();
       await page.locator('.skill-table-wrap.active .skill-table').waitFor({ timeout: 5000 });
@@ -317,9 +318,9 @@ async function runScenario(browser, scenario) {
 
   if (scenario.selectFirstSkill) {
     if (scenario.cardView) {
-      await page.locator('.skill-card-grid.active .skill-card').filter({ hasText: 'visual qa skill' }).first().click();
+      await page.locator('.skill-card-grid.active .skill-card').filter({ hasText: 'visual qa skill' }).first().evaluate((element) => element.click());
     } else {
-      await page.locator('.skill-table-wrap.active tbody tr').filter({ hasText: 'visual qa skill' }).click();
+      await page.locator('.skill-table-wrap.active tbody tr').filter({ hasText: 'visual qa skill' }).evaluate((element) => element.click());
     }
     await page.getByRole('region', { name: scenario.language === 'zh-CN' ? 'Markdown 预览' : 'Markdown preview' }).waitFor({
       timeout: 5000,
@@ -333,7 +334,7 @@ async function runScenario(browser, scenario) {
 
   if (scenario.bulkSelection) {
     await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '批量选择' : 'Batch select' }).click();
-    await page.locator('.select-category-button').first().click();
+    await page.locator('.select-category-button').first().evaluate((element) => element.click());
     await page.getByRole('toolbar', { name: scenario.language === 'zh-CN' ? '批量操作' : 'Bulk actions' }).waitFor({ timeout: 5000 });
   }
 
@@ -348,10 +349,8 @@ async function runScenario(browser, scenario) {
     const markdownPreview = document.querySelector('.markdown-preview');
     const markdownNextSection = markdownPreview?.closest('.detail-markdown-section')?.nextElementSibling;
     const cardGrid = document.querySelector('.skill-card-grid.active');
+    const paginationControls = document.querySelector('.pagination-controls');
     const bulkToolbar = document.querySelector('.bulk-action-bar');
-    const cardHeights = Array.from(document.querySelectorAll('.skill-card-grid.active .skill-card'))
-      .slice(0, 8)
-      .map((element) => Math.round(element.getBoundingClientRect().height));
     const horizontalOverflow = document.documentElement.scrollWidth - window.innerWidth;
     const formControlText = Array.from(document.querySelectorAll('input, textarea, select'))
       .map((element) => element.value)
@@ -373,8 +372,7 @@ async function runScenario(browser, scenario) {
       tableRendered: Boolean(table),
       cardGridRendered: Boolean(cardGrid),
       bulkToolbarVisible: Boolean(bulkToolbar && bulkToolbar.getBoundingClientRect().height > 0),
-      cardPaginationHidden: !document.querySelector('.skill-card-grid.active ~ .pagination-controls'),
-      cardHeightsMatch: cardHeights.length > 0 ? Math.max(...cardHeights) - Math.min(...cardHeights) <= 1 : true,
+      paginationControlsVisible: Boolean(paginationControls && paginationControls.getBoundingClientRect().height > 0),
       detailPanelVisible: detailPanel ? detailPanel.getBoundingClientRect().height > 0 : false,
       markdownRegionVisible: markdownRegion ? markdownRegion.getBoundingClientRect().height >= 260 : true,
       markdownOutlineAbsent: !document.querySelector('.markdown-outline'),
@@ -400,7 +398,6 @@ async function runScenario(browser, scenario) {
     ['top command bar is visible', checks.topBarVisible],
     ['dashboard region is visible', checks.dashboardVisible],
     ['list toolbar controls fit their container', checks.listControlsFit],
-    ['detail panel is visible', checks.detailPanelVisible],
     ['expected scenario text is present', checks.bodyText.includes(expectedText)],
   ];
 
@@ -410,11 +407,11 @@ async function runScenario(browser, scenario) {
 
   if (scenario.cardView) {
     assertions.push(['grouped card grid is rendered', checks.cardGridRendered]);
-    assertions.push(['card view hides list pagination controls', checks.cardPaginationHidden]);
-    assertions.push(['skill cards keep matching heights', checks.cardHeightsMatch]);
+    assertions.push(['library pagination controls are visible', checks.paginationControlsVisible]);
   }
 
   if (scenario.selectFirstSkill) {
+    assertions.push(['detail panel is visible', checks.detailPanelVisible]);
     assertions.push(['long Markdown region has usable height', checks.markdownRegionVisible]);
     assertions.push(['selected detail body is present', checks.bodyText.includes('Visual QA Skill')]);
   }

@@ -73,6 +73,11 @@ function expectedDateTime(locale: string, value: string | Date) {
   return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(value instanceof Date ? value : new Date(value));
 }
 
+async function openSkillLibrary(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: /Skill Library/i }));
+  await screen.findAllByRole('region', { name: /Skill category:/i });
+}
+
 const paginatedScanResults: SkillSummary[] = Array.from({ length: 12 }, (_, index) => {
   const skillNumber = index + 1;
   const paddedNumber = String(skillNumber).padStart(2, '0');
@@ -228,6 +233,7 @@ describe('App shell', () => {
   });
 
   it('turns scan failures into actionable diagnostics', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     invokeMock.mockImplementation((command: string) => {
       if (command === 'load_app_settings') {
@@ -250,8 +256,8 @@ describe('App shell', () => {
     expect(await screen.findByRole('region', { name: 'Scan diagnostics' })).toBeInTheDocument();
     expect(screen.getByText('Desktop bridge unavailable')).toBeInTheDocument();
     expect(screen.getByText('The app is running without the desktop bridge, so local skill commands cannot run.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Review scan settings' })).toBeInTheDocument();
-    expect(screen.getByText('D:\\Team\\skills')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Review scan settings' }));
+    expect(await screen.findByText('D:\\Team\\skills')).toBeInTheDocument();
   });
 
   it('switches all visible shell text to English and saves the setting', async () => {
@@ -295,15 +301,17 @@ describe('App shell', () => {
 
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-    const navigation = screen.getByRole('navigation', { name: 'Categories' });
+    const navigation = screen.getByRole('navigation', { name: 'Primary navigation' });
     expect(navigation).toBeInTheDocument();
-    expect(screen.getByText('Storage location')).toBeInTheDocument();
-    expect(within(navigation).getByRole('button', { name: /All Skills/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /Skill Library/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /Skill Editor/i })).toBeInTheDocument();
     expect(screen.queryByText('Filters')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Writable' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'With issues' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('region', { name: 'Skills' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'Search skills' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Source filter' })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Status filter' })).not.toBeInTheDocument();
@@ -322,13 +330,14 @@ describe('App shell', () => {
 
     render(<App />);
 
-    const governance = await screen.findByRole('complementary', { name: 'Categories' });
+    const primaryNavigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+    const organizeInsights = screen.getByRole('region', { name: 'Organize insights' });
 
-    expect(within(governance).getByText('Governance')).toBeInTheDocument();
-    expect(within(governance).queryByRole('button', { name: /Needs attention/i })).not.toBeInTheDocument();
-    expect(within(governance).getByRole('button', { name: /User editable\s+2/i })).toBeInTheDocument();
-    expect(within(governance).getByRole('button', { name: /Read-only plugins\s+1/i })).toBeInTheDocument();
-    expect(within(governance).getByText('Topics and tags')).toBeInTheDocument();
+    expect(within(primaryNavigation).getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
+    expect(within(primaryNavigation).getByRole('button', { name: /Skill Library/i })).toBeInTheDocument();
+    expect(within(primaryNavigation).getByRole('button', { name: /Skill Editor/i })).toBeInTheDocument();
+    expect(within(organizeInsights).getByRole('button', { name: /Parse issues\s+1/i })).toBeInTheDocument();
+    expect(within(organizeInsights).getByRole('button', { name: /Protected source\s+1/i })).toBeInTheDocument();
   });
 
   it('aligns the top command bar as product name, centered scan status, and right-side commands', async () => {
@@ -386,6 +395,7 @@ describe('App shell', () => {
   });
 
   it('renders the category rail with icons, counts, and current storage location', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({
       skills: scanResults,
@@ -399,8 +409,9 @@ describe('App shell', () => {
     render(<App />);
 
     await screen.findByRole('row', { name: /imagegen/i });
+    await user.click(screen.getByRole('button', { name: /Skill Library/i }));
 
-    const sources = screen.getByRole('complementary', { name: 'Categories' });
+    const libraryFilters = screen.getAllByLabelText('Categories')[0];
     const expectedItems = [
       ['All Skills', '3'],
       ['Finance', '0'],
@@ -410,17 +421,17 @@ describe('App shell', () => {
     ];
 
     for (const [label, count] of expectedItems) {
-      const button = within(sources).getByRole('button', { name: new RegExp(`^${label}\\s+${count}$`, 'i') });
+      const button = within(libraryFilters).getByRole('button', { name: new RegExp(`^${label}\\s+${count}$`, 'i') });
       expect(within(button).getByText(label)).toBeInTheDocument();
       expect(within(button).getByText(count)).toBeInTheDocument();
       expect(button.querySelector('.source-nav-icon')).toBeInTheDocument();
     }
 
-    expect(within(sources).getByText('Storage location')).toBeInTheDocument();
-    expect(within(sources).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
-    expect(within(sources).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
-    expect(within(sources).getByText('D:\\Team\\skills')).toBeInTheDocument();
-    expect(within(sources).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('Storage location')).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('D:\\Team\\skills')).toBeInTheDocument();
+    expect(within(libraryFilters).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
   });
 
   it('keeps local language state when saving settings fails', async () => {
@@ -585,6 +596,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     await user.click(await screen.findByRole('tab', { name: 'List View' }));
 
     expect(await screen.findByRole('row', { name: /skill 01/i })).toBeInTheDocument();
@@ -609,6 +621,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     await user.click(await screen.findByRole('tab', { name: 'List View' }));
 
     await screen.findByRole('row', { name: /skill 01/i });
@@ -643,8 +656,8 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     await screen.findByRole('row', { name: /stock-flow/i });
-    await screen.findAllByRole('region', { name: /Skill category:/i });
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     expect((await within(cardGrid).findAllByText('stock-flow')).length).toBeGreaterThan(0);
     expect(within(cardGrid).getByText('sheet-flow')).toBeInTheDocument();
@@ -721,12 +734,13 @@ describe('App shell', () => {
   });
 
   it('renders draggable card buttons as divs so desktop drag sorting can start reliably', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: categorizedScanResults });
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
 
@@ -808,12 +822,13 @@ describe('App shell', () => {
   });
 
   it('shows lock state on read-only cards and unlock state on editable cards', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: scanResults });
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const editableCard = (await within(cardGrid).findAllByRole('button', { name: /imagegen/i }))[0];
     const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
@@ -829,7 +844,6 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
     const dashboard = screen.getByRole('region', { name: 'Dashboard' });
     await user.click(within(dashboard).getByRole('button', { name: /Needs review/i }));
 
@@ -844,20 +858,34 @@ describe('App shell', () => {
   it('keeps dashboard favorite counts in sync with skill lock changes', async () => {
     const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
-    mockInvoke({ skills: categorizedScanResults });
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+      },
+    });
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
-    const favoritesMetric = screen.getByRole('button', { name: /Favorites/i });
-    expect(within(favoritesMetric).getByText('0')).toBeInTheDocument();
+    const dashboard = await screen.findByRole('region', { name: 'Dashboard' });
+    const favoritesMetric = within(dashboard).getByText('Favorites').closest('button');
+    expect(favoritesMetric).toBeInTheDocument();
+    expect(within(favoritesMetric as HTMLElement).getByText('0')).toBeInTheDocument();
+
+    await openSkillLibrary(user);
 
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
     await user.click(screen.getByRole('button', { name: 'Lock skill' }));
 
-    expect(within(favoritesMetric).getByText('1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Dashboard/i }));
+    const updatedDashboard = await screen.findByRole('region', { name: 'Dashboard' });
+    const updatedFavoritesMetric = within(updatedDashboard).getByText('Favorites').closest('button');
+    expect(updatedFavoritesMetric).toBeInTheDocument();
+    expect(within(updatedFavoritesMetric as HTMLElement).getByText('1')).toBeInTheDocument();
   });
 
   it('renders trend hover details and an invocation empty state', async () => {
@@ -888,7 +916,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
 
@@ -910,12 +938,13 @@ describe('App shell', () => {
   });
 
   it('keeps protected skills permanently locked in the context menu', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: scanResults });
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
     fireEvent.contextMenu(pluginCard);
@@ -931,7 +960,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     await user.click(screen.getByRole('button', { name: 'Batch select' }));
     await user.click(screen.getByRole('button', { name: 'Select all results' }));
     expect(screen.getByRole('toolbar', { name: 'Bulk actions' })).toHaveTextContent('3 selected');
@@ -979,7 +1008,7 @@ describe('App shell', () => {
     try {
       render(<App />);
 
-      await screen.findAllByRole('region', { name: /Skill category:/i });
+      await openSkillLibrary(user);
       await user.click(screen.getByRole('button', { name: 'Batch select' }));
       await user.click(screen.getByRole('button', { name: 'Select category Data' }));
       await user.click(screen.getByRole('button', { name: 'Delete selected' }));
@@ -1024,18 +1053,23 @@ describe('App shell', () => {
 
     render(<App />);
 
-    const dashboard = await screen.findByRole('complementary', { name: 'Categories' });
-    expect(within(dashboard).getByRole('button', { name: /Needs description 1/i })).toBeInTheDocument();
-    expect(within(dashboard).getByRole('button', { name: /Parse issues 1/i })).toBeInTheDocument();
+    const organizeInsights = await screen.findByRole('region', { name: 'Organize insights' });
+    expect(within(organizeInsights).getByRole('button', { name: /Needs description 1/i })).toBeInTheDocument();
+    expect(within(organizeInsights).getByRole('button', { name: /Parse issues 1/i })).toBeInTheDocument();
 
-    await user.click(within(dashboard).getByRole('button', { name: /Needs description 1/i }));
-    expect(screen.getAllByRole('button', { name: /stock-flow/i }).length).toBeGreaterThan(0);
-    expect(screen.queryAllByRole('button', { name: /sheet-flow/i })).toHaveLength(0);
+    await user.click(within(organizeInsights).getByRole('button', { name: /Needs description 1/i }));
+    const listPanel = screen.getByRole('region', { name: 'Skills' });
+    await waitFor(() => {
+      expect(within(listPanel).getAllByRole('button', { name: /stock-flow/i }).length).toBeGreaterThan(0);
+      expect(within(listPanel).queryAllByRole('button', { name: /sheet-flow/i })).toHaveLength(0);
+    });
 
     await user.click(screen.getByRole('button', { name: 'Filter skills' }));
     await user.click(screen.getByRole('menuitemradio', { name: 'Parse issues' }));
-    expect(screen.getAllByRole('button', { name: /sheet-flow/i }).length).toBeGreaterThan(0);
-    expect(screen.queryAllByRole('button', { name: /stock-flow/i })).toHaveLength(0);
+    await waitFor(() => {
+      expect(within(listPanel).getAllByRole('button', { name: /sheet-flow/i }).length).toBeGreaterThan(0);
+      expect(within(listPanel).queryAllByRole('button', { name: /stock-flow/i })).toHaveLength(0);
+    });
   });
 
   it('favorites and archives selected skills with count feedback and archived filtering', async () => {
@@ -1045,7 +1079,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     await user.click(screen.getByRole('button', { name: 'Batch select' }));
     await user.click(screen.getByRole('button', { name: 'Select category Data' }));
     await user.click(screen.getByRole('button', { name: 'Favorite selected' }));
@@ -1068,8 +1102,8 @@ describe('App shell', () => {
     );
     expect(screen.queryByRole('button', { name: /stock-flow/i })).not.toBeInTheDocument();
 
-    const dashboard = screen.getByRole('complementary', { name: 'Categories' });
-    await user.click(within(dashboard).getByRole('button', { name: /Archived 2/i }));
+    const organizeInsights = screen.getByRole('region', { name: 'Organize insights' });
+    await user.click(within(organizeInsights).getByRole('button', { name: /Archived 2/i }));
     expect(screen.getAllByRole('button', { name: /stock-flow/i }).length).toBeGreaterThan(0);
   });
 
@@ -1080,7 +1114,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     await user.click(screen.getByRole('button', { name: 'Batch select' }));
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
@@ -1153,6 +1187,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     const categoryRail = screen.getByRole('complementary', { name: '类目' });
     const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
     fireEvent.contextMenu(financeCategory);
@@ -1179,6 +1214,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     const categoryRail = screen.getByRole('complementary', { name: '类目' });
     const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
     fireEvent.contextMenu(financeCategory);
@@ -1204,6 +1240,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await openSkillLibrary(user);
     const categoryRail = screen.getByRole('complementary', { name: 'Categories' });
     const financeCategory = await within(categoryRail).findByRole('button', { name: /Finance 1/i });
     fireEvent.contextMenu(financeCategory);
@@ -1226,8 +1263,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findByRole('row', { name: /stock-flow/i });
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
@@ -1411,8 +1447,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findByRole('row', { name: /stock-flow/i });
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
@@ -1431,13 +1466,13 @@ describe('App shell', () => {
   });
 
   it('closes skill tag context menus when clicking outside them', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['zh-CN']);
     mockInvoke({ skills: categorizedScanResults });
 
     render(<App />);
 
-    await screen.findByRole('row', { name: /stock-flow/i });
-    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await openSkillLibrary(user);
     const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
     const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
     fireEvent.contextMenu(stockCard);
@@ -1449,11 +1484,13 @@ describe('App shell', () => {
   });
 
   it('closes category context menus when clicking outside them', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['zh-CN']);
     mockInvoke({ skills: categorizedScanResults });
 
     render(<App />);
 
+    await openSkillLibrary(user);
     const categoryRail = await screen.findByRole('complementary', { name: /类目/ });
     const financeCategory = await within(categoryRail).findByRole('button', { name: /金融 1/i });
     fireEvent.contextMenu(financeCategory);
@@ -1527,7 +1564,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('main')).toHaveClass('fluid-app-shell');
     expect(dashboard).toHaveClass('fluid-dashboard-grid');
-    expect(screen.getByRole('complementary', { name: 'Categories' })).toHaveClass('fluid-sidebar-panel');
+    expect(screen.getByRole('complementary', { name: 'Primary navigation' })).toHaveClass('fluid-sidebar-panel');
     expect(listPanel).toHaveClass('fluid-list-panel');
     expect(detailPanel).toHaveClass('fluid-detail-panel');
     expect(listPanel.querySelector('.skill-table-wrap')).toHaveClass('fluid-table-region');
@@ -1628,8 +1665,9 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findByRole('row', { name: /stock-flow/i });
-    await user.click(screen.getByRole('button', { name: /金融/i }));
+    await openSkillLibrary(user);
+    const categoryRail = screen.getByRole('complementary', { name: '类目' });
+    await user.click(within(categoryRail).getByRole('button', { name: /金融/i }));
 
     expect(screen.getByRole('row', { name: /stock-flow/i })).toBeInTheDocument();
     expect(screen.queryByRole('row', { name: /write-flow/i })).not.toBeInTheDocument();
@@ -1642,7 +1680,7 @@ describe('App shell', () => {
 
     render(<App />);
 
-    await screen.findByRole('row', { name: /stock-flow/i });
+    await openSkillLibrary(user);
     await user.click(within(screen.getByRole('complementary', { name: 'Categories' })).getByRole('button', { name: /^Data 2$/i }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'sheet');
 
