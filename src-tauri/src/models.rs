@@ -79,6 +79,41 @@ pub struct CustomCategorySetting {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SkillUsageSetting {
+    pub call_count: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_called_at: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillOrganizationSuggestionSetting {
+    #[serde(default)]
+    pub dismissed: bool,
+    pub kind: String,
+    pub label: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillHealthSetting {
+    pub issues: Vec<String>,
+    pub score: u8,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillDraftSetting {
+    pub description: String,
+    pub markdown: String,
+    pub name: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub language: Language,
     pub custom_scan_directories: Vec<String>,
@@ -107,6 +142,16 @@ pub struct AppSettings {
     pub skill_locks: HashMap<String, bool>,
     #[serde(default)]
     pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
+    #[serde(default)]
+    pub skill_favorites: HashMap<String, bool>,
+    #[serde(default)]
+    pub skill_usage: HashMap<String, SkillUsageSetting>,
+    #[serde(default)]
+    pub skill_organization_suggestions: HashMap<String, Vec<SkillOrganizationSuggestionSetting>>,
+    #[serde(default)]
+    pub skill_health: HashMap<String, SkillHealthSetting>,
+    #[serde(default)]
+    pub skill_drafts: HashMap<String, SkillDraftSetting>,
 }
 
 impl Default for AppSettings {
@@ -127,6 +172,11 @@ impl Default for AppSettings {
             skill_category_assignments: HashMap::new(),
             skill_locks: HashMap::new(),
             skill_tags: HashMap::new(),
+            skill_favorites: HashMap::new(),
+            skill_usage: HashMap::new(),
+            skill_organization_suggestions: HashMap::new(),
+            skill_health: HashMap::new(),
+            skill_drafts: HashMap::new(),
         }
     }
 }

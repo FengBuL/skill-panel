@@ -30,6 +30,7 @@ type DetailErrorTitleKey = 'details.errorTitle' | 'details.actionErrorTitle';
 type ScanOutcome = 'idle' | 'success' | 'partial-success' | 'failed';
 type VisibleScanOutcome = 'not-scanned' | 'scanning' | Exclude<ScanOutcome, 'idle'>;
 type SkillViewMode = 'cards' | 'list';
+type WorkspaceView = 'dashboard' | 'library' | 'editor';
 type BuiltInCategoryId = 'data' | 'default' | 'finance' | 'writing';
 type CategoryId = string;
 type GovernanceFilter = 'read-only-plugins' | 'user-editable';
@@ -96,6 +97,23 @@ type CreateSkillDraft = {
   description: string;
   markdown: string;
   source: WritableSkillSource;
+};
+type SkillInsightRecord = {
+  callCount: number;
+  favorite: boolean;
+  healthScore: number;
+  healthStatus: 'healthy' | 'warning' | 'critical';
+  openDrafts: number;
+  suggestions: number;
+};
+type SkillInsightData = {
+  averageHealthScore: number;
+  draftCount: number;
+  favoriteCount: number;
+  records: Record<string, SkillInsightRecord>;
+  suggestionCount: number;
+  totalCalls: number;
+  unhealthyCount: number;
 };
 
 const skillsPerPage = 10;
@@ -597,6 +615,52 @@ function normalizeSkillViewMode(viewMode: AppSettings['skillViewMode']): SkillVi
   return viewMode === 'list' ? 'list' : 'cards';
 }
 
+function buildSkillInsightData(skills: SkillSummary[], settings: AppSettings): SkillInsightData {
+  const records: Record<string, SkillInsightRecord> = {};
+  let totalCalls = 0;
+  let favoriteCount = 0;
+  let suggestionCount = 0;
+  let draftCount = 0;
+  let healthScoreTotal = 0;
+  let unhealthyCount = 0;
+
+  for (const skill of skills) {
+    const favorite = settings.skillFavorites?.[skill.path] === true;
+    const usage = settings.skillUsage?.[skill.path];
+    const activeSuggestions = (settings.skillOrganizationSuggestions?.[skill.path] ?? []).filter((suggestion) => !suggestion.dismissed);
+    const health = settings.skillHealth?.[skill.path];
+    const openDrafts = settings.skillDrafts?.[skill.path] ? 1 : 0;
+    const healthScore = health?.score ?? (skill.parseStatus === 'parsed' ? 92 : 58);
+    const healthStatus = health?.status ?? (skill.parseStatus === 'parsed' ? 'healthy' : 'warning');
+    const callCount = Math.max(0, usage?.callCount ?? 0);
+
+    records[skill.path] = {
+      callCount,
+      favorite,
+      healthScore,
+      healthStatus,
+      openDrafts,
+      suggestions: activeSuggestions.length,
+    };
+    totalCalls += callCount;
+    favoriteCount += favorite ? 1 : 0;
+    suggestionCount += activeSuggestions.length + (skill.parseStatus === 'parsed' ? 0 : 1);
+    draftCount += openDrafts;
+    healthScoreTotal += healthScore;
+    unhealthyCount += healthStatus === 'healthy' ? 0 : 1;
+  }
+
+  return {
+    averageHealthScore: skills.length > 0 ? Math.round(healthScoreTotal / skills.length) : 0,
+    draftCount,
+    favoriteCount,
+    records,
+    suggestionCount,
+    totalCalls,
+    unhealthyCount,
+  };
+}
+
 function getPersistedDetailPanelWidth(width: number, persistedWidth: AppSettings['detailPanelWidth']) {
   if (width === defaultDetailPanelWidth && persistedWidth === undefined) {
     return undefined;
@@ -833,7 +897,10 @@ function SourceNavIcon({ icon, name }: { icon?: string; name: SourceIconName }) 
     all: 'list_alt',
     data: 'table_chart',
     default: 'extension',
+    dashboard: 'dashboard',
     finance: 'monitoring',
+    library_books: 'library_books',
+    edit_note: 'edit_note',
     tag: 'label',
     writing: 'edit_note',
   };
@@ -924,6 +991,7 @@ export function App() {
     updateLanguage,
   } = useI18nRuntime();
   const [skills, setSkills] = useState<SkillSummary[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceView>('dashboard');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<SkillDetail | null>(null);
   const [detailName, setDetailName] = useState('');
@@ -1004,9 +1072,10 @@ export function App() {
   const detailPanelWidthRef = useRef(detailPanelWidth);
 
   const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
+  const skillInsights = useMemo(() => buildSkillInsightData(skills, settings), [settings, skills]);
+  const selectedInsight = selectedDetail ? skillInsights.records[selectedDetail.path] : null;
   const visibleLanguage = normalizeSelectableLanguage(language);
   const visibleSettingsLanguage = normalizeSelectableLanguage(settingsDraft.language);
-  const localizedCategorySidebarLabel = t('category.title');
   const categoryNavItems = useMemo<Array<{ category: CategoryDefinition | null; icon: SourceIconName; labelKey?: TranslationKey }>>(() => {
     const customItems = Object.entries(customCategories)
       .map(([categoryId, category]) => ({
@@ -1407,6 +1476,7 @@ export function App() {
   };
 
   const openCreateSkillDialog = () => {
+    setActiveWorkspace('editor');
     setCreateSkillDraft(emptyCreateSkillDraft);
     setCreateSkillError(null);
     setShowCreateSkill(true);
@@ -1459,6 +1529,7 @@ export function App() {
     const requestId = detailRequestIdRef.current + 1;
     detailRequestIdRef.current = requestId;
     selectedPathRef.current = skill.path;
+    setActiveWorkspace('editor');
     setSelectedPath(skill.path);
     setSelectedDetail(null);
     setDetailError(null);
@@ -2399,10 +2470,6 @@ export function App() {
             <MaterialIcon name="refresh" />
             {t('actions.rescan')}
           </button>
-          <button type="button" className="primary-action" onClick={openCreateSkillDialog}>
-            <MaterialIcon name="add" />
-            {t('actions.newSkill')}
-          </button>
           <label className="locale-switcher">
             <span className="visually-hidden">{t('language.label')}</span>
             <select
@@ -2581,105 +2648,30 @@ export function App() {
         aria-label={t('layout.dashboard')}
         style={{ '--detail-panel-width': `${detailPanelWidth}px` } as CSSProperties}
       >
-        <aside className="panel sidebar fluid-sidebar-panel" aria-label={localizedCategorySidebarLabel}>
+        <aside className="panel sidebar fluid-sidebar-panel" aria-label={t('workspace.primaryNavigation')}>
           <div className="sidebar-kicker">
-            <h2>{localizedCategorySidebarLabel}</h2>
+            <h2>{t('workspace.title')}</h2>
             <p>{t('category.totalSkills', { count: String(skills.length) })}</p>
           </div>
-          <section className="sidebar-section governance-section" aria-label={t('governance.title')}>
-            <h3>{t('governance.title')}</h3>
-            <div className="button-stack">
+          <nav className="workspace-nav" aria-label={t('workspace.primaryNavigation')}>
+            {([
+              ['dashboard', 'dashboard', 'workspace.dashboard', skills.length],
+              ['library', 'library_books', 'workspace.library', sortedFilteredSkills.length],
+              ['editor', 'edit_note', 'workspace.editor', skillInsights.draftCount],
+            ] as const).map(([workspace, icon, labelKey, count]) => (
               <button
+                key={workspace}
                 type="button"
-                aria-label={`${t('governance.userEditable')} ${governanceCounts.userEditable}`}
-                className={activeGovernanceFilter === 'user-editable' ? 'active' : undefined}
-                onClick={() => {
-                  setActiveGovernanceFilter((current) => (current === 'user-editable' ? null : 'user-editable'));
-                  setActiveCategoryId(null);
-                  setActiveTagLabel(null);
-                }}
+                aria-label={`${t(labelKey)} ${count}`}
+                className={activeWorkspace === workspace ? 'active' : undefined}
+                onClick={() => setActiveWorkspace(workspace)}
               >
-                <SourceNavIcon name="default" />
-                <span className="source-nav-label">{t('governance.userEditable')}</span>
-                <span className="source-nav-count">{governanceCounts.userEditable}</span>
+                <SourceNavIcon name={icon} />
+                <span className="source-nav-label">{t(labelKey)}</span>
+                <span className="source-nav-count">{count}</span>
               </button>
-              <button
-                type="button"
-                aria-label={`${t('governance.readOnlyPlugins')} ${governanceCounts.readOnlyPlugins}`}
-                className={activeGovernanceFilter === 'read-only-plugins' ? 'active' : undefined}
-                onClick={() => {
-                  setActiveGovernanceFilter((current) => (current === 'read-only-plugins' ? null : 'read-only-plugins'));
-                  setActiveCategoryId(null);
-                  setActiveTagLabel(null);
-                }}
-              >
-                <SourceNavIcon name="tag" />
-                <span className="source-nav-label">{t('governance.readOnlyPlugins')}</span>
-                <span className="source-nav-count">{governanceCounts.readOnlyPlugins}</span>
-              </button>
-            </div>
-          </section>
-          <section className="sidebar-section topic-section" aria-label={t('category.topicsAndTags')}>
-            <h3>{t('category.topicsAndTags')}</h3>
-          </section>
-          <nav aria-label={localizedCategorySidebarLabel}>
-            {categoryNavItems.map((item) => {
-              const label = item.category ? getCategoryLabel(item.category, categoryLabels, t) : t(item.labelKey ?? 'sources.allSkills');
-              const count = item.category ? (categoryCounts[item.category.id] ?? 0) : skills.length;
-              const isActive = item.category
-                ? activeTagLabel === null && activeCategoryId === item.category.id
-                : activeCategoryId === null && activeTagLabel === null;
-
-              return (
-                <button
-                  key={item.category?.id ?? 'all'}
-                  type="button"
-                  aria-label={`${label} ${count}`}
-                  className={`source-nav-button category-nav-button ${isActive ? 'active' : ''}`}
-                  style={item.category ? getCategoryStyle(item.category, categoryColors) : undefined}
-                  onClick={() => {
-                    setActiveCategoryId(item.category?.id ?? null);
-                    setActiveTagLabel(null);
-                    setActiveGovernanceFilter(null);
-                    setCurrentPage(1);
-                  }}
-                  onContextMenu={(event) => {
-                    if (item.category) {
-                      openCategoryContextMenu(event, item.category.id);
-                    }
-                  }}
-                >
-                  <SourceNavIcon name={item.icon} icon={item.category ? getCategoryIcon(item.category, categoryIcons) : undefined} />
-                  <span className="source-nav-label">{label}</span>
-                  <span className="source-nav-count">{count}</span>
-                </button>
-              );
-            })}
-            {customTagCategories.map((tag) => {
-              const isActive = activeTagLabel === tag.label;
-
-              return (
-                <button
-                  key={`tag-${tag.label}`}
-                  type="button"
-                  aria-label={`${tag.label} ${tag.count}`}
-                  className={`source-nav-button category-nav-button custom-tag-nav-button ${isActive ? 'active' : ''}`}
-                  style={{ '--category-color': tag.color } as CSSProperties}
-                  onClick={() => {
-                    setActiveCategoryId(null);
-                    setActiveTagLabel(tag.label);
-                    setActiveGovernanceFilter(null);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SourceNavIcon name="tag" />
-                  <span className="source-nav-label">{tag.label}</span>
-                  <span className="source-nav-count">{tag.count}</span>
-                </button>
-              );
-            })}
+            ))}
           </nav>
-
           <section className="sidebar-section" aria-label={t('sources.statusTitle')}>
             <h3>{t('sources.statusTitle')}</h3>
             <dl className="status-grid">
@@ -2693,35 +2685,18 @@ export function App() {
               </div>
             </dl>
           </section>
-
-          <section className="sidebar-section storage-section" aria-label={t('sources.storageTitle')}>
-            <div className="storage-heading">
-              <h3>{t('sources.storageTitle')}</h3>
-              <button type="button" onClick={() => setShowSettings(true)}>
-                {t('sources.manageStorage')}
-              </button>
-            </div>
-            <ul className="storage-path-list">
-              {sidebarStoragePaths.map((path) => (
-                <li key={path}>{path}</li>
-              ))}
-              {settings.customScanDirectories.map((directory) => (
-                <li key={directory}>{directory}</li>
-              ))}
-            </ul>
-          </section>
-
-          <div className="sidebar-footer-status" aria-hidden="true">
-            <span />
-            <strong>{`${t('sources.scanState')}: ${t(scanOutcomeLabelKey)}`}</strong>
-          </div>
-
         </aside>
 
         <section className="panel list-panel fluid-list-panel" aria-label={t('skills.title')}>
           <div className="section-heading">
             <div>
-              <h2>{t('skills.title')}</h2>
+              <h2>
+                {activeWorkspace === 'dashboard'
+                  ? t('workspace.dashboard')
+                  : activeWorkspace === 'editor'
+                    ? t('workspace.editor')
+                    : t('workspace.library')}
+              </h2>
               <p>{t('skills.showingCount', { count: String(sortedFilteredSkills.length), unit: t('skills.countUnit') })}</p>
               <span className="visually-hidden">{`${sortedFilteredSkills.length} ${t('skills.countUnit')}`}</span>
             </div>
@@ -2815,6 +2790,132 @@ export function App() {
               ) : null}
             </div>
           </div>
+          <section className="foundation-insights" aria-label={t('insights.foundationSummary')}>
+            <div>
+              <span>{t('insights.favorites')}</span>
+              <strong>{skillInsights.favoriteCount}</strong>
+            </div>
+            <div>
+              <span>{t('insights.calls')}</span>
+              <strong>{skillInsights.totalCalls}</strong>
+            </div>
+            <div>
+              <span>{t('insights.suggestions')}</span>
+              <strong>{skillInsights.suggestionCount}</strong>
+            </div>
+            <div>
+              <span>{t('insights.health')}</span>
+              <strong>{skillInsights.averageHealthScore}</strong>
+            </div>
+            <div>
+              <span>{t('insights.drafts')}</span>
+              <strong>{skillInsights.draftCount}</strong>
+            </div>
+          </section>
+
+          <aside className="library-filter-strip fluid-sidebar-panel" aria-label={t('category.title')}>
+            <h3>{t('governance.title')}</h3>
+            <nav className="library-filter-group" aria-label={t('category.title')}>
+              <button
+                type="button"
+                aria-label={`${t('governance.userEditable')} ${governanceCounts.userEditable}`}
+                className={activeGovernanceFilter === 'user-editable' ? 'active' : undefined}
+                onClick={() => {
+                  setActiveGovernanceFilter((current) => (current === 'user-editable' ? null : 'user-editable'));
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(null);
+                }}
+              >
+                <SourceNavIcon name="default" />
+                {t('governance.userEditable')}
+                <span>{governanceCounts.userEditable}</span>
+              </button>
+              <button
+                type="button"
+                aria-label={`${t('governance.readOnlyPlugins')} ${governanceCounts.readOnlyPlugins}`}
+                className={activeGovernanceFilter === 'read-only-plugins' ? 'active' : undefined}
+                onClick={() => {
+                  setActiveGovernanceFilter((current) => (current === 'read-only-plugins' ? null : 'read-only-plugins'));
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(null);
+                }}
+              >
+                <SourceNavIcon name="tag" />
+                {t('governance.readOnlyPlugins')}
+                <span>{governanceCounts.readOnlyPlugins}</span>
+              </button>
+            </nav>
+            <h3>{t('category.topicsAndTags')}</h3>
+            <div className="library-filter-group">
+              {categoryNavItems.map((item) => {
+              const label = item.category ? getCategoryLabel(item.category, categoryLabels, t) : t(item.labelKey ?? 'sources.allSkills');
+              const count = item.category ? (categoryCounts[item.category.id] ?? 0) : skills.length;
+              const isActive = item.category
+                ? activeTagLabel === null && activeCategoryId === item.category.id
+                : activeCategoryId === null && activeTagLabel === null;
+
+              return (
+                <button
+                  key={item.category?.id ?? 'all'}
+                  type="button"
+                  aria-label={`${label} ${count}`}
+                  className={isActive ? 'active' : undefined}
+                  style={item.category ? getCategoryStyle(item.category, categoryColors) : undefined}
+                  onClick={() => {
+                    setActiveCategoryId(item.category?.id ?? null);
+                    setActiveTagLabel(null);
+                    setActiveGovernanceFilter(null);
+                    setActiveWorkspace('library');
+                    setCurrentPage(1);
+                  }}
+                  onContextMenu={(event) => {
+                    if (item.category) {
+                      openCategoryContextMenu(event, item.category.id);
+                    }
+                  }}
+                >
+                  <SourceNavIcon name={item.icon} icon={item.category ? getCategoryIcon(item.category, categoryIcons) : undefined} />
+                  {label}
+                  <span>{count}</span>
+                </button>
+              );
+            })}
+              {customTagCategories.map((tag) => (
+              <button
+                key={`tag-${tag.label}`}
+                type="button"
+                aria-label={`${tag.label} ${tag.count}`}
+                className={activeTagLabel === tag.label ? 'active' : undefined}
+                style={{ '--category-color': tag.color } as CSSProperties}
+                onClick={() => {
+                  setActiveCategoryId(null);
+                  setActiveTagLabel(tag.label);
+                  setActiveGovernanceFilter(null);
+                  setActiveWorkspace('library');
+                  setCurrentPage(1);
+                }}
+              >
+                <SourceNavIcon name="tag" />
+                {tag.label}
+                <span>{tag.count}</span>
+              </button>
+              ))}
+            </div>
+            <section className="library-storage-summary" aria-label={t('sources.storageTitle')}>
+              <div className="storage-heading">
+                <h3>{t('sources.storageTitle')}</h3>
+                <button type="button" onClick={() => setShowSettings(true)}>
+                  {t('sources.manageStorage')}
+                </button>
+              </div>
+              <ul className="storage-path-list">
+                {Array.from(new Set([...sidebarStoragePaths, ...settings.customScanDirectories])).map((path) => (
+                  <li key={path}>{path}</li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+
           {selectionMode ? (
             <div className="bulk-action-bar" role="toolbar" aria-label={t('bulk.actions')}>
               <strong>{t('bulk.selectedCount', { count: String(selectedSkillCount) })}</strong>
@@ -3162,7 +3263,7 @@ export function App() {
                   </p>
                   {scanError && isTauriUnavailable(scanError) ? <code>{scanError}</code> : null}
                   <div className="diagnostic-paths">
-                    {[...sidebarStoragePaths, ...settings.customScanDirectories].map((path) => (
+                    {Array.from(new Set([...sidebarStoragePaths, ...settings.customScanDirectories, ...settingsDraft.customScanDirectories])).map((path) => (
                       <span key={path}>{t('diagnostics.scanPath', { path })}</span>
                     ))}
                   </div>
@@ -3233,6 +3334,10 @@ export function App() {
                   {t('details.edit')}
                 </button>
               </div>
+              <button type="button" className="primary-action editor-create-action" onClick={openCreateSkillDialog}>
+                <MaterialIcon name="add" />
+                {t('actions.newSkill')}
+              </button>
             </div>
             <span className="status-pill">
               {selectedDetail ? t(parseStatusLabelKeys[selectedDetail.parseStatus]) : t('details.placeholderStatus')}
@@ -3288,6 +3393,34 @@ export function App() {
                 <section className="detail-section warning-state" aria-label={t('details.readOnlySource')}>
                   <strong>{t(selectedIsPermanentlyLocked ? 'details.readOnlySource' : 'details.userLocked')}</strong>
                   <p>{t(selectedIsPermanentlyLocked ? 'details.readOnlySourceDescription' : 'details.userLockedDescription')}</p>
+                </section>
+              ) : null}
+
+              {selectedInsight ? (
+                <section className="detail-section editor-insight-card" aria-label={t('insights.foundationSummary')}>
+                  <h3>{t('insights.foundationSummary')}</h3>
+                  <dl className="status-grid">
+                    <div>
+                      <dt>{t('insights.favorites')}</dt>
+                      <dd>{selectedInsight.favorite ? t('insights.favoriteYes') : t('insights.favoriteNo')}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('insights.calls')}</dt>
+                      <dd>{selectedInsight.callCount}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('insights.health')}</dt>
+                      <dd>{`${selectedInsight.healthScore} / 100`}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('insights.suggestions')}</dt>
+                      <dd>{selectedInsight.suggestions}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('insights.drafts')}</dt>
+                      <dd>{selectedInsight.openDrafts}</dd>
+                    </div>
+                  </dl>
                 </section>
               ) : null}
 
@@ -3737,4 +3870,3 @@ export function App() {
     </main>
   );
 }
-

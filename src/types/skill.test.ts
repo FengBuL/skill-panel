@@ -81,6 +81,14 @@ describe('skill type contracts', () => {
       skillCategoryAssignments?: Record<string, string[]>;
       skillLocks?: Record<string, boolean>;
       skillTags?: Record<string, { color: string; label: string }[]>;
+      skillFavorites?: Record<string, boolean>;
+      skillUsage?: Record<string, { callCount: number; lastCalledAt?: string | null }>;
+      skillOrganizationSuggestions?: Record<
+        string,
+        { dismissed?: boolean; kind: 'category' | 'tag' | 'health' | 'draft'; label: string; message: string }[]
+      >;
+      skillHealth?: Record<string, { issues: string[]; score: number; status: 'healthy' | 'warning' | 'critical' }>;
+      skillDrafts?: Record<string, { description: string; markdown: string; name: string; updatedAt: string }>;
     }>();
     expectTypeOf<CreateSkillInput>().toEqualTypeOf<{
       name: string;
