@@ -117,3 +117,34 @@ Coverage:
 - Page-level horizontal overflow checks and list toolbar clipping checks.
 
 Result: `npm.cmd run visual:qa` passed and regenerated the evidence above.
+
+## v3.0.0 QA Release Review
+
+Date: 2026-06-30
+
+Branch: `codex/skill-panel-v3-06-qa-release`
+
+Status: READY_FOR_REVIEW
+
+Scope:
+
+- P0 automated test coverage audit.
+- Visual QA refresh for 1024x768, 1280x800, and 1440x960.
+- Chinese and English acceptance evidence.
+- Version alignment to `3.0.0`.
+- Release record, migration note, and historical branch cleanup recommendation.
+
+Evidence:
+
+- QA record: `docs/v3-qa-release.md`
+- Visual checklist: `docs/visual-qa-checklist.md`
+- Machine report: `output/playwright/visual-qa-report.json`
+- Version guard: `src/packaging.config.test.ts`
+
+Result:
+
+- PRD acceptance items are recorded as PASS in `docs/v3-qa-release.md`.
+- Visual QA report contains 7 passing scenarios with no page-level horizontal overflow.
+- P0 flows have automated frontend, i18n, packaging, Rust, and visual QA coverage.
+- Rust test execution was skipped in this macOS shell because `cargo` is unavailable.
+- No merge back to `codex/skill-panel-app` was performed in this branch.
