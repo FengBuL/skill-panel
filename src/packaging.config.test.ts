@@ -25,6 +25,11 @@ describe('packaging configuration', () => {
     expect(tauriConfig.app.windows[0].title).toBe('Skill Panel');
   });
 
+  it('keeps release version metadata aligned for v3 QA release', () => {
+    expect(packageJson.version).toBe('3.0.0');
+    expect(tauriConfig.version).toBe(packageJson.version);
+  });
+
   it('configures Windows and macOS bundle targets', () => {
     expect(tauriConfig.bundle).toMatchObject({
       active: true,

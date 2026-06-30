@@ -118,14 +118,14 @@ The generated files should live under `src-tauri/icons`.
 
 ## Migration Package
 
-To move Skill Panel v2.0.1 to another Windows computer, build the app and create a migration package:
+To move Skill Panel v3.0.0 to another Windows computer, build the app and create a migration package:
 
 ```bash
 npm.cmd run tauri:build:windows
 powershell -ExecutionPolicy Bypass -File scripts/create-migration-package.ps1
 ```
 
-The script writes `output/migration/Skill-Panel-v2.0.1-migration.zip`. The package includes the Windows installer, a portable executable, the current app settings file, and local `.codex/skills` plus `.agents/skills` folders when they exist.
+The script writes `output/migration/Skill-Panel-v3.0.0-migration.zip`. The package includes the Windows installer, a portable executable, the current app settings file, and local `.codex/skills` plus `.agents/skills` folders when they exist.
 
 The detailed migration guide is in `docs/migration-guide-v2.md`.
 

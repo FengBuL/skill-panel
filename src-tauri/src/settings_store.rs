@@ -167,6 +167,33 @@ mod tests {
     }
 
     #[test]
+    fn legacy_settings_file_loads_v3_foundation_defaults() {
+        let path = temp_settings_path("legacy-v3-defaults");
+        fs::create_dir_all(path.parent().expect("path should have parent"))
+            .expect("settings directory should be created");
+        fs::write(
+            &path,
+            "{\"language\":\"en-US\",\"customScanDirectories\":[\"D:/Team/skills\"],\"showDefaultScanDirectories\":false,\"categoryColors\":{},\"categoryLabels\":{},\"skillTags\":{}}",
+        )
+        .expect("legacy settings should be written");
+
+        let settings = load_app_settings_from_path(&path).expect("legacy settings should load");
+
+        assert_eq!(settings.language, Language::EnUs);
+        assert_eq!(settings.custom_scan_directories, vec!["D:/Team/skills"]);
+        assert!(settings.skill_favorites.is_empty());
+        assert!(settings.skill_usage.is_empty());
+        assert!(settings.skill_organization_suggestions.is_empty());
+        assert!(settings.skill_health.is_empty());
+        assert!(settings.skill_drafts.is_empty());
+
+        let root = path.parent().and_then(|parent| parent.parent());
+        if let Some(root) = root {
+            fs::remove_dir_all(root).ok();
+        }
+    }
+
+    #[test]
     fn saving_settings_creates_parent_directories() {
         let path = temp_settings_path("creates-parent").join("nested").join("settings.json");
         let settings = AppSettings {

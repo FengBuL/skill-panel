@@ -22,8 +22,14 @@ const defaultSettings: AppSettings = {
   skillCardColors: {},
   skillCategoryAssignments: {},
   skillCategoryOverrides: {},
+  skillArchives: {},
+  skillFavorites: {},
   skillLocks: {},
   skillTags: {},
+  skillUsage: {},
+  skillOrganizationSuggestions: {},
+  skillHealth: {},
+  skillDrafts: {},
   skillViewMode: 'cards',
 };
 
@@ -114,9 +120,33 @@ function normalizeSettings(settings: AppSettings): AppSettings {
               typeof categoryId === 'string' && categoryId.trim() ? [[path, [categoryId.trim()]]] : [],
             ),
           ),
+    skillArchives:
+      settings.skillArchives && typeof settings.skillArchives === 'object' && !Array.isArray(settings.skillArchives)
+        ? Object.fromEntries(Object.entries(settings.skillArchives).filter(([path, archived]) => Boolean(path.trim()) && archived === true))
+        : {},
+    skillFavorites:
+      settings.skillFavorites && typeof settings.skillFavorites === 'object' && !Array.isArray(settings.skillFavorites)
+        ? Object.fromEntries(Object.entries(settings.skillFavorites).filter(([path, favorite]) => Boolean(path.trim()) && favorite === true))
+        : {},
     skillLocks:
       settings.skillLocks && typeof settings.skillLocks === 'object' && !Array.isArray(settings.skillLocks)
         ? Object.fromEntries(Object.entries(settings.skillLocks).filter(([path, locked]) => Boolean(path.trim()) && locked === true))
+        : {},
+    skillUsage:
+      settings.skillUsage && typeof settings.skillUsage === 'object' && !Array.isArray(settings.skillUsage)
+        ? settings.skillUsage
+        : {},
+    skillOrganizationSuggestions:
+      settings.skillOrganizationSuggestions && typeof settings.skillOrganizationSuggestions === 'object' && !Array.isArray(settings.skillOrganizationSuggestions)
+        ? settings.skillOrganizationSuggestions
+        : {},
+    skillHealth:
+      settings.skillHealth && typeof settings.skillHealth === 'object' && !Array.isArray(settings.skillHealth)
+        ? settings.skillHealth
+        : {},
+    skillDrafts:
+      settings.skillDrafts && typeof settings.skillDrafts === 'object' && !Array.isArray(settings.skillDrafts)
+        ? settings.skillDrafts
         : {},
   };
 }
@@ -148,8 +178,36 @@ function getPersistableSettings(settings: AppSettings): AppSettings {
     delete persistableSettings.skillCategoryOverrides;
   }
 
+  if (!persistableSettings.skillArchives || Object.keys(persistableSettings.skillArchives).length === 0) {
+    delete persistableSettings.skillArchives;
+  }
+
+  if (!persistableSettings.skillFavorites || Object.keys(persistableSettings.skillFavorites).length === 0) {
+    delete persistableSettings.skillFavorites;
+  }
+
   if (!persistableSettings.skillLocks || Object.keys(persistableSettings.skillLocks).length === 0) {
     delete persistableSettings.skillLocks;
+  }
+
+  if (!persistableSettings.skillFavorites || Object.keys(persistableSettings.skillFavorites).length === 0) {
+    delete persistableSettings.skillFavorites;
+  }
+
+  if (!persistableSettings.skillUsage || Object.keys(persistableSettings.skillUsage).length === 0) {
+    delete persistableSettings.skillUsage;
+  }
+
+  if (!persistableSettings.skillOrganizationSuggestions || Object.keys(persistableSettings.skillOrganizationSuggestions).length === 0) {
+    delete persistableSettings.skillOrganizationSuggestions;
+  }
+
+  if (!persistableSettings.skillHealth || Object.keys(persistableSettings.skillHealth).length === 0) {
+    delete persistableSettings.skillHealth;
+  }
+
+  if (!persistableSettings.skillDrafts || Object.keys(persistableSettings.skillDrafts).length === 0) {
+    delete persistableSettings.skillDrafts;
   }
 
   if (persistableSettings.detailPanelWidth === undefined) {

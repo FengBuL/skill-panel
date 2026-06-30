@@ -258,6 +258,7 @@
 - 内容：修复真实扫描失败时回退演示数据的问题；补齐左侧类目中文名称和改名持久化；工具栏排序和问题筛选按钮具备实际行为；新建 Skill 可选择可写来源；删除 Skill 时清理旧标签；Skill 右键菜单支持移除已有自定义标签；列表视图显示类目和标签；分页栏底部留白避免第二页内容穿透。
 - 设置模型：`AppSettings` 新增 `categoryLabels`，默认兼容旧配置，保存时只记录用户改过的类目名称。
 - 本机同步：`C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe` 和 `skill-panel-latest.exe` 已覆盖为最新 release exe，SHA256 前缀均为 `9671F6A1ED835BD5`。
+
 - 运行验证：已从 `skill-panel.exe` 启动，进程 PID `12244`，路径为 `C:\Users\12925\AppData\Local\Programs\SkillPanelUX\skill-panel.exe`。
 - 验证：`npm.cmd test -- src/App.test.tsx src/App.editor.test.tsx src/types/skill.test.ts --reporter=dot` 63 passed；`npm.cmd run build` passed；`cargo test` 31 unit/bin tests + 3 contract tests passed；`npm.cmd run tauri:build:windows` 生成 NSIS 安装器。
 - 浏览器验证：Node REPL 浏览器通道仍报 `failed to write kernel assets: 系统找不到指定的路径。 (os error 3)`，未完成截图验证。
@@ -274,3 +275,17 @@
 - 文件边界：正文编辑继续调用 `update_skill`，单项与批量删除调用 `delete_skill`，完成后重新扫描磁盘；Rust 测试直接核对文件内容和目录删除结果。
 - 导航：移除“需要关注”入口与筛选项。
 - 交付：桌面程序和完整发送包统一采用 `v2.0.1` 文件名，替换旧的 v2.0.0 发送包。
+
+## 2026-06-30
+
+### U029 v3.0.0 QA Release 收口
+
+- 分支：`codex/skill-panel-v3-06-qa-release`
+- commit：由本次 QA Release 收口提交承载，最终 hash 以 `git rev-parse HEAD` 为准。
+- 内容：版本统一到 `3.0.0`；顺序合入 v3 01-05 本地实现分支；修复 Organize insights 健康筛选跳转 Library；刷新视觉 QA 到 1024x768、1280x800、1440x960；补齐 P0 自动化覆盖记录、中英文验收、最终审查、发布记录、迁移说明和历史分支清理建议。
+- 文档：新增 `docs/v3-qa-release.md`，更新 `docs/visual-qa-checklist.md`、`docs/final-review.md`、`docs/migration-guide-v2.md`、`README.md`。
+- 测试入口：P0 流程由 `src/App.test.tsx`、`src/App.editor.test.tsx`、`src/i18n/useI18n.test.tsx`、`src/i18n.test.ts`、`src/packaging.config.test.ts`、Rust test files 和 `scripts/visual-qa.mjs` 覆盖；本轮 Rust 命令因缺少 `cargo` 未执行。
+- 验证：`pnpm exec vitest run` 6 files / 122 tests passed；`pnpm exec tsc --noEmit` passed；`pnpm exec vitest run src/packaging.config.test.ts` 1 file / 6 tests passed；`node node_modules/vite/bin/vite.js build` passed；`node scripts/visual-qa.mjs` exit 0，7 个视觉场景全部 passed；`git diff --check` passed。
+- 未执行：`cargo test --lib --bins --tests` 因当前 macOS shell 找不到 `cargo` 未运行。
+- 分支清理：输出 `active`、`keep-for-audit`、`archive-candidate` 三类清单；归档前建议确认远端历史分支已在集成分支或发布记录中可追溯。
+- 约束：不合并回 `codex/skill-panel-app`。
