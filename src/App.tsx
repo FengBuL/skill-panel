@@ -97,6 +97,24 @@ type CreateSkillDraft = {
   markdown: string;
   source: WritableSkillSource;
 };
+type EditorWorkspaceMode = 'library' | 'editor';
+type EditorDraftKind = 'new' | 'existing' | 'copy';
+type SaveCompletionState = 'idle' | 'saved';
+type SkillEditorDraft = {
+  description: string;
+  kind: EditorDraftKind;
+  markdown: string;
+  name: string;
+  path: string | null;
+  source: WritableSkillSource;
+  sourcePath: string | null;
+  targetDirectory: string;
+};
+type ParsedEditorMarkdown = {
+  bodyMarkdown: string;
+  description: string;
+  name: string;
+};
 
 const skillsPerPage = 10;
 const defaultDetailPanelWidth = 400;
@@ -132,6 +150,20 @@ const emptyCreateSkillDraft: CreateSkillDraft = {
   description: '',
   markdown: '',
   source: 'codex-user',
+};
+const editorDraftStorageKey = 'skill-panel:v3-editor-draft';
+const recentEditorStorageKey = 'skill-panel:v3-editor-recent';
+const defaultEditorMarkdown =
+  '---\nname: new-skill\ndescription: Describe when this skill should be used.\n---\n\n# New Skill\n\n## When To Use\nUse when the user asks for this workflow.\n';
+const emptyEditorDraft: SkillEditorDraft = {
+  description: 'Describe when this skill should be used.',
+  kind: 'new',
+  markdown: defaultEditorMarkdown,
+  name: 'new-skill',
+  path: null,
+  source: 'codex-user',
+  sourcePath: null,
+  targetDirectory: '',
 };
 
 const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }> = [
@@ -828,6 +860,121 @@ function getSimpleDiffLines(previousDetail: SkillDetail | null, nextName: string
   );
 }
 
+function escapeFrontmatterValue(value: string) {
+  return JSON.stringify(value);
+}
+
+function buildFullSkillMarkdown(name: string, description: string, bodyMarkdown: string) {
+  return `---\nname: ${escapeFrontmatterValue(name)}\ndescription: ${escapeFrontmatterValue(description)}\n---\n\n${bodyMarkdown.replace(/^\n+/, '')}`;
+}
+
+function buildFullMarkdownFromDetail(detail: SkillDetail) {
+  return buildFullSkillMarkdown(detail.name, detail.description, detail.bodyMarkdown);
+}
+
+function parseFrontmatterScalar(value: string) {
+  const trimmedValue = value.trim();
+  if (
+    (trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+    (trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
+  ) {
+    try {
+      return JSON.parse(trimmedValue);
+    } catch {
+      return trimmedValue.slice(1, -1);
+    }
+  }
+
+  return trimmedValue;
+}
+
+function parseEditorMarkdown(markdown: string, fallbackName: string, fallbackDescription: string): ParsedEditorMarkdown {
+  const normalizedMarkdown = markdown.replace(/^\uFEFF/, '');
+  if (!normalizedMarkdown.startsWith('---\n') && !normalizedMarkdown.startsWith('---\r\n')) {
+    return {
+      bodyMarkdown: normalizedMarkdown,
+      description: fallbackDescription,
+      name: fallbackName,
+    };
+  }
+
+  const newline = normalizedMarkdown.startsWith('---\r\n') ? '\r\n' : '\n';
+  const startLength = 3 + newline.length;
+  const closingMarker = `${newline}---${newline}`;
+  const closingIndex = normalizedMarkdown.indexOf(closingMarker, startLength);
+  if (closingIndex === -1) {
+    return {
+      bodyMarkdown: normalizedMarkdown,
+      description: fallbackDescription,
+      name: fallbackName,
+    };
+  }
+
+  const frontmatterText = normalizedMarkdown.slice(startLength, closingIndex);
+  const frontmatterEntries = new Map<string, string>();
+  for (const line of frontmatterText.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) {
+      continue;
+    }
+    frontmatterEntries.set(line.slice(0, separatorIndex).trim(), parseFrontmatterScalar(line.slice(separatorIndex + 1)));
+  }
+
+  return {
+    bodyMarkdown: normalizedMarkdown.slice(closingIndex + closingMarker.length).replace(/^\n+/, ''),
+    description: frontmatterEntries.get('description') ?? fallbackDescription,
+    name: frontmatterEntries.get('name') ?? fallbackName,
+  };
+}
+
+function replaceEditorFrontmatter(markdown: string, name: string, description: string) {
+  const parsed = parseEditorMarkdown(markdown, name, description);
+  return buildFullSkillMarkdown(name, description, parsed.bodyMarkdown);
+}
+
+function normalizeEditorDraft(value: unknown): SkillEditorDraft | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const draft = value as Partial<SkillEditorDraft>;
+  if (typeof draft.name !== 'string' || typeof draft.description !== 'string' || typeof draft.markdown !== 'string') {
+    return null;
+  }
+
+  return {
+    description: draft.description,
+    kind: draft.kind === 'existing' || draft.kind === 'copy' ? draft.kind : 'new',
+    markdown: draft.markdown,
+    name: draft.name,
+    path: typeof draft.path === 'string' ? draft.path : null,
+    source: draft.source === 'agents-user' || draft.source === 'custom' ? draft.source : 'codex-user',
+    sourcePath: typeof draft.sourcePath === 'string' ? draft.sourcePath : null,
+    targetDirectory: typeof draft.targetDirectory === 'string' ? draft.targetDirectory : '',
+  };
+}
+
+function loadStoredEditorDraft(): SkillEditorDraft | null {
+  try {
+    return normalizeEditorDraft(JSON.parse(window.localStorage.getItem(editorDraftStorageKey) ?? 'null'));
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredRecentEditorPaths(): string[] {
+  try {
+    const storedPaths = JSON.parse(window.localStorage.getItem(recentEditorStorageKey) ?? '[]');
+    return Array.isArray(storedPaths) ? storedPaths.filter((path): path is string => typeof path === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function getSuggestedTargetDirectory(settings: AppSettings) {
+  return settings.customScanDirectories[0] ?? '';
+}
+
 function SourceNavIcon({ icon, name }: { icon?: string; name: SourceIconName }) {
   const iconNames: Record<SourceIconName, string> = {
     all: 'list_alt',
@@ -994,6 +1141,12 @@ export function App() {
   const [showWritableOnly, setShowWritableOnly] = useState(false);
   const [showReadOnlyOnly, setShowReadOnlyOnly] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [workspaceMode, setWorkspaceMode] = useState<EditorWorkspaceMode>('library');
+  const [editorDraft, setEditorDraft] = useState<SkillEditorDraft>(() => loadStoredEditorDraft() ?? emptyEditorDraft);
+  const [editorBaseDraft, setEditorBaseDraft] = useState<SkillEditorDraft>(() => loadStoredEditorDraft() ?? emptyEditorDraft);
+  const [recentEditorPaths, setRecentEditorPaths] = useState<string[]>(loadStoredRecentEditorPaths);
+  const [editorSaveCompleted, setEditorSaveCompleted] = useState<SaveCompletionState>('idle');
+  const [showEditorSaveConfirm, setShowEditorSaveConfirm] = useState(false);
   const toolbarMenuRef = useRef<HTMLDivElement>(null);
   const categoryContextMenuRef = useRef<HTMLDivElement>(null);
   const skillTagContextMenuRef = useRef<HTMLDivElement>(null);
@@ -1002,6 +1155,7 @@ export function App() {
   const markdownSyncSourceRef = useRef<'editor' | 'preview' | null>(null);
   const detailResizeRef = useRef<{ startWidth: number; startX: number } | null>(null);
   const detailPanelWidthRef = useRef(detailPanelWidth);
+  const editorSaveCompleteTimerRef = useRef<number | null>(null);
 
   const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
   const visibleLanguage = normalizeSelectableLanguage(language);
@@ -1199,6 +1353,19 @@ export function App() {
       selectedDetail?.description !== detailDescription ||
       selectedDetail?.bodyMarkdown !== detailMarkdown);
   const pendingSaveDiffLines = getSimpleDiffLines(selectedDetail, detailName, detailDescription, detailMarkdown);
+  const parsedEditorDraft = parseEditorMarkdown(editorDraft.markdown, editorDraft.name, editorDraft.description);
+  const editorBodyMarkdown = parsedEditorDraft.bodyMarkdown;
+  const editorHasChanges = JSON.stringify(editorDraft) !== JSON.stringify(editorBaseDraft);
+  const editorDiffLines = editorHasChanges
+    ? [
+        ...(editorBaseDraft.name === editorDraft.name ? [] : [`- ${editorBaseDraft.name}`, `+ ${editorDraft.name}`]),
+        ...(editorBaseDraft.description === editorDraft.description ? [] : [`- ${editorBaseDraft.description}`, `+ ${editorDraft.description}`]),
+        ...(editorBaseDraft.markdown === editorDraft.markdown ? [] : ['- markdown body', '+ markdown body']),
+      ]
+    : [];
+  const editorRecentSkills = recentEditorPaths
+    .map((path) => skills.find((skill) => skill.path === path))
+    .filter((skill): skill is SkillSummary => Boolean(skill));
   const scanSkills = async () => {
     setIsLoadingSkills(true);
     setScanError(null);
@@ -1252,6 +1419,40 @@ export function App() {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeCategoryId, activeGovernanceFilter, activeTagLabel, searchQuery, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
+
+  useEffect(() => {
+    window.localStorage.setItem(editorDraftStorageKey, JSON.stringify(editorDraft));
+  }, [editorDraft]);
+
+  useEffect(() => {
+    window.localStorage.setItem(recentEditorStorageKey, JSON.stringify(recentEditorPaths.slice(0, 8)));
+  }, [recentEditorPaths]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!editorHasChanges) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [editorHasChanges]);
+
+  useEffect(
+    () => () => {
+      if (editorSaveCompleteTimerRef.current) {
+        window.clearTimeout(editorSaveCompleteTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -1407,9 +1608,18 @@ export function App() {
   };
 
   const openCreateSkillDialog = () => {
-    setCreateSkillDraft(emptyCreateSkillDraft);
-    setCreateSkillError(null);
-    setShowCreateSkill(true);
+    if (workspaceMode === 'editor' && editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+      return;
+    }
+
+    const nextDraft = {
+      ...emptyEditorDraft,
+      targetDirectory: getSuggestedTargetDirectory(settingsRef.current),
+    };
+    setEditorDraft(nextDraft);
+    setEditorBaseDraft(nextDraft);
+    setEditorSaveCompleted('idle');
+    setWorkspaceMode('editor');
   };
 
   const closeCreateSkillDialog = () => {
@@ -1456,6 +1666,10 @@ export function App() {
   };
 
   const selectSkill = async (skill: SkillSummary) => {
+    if (workspaceMode === 'editor' && editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+      return;
+    }
+
     const requestId = detailRequestIdRef.current + 1;
     detailRequestIdRef.current = requestId;
     selectedPathRef.current = skill.path;
@@ -1479,6 +1693,186 @@ export function App() {
         setIsLoadingDetail(false);
       }
     }
+  };
+
+  const openEditorWorkspace = async (skill: SkillSummary) => {
+    if (editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+      return;
+    }
+
+    setWorkspaceMode('editor');
+    setEditorSaveCompleted('idle');
+    setDetailError(null);
+    setIsLoadingDetail(true);
+
+    try {
+      const detail = await invoke<SkillDetail>('read_skill', { path: skill.path });
+      const nextDraft: SkillEditorDraft = {
+        description: detail.description,
+        kind: 'existing',
+        markdown: buildFullMarkdownFromDetail(detail),
+        name: detail.name,
+        path: detail.path,
+        source: isWritableSkill(detail) ? (detail.source as WritableSkillSource) : 'codex-user',
+        sourcePath: null,
+        targetDirectory: getSuggestedTargetDirectory(settingsRef.current),
+      };
+      setEditorDraft(nextDraft);
+      setEditorBaseDraft(nextDraft);
+      setSelectedPath(detail.path);
+      selectedPathRef.current = detail.path;
+      syncDetailForm(detail);
+      setRecentEditorPaths((currentPaths) => [detail.path, ...currentPaths.filter((path) => path !== detail.path)].slice(0, 8));
+    } catch (error) {
+      setDetailErrorTitleKey('details.errorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  const copyProtectedSkillToEditor = async (skill: SkillSummary) => {
+    if (editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+      return;
+    }
+
+    setWorkspaceMode('editor');
+    setEditorSaveCompleted('idle');
+    setIsLoadingDetail(true);
+
+    try {
+      const detail = await invoke<SkillDetail>('read_skill', { path: skill.path });
+      const nextDraft: SkillEditorDraft = {
+        description: detail.description,
+        kind: 'copy',
+        markdown: buildFullMarkdownFromDetail(detail),
+        name: detail.name,
+        path: null,
+        source: 'codex-user',
+        sourcePath: detail.path,
+        targetDirectory: getSuggestedTargetDirectory(settingsRef.current),
+      };
+      setEditorDraft(nextDraft);
+      setEditorBaseDraft({
+        ...emptyEditorDraft,
+        targetDirectory: nextDraft.targetDirectory,
+      });
+    } catch (error) {
+      setDetailErrorTitleKey('details.errorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  const updateEditorDraft = (updates: Partial<SkillEditorDraft>) => {
+    setEditorSaveCompleted('idle');
+    setEditorDraft((currentDraft) => ({
+      ...currentDraft,
+      ...updates,
+    }));
+  };
+
+  const updateEditorFrontmatterField = (field: 'description' | 'name', value: string) => {
+    setEditorSaveCompleted('idle');
+    setEditorDraft((currentDraft) => {
+      const nextDraft = { ...currentDraft, [field]: value };
+      return {
+        ...nextDraft,
+        markdown: replaceEditorFrontmatter(nextDraft.markdown, nextDraft.name, nextDraft.description),
+      };
+    });
+  };
+
+  const updateEditorMarkdown = (markdown: string) => {
+    setEditorSaveCompleted('idle');
+    setEditorDraft((currentDraft) => {
+      const parsed = parseEditorMarkdown(markdown, currentDraft.name, currentDraft.description);
+      return {
+        ...currentDraft,
+        description: parsed.description,
+        markdown,
+        name: parsed.name,
+      };
+    });
+  };
+
+  const showEditorSavedState = () => {
+    setEditorSaveCompleted('saved');
+    if (editorSaveCompleteTimerRef.current) {
+      window.clearTimeout(editorSaveCompleteTimerRef.current);
+    }
+    editorSaveCompleteTimerRef.current = window.setTimeout(() => {
+      setEditorSaveCompleted('idle');
+      editorSaveCompleteTimerRef.current = null;
+    }, 900);
+  };
+
+  const performEditorSave = async () => {
+    setIsSavingDetail(true);
+    setDetailError(null);
+
+    try {
+      const parsed = parseEditorMarkdown(editorDraft.markdown, editorDraft.name, editorDraft.description);
+      const savedDetail =
+        editorDraft.kind === 'existing' && editorDraft.path
+          ? await invoke<SkillDetail>('update_skill', {
+              input: {
+                path: editorDraft.path,
+                name: editorDraft.name.trim(),
+                description: editorDraft.description.trim(),
+                markdown: parsed.bodyMarkdown,
+              },
+            })
+          : await invoke<SkillDetail>('create_skill', {
+              input: {
+                name: editorDraft.name.trim(),
+                description: editorDraft.description.trim(),
+                source: editorDraft.source,
+                targetDirectory: editorDraft.targetDirectory.trim(),
+                markdown: parsed.bodyMarkdown,
+              },
+            });
+
+      const nextDraft: SkillEditorDraft = {
+        description: savedDetail.description,
+        kind: 'existing',
+        markdown: buildFullMarkdownFromDetail(savedDetail),
+        name: savedDetail.name,
+        path: savedDetail.path,
+        source: isWritableSkill(savedDetail) ? (savedDetail.source as WritableSkillSource) : 'codex-user',
+        sourcePath: null,
+        targetDirectory: editorDraft.targetDirectory,
+      };
+      setEditorDraft(nextDraft);
+      setEditorBaseDraft(nextDraft);
+      setSelectedPath(savedDetail.path);
+      selectedPathRef.current = savedDetail.path;
+      syncDetailForm(savedDetail);
+      upsertDetailIntoSkills(savedDetail);
+      setRecentEditorPaths((currentPaths) => [savedDetail.path, ...currentPaths.filter((path) => path !== savedDetail.path)].slice(0, 8));
+      showEditorSavedState();
+      await scanSkills();
+      upsertDetailIntoSkills(savedDetail);
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSavingDetail(false);
+      setShowEditorSaveConfirm(false);
+    }
+  };
+
+  const saveEditorDraft = () => {
+    setShowEditorSaveConfirm(true);
+  };
+
+  const leaveEditorWorkspace = () => {
+    if (editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+      return;
+    }
+
+    setWorkspaceMode('library');
   };
 
   const performSelectedSkillSave = async () => {
@@ -2395,7 +2789,16 @@ export function App() {
           <strong>{`${t('sources.lastScan')}: ${formattedLastScan ?? t('sources.notScanned')}`}</strong>
         </div>
         <div className="toolbar-actions command-actions">
-          <button type="button" className="secondary-action" onClick={() => void scanSkills()}>
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => {
+              if (workspaceMode === 'editor' && editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+                return;
+              }
+              void scanSkills();
+            }}
+          >
             <MaterialIcon name="refresh" />
             {t('actions.rescan')}
           </button>
@@ -2425,7 +2828,12 @@ export function App() {
             type="button"
             className={`icon-action ${showSettings ? 'active-action' : ''}`}
             aria-label={t('actions.settings')}
-            onClick={() => setShowSettings((current) => !current)}
+            onClick={() => {
+              if (workspaceMode === 'editor' && editorHasChanges && !window.confirm(t('editor.unsavedConfirm'))) {
+                return;
+              }
+              setShowSettings((current) => !current);
+            }}
           >
             <MaterialIcon name="settings" size={20} />
           </button>
@@ -2576,6 +2984,151 @@ export function App() {
         </section>
       ) : null}
 
+      {workspaceMode === 'editor' ? (
+        <section className="editor-workspace" aria-label={t('editor.workspace')}>
+          <aside className="panel editor-rail" aria-label={t('editor.sidebar')}>
+            <div className="editor-rail-heading">
+              <div>
+                <h2>{t('editor.sidebar')}</h2>
+                <p>{editorHasChanges ? t('editor.draftAutosaved') : t('editor.draftClean')}</p>
+              </div>
+              <button type="button" className="icon-button" aria-label={t('editor.backToLibrary')} onClick={leaveEditorWorkspace}>
+                <MaterialIcon name="arrow_back" />
+              </button>
+            </div>
+            <section className="editor-rail-section" aria-label={t('editor.drafts')}>
+              <h3>{t('editor.drafts')}</h3>
+              <button type="button" className="editor-draft-card active">
+                <strong>{editorDraft.name || t('editor.untitled')}</strong>
+                <span>{editorDraft.path ?? editorDraft.sourcePath ?? t('editor.localDraft')}</span>
+              </button>
+            </section>
+            <section className="editor-rail-section" aria-label={t('editor.recent')}>
+              <h3>{t('editor.recent')}</h3>
+              {editorRecentSkills.length > 0 ? (
+                <div className="editor-recent-list">
+                  {editorRecentSkills.map((skill) => (
+                    <button key={skill.path} type="button" onClick={() => void openEditorWorkspace(skill)}>
+                      <strong>{skill.name}</strong>
+                      <span>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">{t('editor.noRecent')}</p>
+              )}
+            </section>
+            <section className="editor-rail-section" aria-label={t('editor.protectedCopy')}>
+              <h3>{t('editor.protectedCopy')}</h3>
+              <p className="muted">{t('editor.protectedCopyHint')}</p>
+            </section>
+          </aside>
+          <section className="panel editor-main" aria-label={t('editor.main')}>
+            <div className="editor-toolbar">
+              <div>
+                <span className="detail-eyebrow">{t('editor.workspace')}</span>
+                <h2>{editorDraft.kind === 'new' ? t('editor.newTitle') : editorDraft.name || t('editor.untitled')}</h2>
+              </div>
+              <div className="editor-save-state" role="status">
+                {editorSaveCompleted === 'saved' ? t('editor.savedComplete') : editorHasChanges ? t('editor.draftAutosaved') : t('editor.draftClean')}
+              </div>
+              <button type="button" className="secondary-action" onClick={leaveEditorWorkspace}>
+                {t('editor.backToLibrary')}
+              </button>
+              <button type="button" className="primary-action" disabled={isSavingDetail} onClick={saveEditorDraft}>
+                <MaterialIcon name={editorSaveCompleted === 'saved' ? 'check' : 'save'} />
+                {editorSaveCompleted === 'saved' ? t('editor.savedComplete') : t('actions.save')}
+              </button>
+            </div>
+            {detailError ? (
+              <section className="detail-section error-state" aria-label={t(detailErrorTitleKey)}>
+                <strong>{t(detailErrorTitleKey)}</strong>
+                <p>{detailError}</p>
+              </section>
+            ) : null}
+            {editorDraft.sourcePath ? (
+              <section className="detail-section warning-state" aria-label={t('editor.copySource')}>
+                <strong>{t('editor.copySource')}</strong>
+                <p>{editorDraft.sourcePath}</p>
+              </section>
+            ) : null}
+            <div className="editor-grid">
+              <section className="editor-frontmatter" aria-label={t('editor.frontmatter')}>
+                <h3>{t('editor.frontmatter')}</h3>
+                <label className="field-stack">
+                  <span>{t('details.name')}</span>
+                  <input aria-label={t('details.name')} value={editorDraft.name} onChange={(event) => updateEditorFrontmatterField('name', event.target.value)} />
+                </label>
+                <label className="field-stack">
+                  <span>{t('details.description')}</span>
+                  <textarea
+                    aria-label={t('details.description')}
+                    value={editorDraft.description}
+                    onChange={(event) => updateEditorFrontmatterField('description', event.target.value)}
+                  />
+                </label>
+                <label className="field-stack">
+                  <span>{t('create.source')}</span>
+                  <select
+                    aria-label={t('create.source')}
+                    value={editorDraft.source}
+                    disabled={editorDraft.kind === 'existing'}
+                    onChange={(event) => updateEditorDraft({ source: event.currentTarget.value as WritableSkillSource })}
+                  >
+                    <option value="codex-user">{t('sources.codexUser')}</option>
+                    <option value="agents-user">{t('sources.agentsUser')}</option>
+                    <option value="custom">{t('sources.custom')}</option>
+                  </select>
+                </label>
+                {editorDraft.kind !== 'existing' ? (
+                  <label className="field-stack">
+                    <span>{t('create.targetDirectory')}</span>
+                    <input
+                      aria-label={t('create.targetDirectory')}
+                      list="editor-target-directory-suggestions"
+                      value={editorDraft.targetDirectory}
+                      onChange={(event) => updateEditorDraft({ targetDirectory: event.currentTarget.value })}
+                    />
+                  </label>
+                ) : null}
+                <dl className="editor-meta-list">
+                  <div>
+                    <dt>{t('details.path')}</dt>
+                    <dd>{editorDraft.path ?? t('editor.localDraft')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('editor.bodyLength')}</dt>
+                    <dd>{String(editorBodyMarkdown.length)}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section className="editor-markdown-pane" aria-label={t('details.markdownBody')}>
+                <label className="field-stack">
+                  <span>{t('details.markdownBody')}</span>
+                  <textarea
+                    className="editor-markdown-input"
+                    aria-label={t('details.markdownBody')}
+                    value={editorDraft.markdown}
+                    onChange={(event) => updateEditorMarkdown(event.currentTarget.value)}
+                  />
+                </label>
+              </section>
+              <section className="editor-preview-pane" aria-label={t('details.markdownPreview')}>
+                <h3>{t('details.markdownPreview')}</h3>
+                <MarkdownPreviewBlock ariaLabel={t('details.markdownPreview')} emptyText={t('details.markdownEmpty')} markdown={editorBodyMarkdown} />
+              </section>
+            </div>
+            <datalist id="editor-target-directory-suggestions">
+              {settings.customScanDirectories.map((directory) => (
+                <option key={directory} value={directory} />
+              ))}
+              {defaultScanPathGroups.flatMap((group) =>
+                group.paths.map((path) => <option key={`${group.labelKey}-${path}`} value={path} />),
+              )}
+            </datalist>
+          </section>
+        </section>
+      ) : (
       <section
         className="dashboard-grid fluid-dashboard-grid"
         aria-label={t('layout.dashboard')}
@@ -3001,6 +3554,32 @@ export function App() {
                               <strong>{skill.name}</strong>
                               <span className="skill-description">{skill.description}</span>
                             </span>
+                            <span className="skill-card-actions">
+                              <button
+                                type="button"
+                                className="secondary-action"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void openEditorWorkspace(skill);
+                                }}
+                              >
+                                <MaterialIcon name="edit" size={16} />
+                                {t('editor.open')}
+                              </button>
+                              {isReadOnlySkill(skill) ? (
+                                <button
+                                  type="button"
+                                  className="secondary-action"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void copyProtectedSkillToEditor(skill);
+                                  }}
+                                >
+                                  <MaterialIcon name="content_copy" size={16} />
+                                  {t('editor.copyToUserSkill')}
+                                </button>
+                              ) : null}
+                            </span>
                             <span className="skill-card-tags">
                               {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
                                 <span
@@ -3111,6 +3690,32 @@ export function App() {
                         <td>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</td>
                         <td>
                           <PathButton path={skill.path} onOpen={openSkillFolder} />
+                          <span className="table-row-actions">
+                            <button
+                              type="button"
+                              className="secondary-action"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void openEditorWorkspace(skill);
+                              }}
+                            >
+                              <MaterialIcon name="edit" size={16} />
+                              {t('editor.open')}
+                            </button>
+                            {isReadOnlySkill(skill) ? (
+                              <button
+                                type="button"
+                                className="secondary-action"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void copyProtectedSkillToEditor(skill);
+                                }}
+                              >
+                                <MaterialIcon name="content_copy" size={16} />
+                                {t('editor.copyToUserSkill')}
+                              </button>
+                            ) : null}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -3395,6 +4000,7 @@ export function App() {
           )}
         </aside>
       </section>
+      )}
       {categoryContextMenu ? (
         (() => {
           const activeCategory = buildCategoryDefinition(categoryContextMenu.categoryId, categoryLabels, categoryColors, categoryIcons);
@@ -3648,6 +4254,29 @@ export function App() {
           </div>
         </div>
       ) : null}
+      {showEditorSaveConfirm ? (
+        <div className="dialog-backdrop">
+          <div role="dialog" aria-modal="true" aria-labelledby="editor-save-skill-title" className="confirm-dialog diff-dialog">
+            <h2 id="editor-save-skill-title">{t('saveReview.title')}</h2>
+            <p>{t('saveReview.backupNotice')}</p>
+            <div className="diff-preview">
+              {editorDiffLines.length > 0 ? (
+                editorDiffLines.map((line, index) => <code key={`${line}-${index}`}>{line}</code>)
+              ) : (
+                <code>{t('saveReview.noChanges')}</code>
+              )}
+            </div>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setShowEditorSaveConfirm(false)}>
+                {t('actions.cancel')}
+              </button>
+              <button type="button" className="primary-action" disabled={isSavingDetail} onClick={() => void performEditorSave()}>
+                {t('saveReview.saveWithBackup')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showCreateSkill ? (
         <div className="dialog-backdrop">
           <div role="dialog" aria-modal="true" aria-labelledby="create-skill-title" className="create-dialog">
@@ -3737,4 +4366,3 @@ export function App() {
     </main>
   );
 }
-
