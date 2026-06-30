@@ -22,9 +22,10 @@ const defaultSettings: AppSettings = {
   skillCardColors: {},
   skillCategoryAssignments: {},
   skillCategoryOverrides: {},
+  skillArchives: {},
+  skillFavorites: {},
   skillLocks: {},
   skillTags: {},
-  skillFavorites: {},
   skillUsage: {},
   skillOrganizationSuggestions: {},
   skillHealth: {},
@@ -119,13 +120,17 @@ function normalizeSettings(settings: AppSettings): AppSettings {
               typeof categoryId === 'string' && categoryId.trim() ? [[path, [categoryId.trim()]]] : [],
             ),
           ),
-    skillLocks:
-      settings.skillLocks && typeof settings.skillLocks === 'object' && !Array.isArray(settings.skillLocks)
-        ? Object.fromEntries(Object.entries(settings.skillLocks).filter(([path, locked]) => Boolean(path.trim()) && locked === true))
+    skillArchives:
+      settings.skillArchives && typeof settings.skillArchives === 'object' && !Array.isArray(settings.skillArchives)
+        ? Object.fromEntries(Object.entries(settings.skillArchives).filter(([path, archived]) => Boolean(path.trim()) && archived === true))
         : {},
     skillFavorites:
       settings.skillFavorites && typeof settings.skillFavorites === 'object' && !Array.isArray(settings.skillFavorites)
         ? Object.fromEntries(Object.entries(settings.skillFavorites).filter(([path, favorite]) => Boolean(path.trim()) && favorite === true))
+        : {},
+    skillLocks:
+      settings.skillLocks && typeof settings.skillLocks === 'object' && !Array.isArray(settings.skillLocks)
+        ? Object.fromEntries(Object.entries(settings.skillLocks).filter(([path, locked]) => Boolean(path.trim()) && locked === true))
         : {},
     skillUsage:
       settings.skillUsage && typeof settings.skillUsage === 'object' && !Array.isArray(settings.skillUsage)
@@ -171,6 +176,14 @@ function getPersistableSettings(settings: AppSettings): AppSettings {
 
   if (!persistableSettings.skillCategoryOverrides || Object.keys(persistableSettings.skillCategoryOverrides).length === 0) {
     delete persistableSettings.skillCategoryOverrides;
+  }
+
+  if (!persistableSettings.skillArchives || Object.keys(persistableSettings.skillArchives).length === 0) {
+    delete persistableSettings.skillArchives;
+  }
+
+  if (!persistableSettings.skillFavorites || Object.keys(persistableSettings.skillFavorites).length === 0) {
+    delete persistableSettings.skillFavorites;
   }
 
   if (!persistableSettings.skillLocks || Object.keys(persistableSettings.skillLocks).length === 0) {

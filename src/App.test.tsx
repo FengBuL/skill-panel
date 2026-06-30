@@ -976,20 +976,118 @@ describe('App shell', () => {
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: categorizedScanResults });
 
+    try {
+      render(<App />);
+
+      await screen.findAllByRole('region', { name: /Skill category:/i });
+      await user.click(screen.getByRole('button', { name: 'Batch select' }));
+      await user.click(screen.getByRole('button', { name: 'Select category Data' }));
+      await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+      const dialog = screen.getByRole('dialog', { name: 'Delete selected skills' });
+      expect(dialog).toHaveTextContent('2 selected');
+      vi.useFakeTimers();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm delete' }));
+      expect(screen.getByRole('status')).toHaveTextContent('2 skills will be deleted in 8 seconds');
+      expect(screen.getByRole('button', { name: 'Undo delete' })).toBeInTheDocument();
+      expect(invokeMock).not.toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[0].path });
+
+      await act(async () => {
+        vi.advanceTimersByTime(8000);
+        await Promise.resolve();
+      });
+      vi.useRealTimers();
+      await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[0].path }));
+      expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[1].path });
+      expect(invokeMock.mock.calls.filter(([command]) => command === 'scan_skills').length).toBeGreaterThan(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('uses shared health rules for dashboard insights and library filters', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({
+      skills: [
+        {
+          ...categorizedScanResults[0],
+          description: '',
+        },
+        {
+          ...categorizedScanResults[1],
+          parseStatus: 'invalid-frontmatter',
+        },
+        categorizedScanResults[2],
+      ],
+    });
+
+    render(<App />);
+
+    const dashboard = await screen.findByRole('complementary', { name: 'Categories' });
+    expect(within(dashboard).getByRole('button', { name: /Needs description 1/i })).toBeInTheDocument();
+    expect(within(dashboard).getByRole('button', { name: /Parse issues 1/i })).toBeInTheDocument();
+
+    await user.click(within(dashboard).getByRole('button', { name: /Needs description 1/i }));
+    expect(screen.getAllByRole('button', { name: /stock-flow/i }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: /sheet-flow/i })).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: 'Filter skills' }));
+    await user.click(screen.getByRole('menuitemradio', { name: 'Parse issues' }));
+    expect(screen.getAllByRole('button', { name: /sheet-flow/i }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('button', { name: /stock-flow/i })).toHaveLength(0);
+  });
+
+  it('favorites and archives selected skills with count feedback and archived filtering', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
     render(<App />);
 
     await screen.findAllByRole('region', { name: /Skill category:/i });
     await user.click(screen.getByRole('button', { name: 'Batch select' }));
     await user.click(screen.getByRole('button', { name: 'Select category Data' }));
-    await user.click(screen.getByRole('button', { name: 'Delete selected' }));
+    await user.click(screen.getByRole('button', { name: 'Favorite selected' }));
+    expect(screen.getByRole('status')).toHaveTextContent('2 skills updated');
 
-    const dialog = screen.getByRole('dialog', { name: 'Delete selected skills' });
-    expect(dialog).toHaveTextContent('2 selected');
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm delete' }));
+    await user.click(screen.getByRole('button', { name: 'Archive selected' }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+        settings: expect.objectContaining({
+          skillArchives: expect.objectContaining({
+            [categorizedScanResults[0].path]: true,
+            [categorizedScanResults[1].path]: true,
+          }),
+          skillFavorites: expect.objectContaining({
+            [categorizedScanResults[0].path]: true,
+            [categorizedScanResults[1].path]: true,
+          }),
+        }),
+      }),
+    );
+    expect(screen.queryByRole('button', { name: /stock-flow/i })).not.toBeInTheDocument();
 
-    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[0].path }));
-    expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: categorizedScanResults[1].path });
-    expect(invokeMock.mock.calls.filter(([command]) => command === 'scan_skills').length).toBeGreaterThan(1);
+    const dashboard = screen.getByRole('complementary', { name: 'Categories' });
+    await user.click(within(dashboard).getByRole('button', { name: /Archived 2/i }));
+    expect(screen.getAllByRole('button', { name: /stock-flow/i }).length).toBeGreaterThan(0);
+  });
+
+  it('disables dangerous bulk deletion when only protected skills are selected', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    await user.click(screen.getByRole('button', { name: 'Batch select' }));
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const pluginCard = (await within(cardGrid).findAllByRole('button', { name: /browser control/i }))[0];
+    await user.click(within(pluginCard).getByRole('checkbox', { name: 'Select browser control' }));
+
+    expect(screen.getByRole('button', { name: 'Delete selected' })).toBeDisabled();
+    expect(screen.getByText('1 protected skills skipped for dangerous actions.')).toBeInTheDocument();
   });
 
   it('restores a category card order to the default order', async () => {

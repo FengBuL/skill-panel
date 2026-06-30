@@ -79,9 +79,10 @@ describe('skill type contracts', () => {
       skillCardColors?: Record<string, string>;
       skillCategoryOverrides?: Record<string, 'data' | 'default' | 'finance' | 'writing'>;
       skillCategoryAssignments?: Record<string, string[]>;
+      skillArchives?: Record<string, boolean>;
+      skillFavorites?: Record<string, boolean>;
       skillLocks?: Record<string, boolean>;
       skillTags?: Record<string, { color: string; label: string }[]>;
-      skillFavorites?: Record<string, boolean>;
       skillUsage?: Record<string, { callCount: number; lastCalledAt?: string | null }>;
       skillOrganizationSuggestions?: Record<
         string,

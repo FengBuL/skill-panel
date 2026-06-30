@@ -139,6 +139,10 @@ pub struct AppSettings {
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub skill_category_assignments: HashMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skill_archives: HashMap<String, bool>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skill_favorites: HashMap<String, bool>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub skill_locks: HashMap<String, bool>,
     #[serde(default)]
     pub skill_tags: HashMap<String, Vec<CustomSkillTagSetting>>,
@@ -170,6 +174,8 @@ impl Default for AppSettings {
             skill_card_colors: HashMap::new(),
             skill_category_overrides: HashMap::new(),
             skill_category_assignments: HashMap::new(),
+            skill_archives: HashMap::new(),
+            skill_favorites: HashMap::new(),
             skill_locks: HashMap::new(),
             skill_tags: HashMap::new(),
             skill_favorites: HashMap::new(),
