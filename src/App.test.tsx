@@ -117,6 +117,25 @@ const categorizedScanResults: SkillSummary[] = [
   },
 ];
 
+const recentDashboardResults: SkillSummary[] = [
+  {
+    path: 'C:\\Users\\demo\\.codex\\skills\\recent-flow\\SKILL.md',
+    name: 'recent-flow',
+    description: 'Recently used local automation.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-06-29T08:15:00Z',
+  },
+  {
+    path: 'C:\\Users\\demo\\.codex\\skills\\recent-write\\SKILL.md',
+    name: 'recent-write',
+    description: 'Recently updated writing skill.',
+    source: 'codex-user',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-06-30T09:00:00Z',
+  },
+];
+
 const manyDataSkills: SkillSummary[] = Array.from({ length: 9 }, (_, index) => ({
   path: `C:\\Users\\demo\\.codex\\skills\\sheet-flow-${index + 1}\\SKILL.md`,
   name: `sheet-flow-${index + 1}`,
@@ -276,9 +295,10 @@ describe('App shell', () => {
 
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Categories' })).toBeInTheDocument();
+    const navigation = screen.getByRole('navigation', { name: 'Categories' });
+    expect(navigation).toBeInTheDocument();
     expect(screen.getByText('Storage location')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /All Skills/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /All Skills/i })).toBeInTheDocument();
     expect(screen.queryByText('Filters')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Writable' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'With issues' })).not.toBeInTheDocument();
@@ -794,6 +814,65 @@ describe('App shell', () => {
 
     expect(within(editableCard).getByLabelText('Editable skill')).toHaveTextContent('lock_open');
     expect(within(pluginCard).getByLabelText('Locked skill')).toHaveTextContent('lock');
+  });
+
+  it('filters the library from dashboard metric cards', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: scanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const dashboard = screen.getByRole('region', { name: 'Dashboard' });
+    await user.click(within(dashboard).getByRole('button', { name: /Needs review/i }));
+
+    expect(screen.getByText('Showing 1 skills')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
+
+    await user.click(within(dashboard).getByRole('button', { name: /All Skills/i }));
+    expect(screen.getByText('Showing 3 skills')).toBeInTheDocument();
+  });
+
+  it('keeps dashboard favorite counts in sync with skill lock changes', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: categorizedScanResults });
+
+    render(<App />);
+
+    await screen.findAllByRole('region', { name: /Skill category:/i });
+    const favoritesMetric = screen.getByRole('button', { name: /Favorites/i });
+    expect(within(favoritesMetric).getByText('0')).toBeInTheDocument();
+
+    const cardGrid = document.querySelector('.skill-card-grid.active') as HTMLElement;
+    const stockCard = (await within(cardGrid).findAllByRole('button', { name: /stock-flow/i }))[0];
+    fireEvent.contextMenu(stockCard);
+    await user.click(screen.getByRole('button', { name: 'Lock skill' }));
+
+    expect(within(favoritesMetric).getByText('1')).toBeInTheDocument();
+  });
+
+  it('renders trend hover details and an invocation empty state', async () => {
+    const user = userEvent.setup();
+    mockNavigatorLanguages(['en-US']);
+    mockInvoke({ skills: recentDashboardResults });
+
+    const { unmount } = render(<App />);
+
+    const trendPanel = await screen.findByRole('region', { name: 'Invocation trend' });
+    const trendBar = trendPanel.querySelector('.trend-bar');
+    expect(trendBar).toHaveAttribute('title', expect.stringContaining('calls'));
+    expect(trendBar).toHaveAttribute('title', expect.stringContaining('Top Skill'));
+    expect(screen.getByRole('tab', { name: '14d' })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: '30d' }));
+    expect(screen.getByRole('tab', { name: '30d' })).toHaveAttribute('aria-selected', 'true');
+
+    unmount();
+    mockInvoke({ skills: [] });
+    render(<App />);
+    expect(await screen.findByText('No invocation data yet')).toBeInTheDocument();
   });
 
   it('locks and unlocks editable skills from the context menu and persists the choice', async () => {
@@ -1698,6 +1777,3 @@ describe('App shell', () => {
     expect(screen.getByText('save failed')).toBeInTheDocument();
   });
 });
-
-
-

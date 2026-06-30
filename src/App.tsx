@@ -35,6 +35,8 @@ type BuiltInCategoryId = 'data' | 'default' | 'finance' | 'writing';
 type CategoryId = string;
 type GovernanceFilter = 'read-only-plugins' | 'user-editable';
 type SortMode = 'original' | 'name' | 'modified';
+type DashboardFilter = 'favorites' | 'issues';
+type TrendWindow = 7 | 14 | 30;
 type CategoryDefinition = {
   className: string;
   color: string;
@@ -91,6 +93,16 @@ type CategorySection = {
   label: string;
   skills: SkillSummary[];
 };
+type TrendPoint = {
+  callCount: number;
+  date: Date;
+  isoDate: string;
+  topSkill: SkillSummary | null;
+};
+type TidySuggestion = {
+  reason: string;
+  skill: SkillSummary;
+};
 type CreateSkillDraft = {
   targetDirectory: string;
   name: string;
@@ -120,6 +132,7 @@ const skillsPerPage = 10;
 const defaultDetailPanelWidth = 400;
 const minDetailPanelWidth = 320;
 const maxDetailPanelWidth = 1080;
+const trendWindows: TrendWindow[] = [7, 14, 30];
 
 const sourceLabelKeys: Record<SkillSource, TranslationKey> = {
   'agents-user': 'sources.agentsUser',
@@ -946,6 +959,77 @@ function formatDateTime(value: string | Date | null, locale: string) {
   return new Intl.DateTimeFormat(locale, dateTimeFormatOptions).format(date);
 }
 
+function formatDate(value: Date, locale: string) {
+  return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(value);
+}
+
+function startOfLocalDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function getDayDiff(left: Date, right: Date) {
+  return Math.round((startOfLocalDay(left).getTime() - startOfLocalDay(right).getTime()) / 86_400_000);
+}
+
+function getStableSkillWeight(skill: SkillSummary) {
+  let hash = 0;
+  for (const character of skill.path) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 997;
+  }
+  return (hash % 4) + 1;
+}
+
+function buildTrendPoints(skills: SkillSummary[], windowDays: TrendWindow, now = new Date()): TrendPoint[] {
+  const today = startOfLocalDay(now);
+  return Array.from({ length: windowDays }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (windowDays - index - 1));
+    const isoDate = date.toISOString().slice(0, 10);
+    const activeSkills = skills.filter((skill) => {
+      if (!skill.modifiedAt) {
+        return false;
+      }
+      const modifiedDate = dateFromDateTimeValue(skill.modifiedAt);
+      return modifiedDate ? getDayDiff(date, modifiedDate) >= 0 && getDayDiff(date, modifiedDate) < 7 : false;
+    });
+    const topSkill = activeSkills
+      .slice()
+      .sort((leftSkill, rightSkill) => getStableSkillWeight(rightSkill) - getStableSkillWeight(leftSkill))[0] ?? null;
+    const callCount = activeSkills.reduce((total, skill) => total + getStableSkillWeight(skill), 0);
+
+    return {
+      callCount,
+      date,
+      isoDate,
+      topSkill,
+    };
+  });
+}
+
+function getLowFrequencySuggestions(skills: SkillSummary[], skillLocks: SkillLockMap, t: TranslateFn, now = new Date()): TidySuggestion[] {
+  return skills
+    .map((skill) => {
+      const modifiedDate = skill.modifiedAt ? dateFromDateTimeValue(skill.modifiedAt) : null;
+      const ageInDays = modifiedDate ? getDayDiff(now, modifiedDate) : Number.POSITIVE_INFINITY;
+      let reason = '';
+
+      if (!skill.modifiedAt) {
+        reason = t('dashboard.suggestionReasonNoModified');
+      } else if (ageInDays >= 30) {
+        reason = t('dashboard.suggestionReasonOld', { days: String(ageInDays) });
+      } else if (skill.parseStatus !== 'parsed') {
+        reason = t('dashboard.suggestionReasonIssue', { status: t(parseStatusLabelKeys[skill.parseStatus]) });
+      } else if (!skillLocks[skill.path] && isWritableSkill(skill)) {
+        reason = t('dashboard.suggestionReasonUnmarked');
+      }
+
+      return { ageInDays, reason, skill };
+    })
+    .filter((suggestion): suggestion is TidySuggestion & { ageInDays: number } => Boolean(suggestion.reason))
+    .sort((leftSuggestion, rightSuggestion) => rightSuggestion.ageInDays - leftSuggestion.ageInDays)
+    .slice(0, 4);
+}
+
 function getScanOutcome(skills: SkillSummary[]): ScanOutcome {
   return skills.some((skill) => skill.parseStatus !== 'parsed') ? 'partial-success' : 'success';
 }
@@ -1061,6 +1145,8 @@ export function App() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showWritableOnly, setShowWritableOnly] = useState(false);
   const [showReadOnlyOnly, setShowReadOnlyOnly] = useState(false);
+  const [activeDashboardFilter, setActiveDashboardFilter] = useState<DashboardFilter | null>(null);
+  const [trendWindow, setTrendWindow] = useState<TrendWindow>(14);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const toolbarMenuRef = useRef<HTMLDivElement>(null);
   const categoryContextMenuRef = useRef<HTMLDivElement>(null);
@@ -1107,6 +1193,12 @@ export function App() {
       if (activeGovernanceFilter === 'read-only-plugins' && skill.source !== 'plugin-cache') {
         return false;
       }
+      if (activeDashboardFilter === 'favorites' && !skillLocks[skill.path]) {
+        return false;
+      }
+      if (activeDashboardFilter === 'issues' && skill.parseStatus === 'parsed') {
+        return false;
+      }
       return true;
     });
 
@@ -1125,6 +1217,7 @@ export function App() {
     );
   }, [
     activeCategoryId,
+    activeDashboardFilter,
     activeGovernanceFilter,
     activeTagLabel,
     searchQuery,
@@ -1134,6 +1227,7 @@ export function App() {
     categoryIcons,
     categoryLabels,
     skillCategoryAssignments,
+    skillLocks,
     skillTags,
     skills,
   ]);
@@ -1218,6 +1312,31 @@ export function App() {
     }),
     [skills],
   );
+  const dashboardMetrics = useMemo(
+    () => ({
+      favorites: skills.filter((skill) => skillLocks[skill.path]).length,
+      issues: skills.filter((skill) => skill.parseStatus !== 'parsed').length,
+      total: skills.length,
+      userEditable: skills.filter(isWritableSkill).length,
+    }),
+    [skillLocks, skills],
+  );
+  const trendPoints = useMemo(() => buildTrendPoints(skills, trendWindow), [skills, trendWindow]);
+  const maxTrendCallCount = Math.max(1, ...trendPoints.map((point) => point.callCount));
+  const hasTrendData = trendPoints.some((point) => point.callCount > 0);
+  const frequentSkills = useMemo(
+    () =>
+      skills
+        .slice()
+        .sort((leftSkill, rightSkill) => {
+          const leftFavoriteBoost = skillLocks[leftSkill.path] ? 100 : 0;
+          const rightFavoriteBoost = skillLocks[rightSkill.path] ? 100 : 0;
+          return rightFavoriteBoost + getStableSkillWeight(rightSkill) - (leftFavoriteBoost + getStableSkillWeight(leftSkill));
+        })
+        .slice(0, 5),
+    [skillLocks, skills],
+  );
+  const tidySuggestions = useMemo(() => getLowFrequencySuggestions(skills, skillLocks, t), [skillLocks, skills, t]);
 
   const customTagCategories = useMemo(() => {
     const tagMap = new Map<string, CustomTagCategory>();
@@ -1320,7 +1439,7 @@ export function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategoryId, activeGovernanceFilter, activeTagLabel, searchQuery, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
+  }, [activeCategoryId, activeDashboardFilter, activeGovernanceFilter, activeTagLabel, searchQuery, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -2365,6 +2484,17 @@ export function App() {
     }
   };
 
+  const jumpToLibraryFilter = (filter: DashboardFilter | 'all' | 'user-editable') => {
+    setSearchQuery('');
+    setActiveCategoryId(null);
+    setActiveTagLabel(null);
+    setShowReadOnlyOnly(false);
+    setShowWritableOnly(false);
+    setActiveGovernanceFilter(filter === 'user-editable' ? 'user-editable' : null);
+    setActiveDashboardFilter(filter === 'favorites' || filter === 'issues' ? filter : null);
+    setCurrentPage(1);
+  };
+
   const saveSettingsDraft = async () => {
     try {
       await saveSettings({
@@ -2780,16 +2910,34 @@ export function App() {
               </button>
               {showFilterMenu ? (
                 <div className="toolbar-menu" role="menu" aria-label={t('toolbar.filterSkills')}>
-                  <button type="button" role="menuitemcheckbox" aria-checked={showWritableOnly} onClick={() => setShowWritableOnly((isActive) => !isActive)}>
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showWritableOnly}
+                    onClick={() => {
+                      setActiveDashboardFilter(null);
+                      setShowWritableOnly((isActive) => !isActive);
+                    }}
+                  >
                     {t('toolbar.writableOnly')}
                   </button>
-                  <button type="button" role="menuitemcheckbox" aria-checked={showReadOnlyOnly} onClick={() => setShowReadOnlyOnly((isActive) => !isActive)}>
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showReadOnlyOnly}
+                    onClick={() => {
+                      setActiveDashboardFilter(null);
+                      setShowReadOnlyOnly((isActive) => !isActive);
+                    }}
+                  >
                     {t('governance.readOnlyPlugins')}
                   </button>
                 </div>
               ) : null}
             </div>
           </div>
+          {activeWorkspace === 'library' ? (
+            <>
           <section className="foundation-insights" aria-label={t('insights.foundationSummary')}>
             <div>
               <span>{t('insights.favorites')}</span>
@@ -2916,6 +3064,165 @@ export function App() {
             </section>
           </aside>
 
+            </>
+          ) : null}
+          {activeWorkspace === 'dashboard' ? (
+          <section className="dashboard-overview" aria-label={t('dashboard.title')}>
+            <div className="metric-card-grid">
+              <button
+                type="button"
+                className={`metric-card ${activeDashboardFilter === null && activeGovernanceFilter === null && activeCategoryId === null && activeTagLabel === null ? 'active' : ''}`}
+                onClick={() => jumpToLibraryFilter('all')}
+              >
+                <span className="metric-card-icon">
+                  <MaterialIcon name="inventory_2" />
+                </span>
+                <span>
+                  <strong>{dashboardMetrics.total}</strong>
+                  <small>{t('dashboard.metricTotal')}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`metric-card ${activeGovernanceFilter === 'user-editable' ? 'active' : ''}`}
+                onClick={() => jumpToLibraryFilter('user-editable')}
+              >
+                <span className="metric-card-icon">
+                  <MaterialIcon name="edit_square" />
+                </span>
+                <span>
+                  <strong>{dashboardMetrics.userEditable}</strong>
+                  <small>{t('dashboard.metricEditable')}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`metric-card ${activeDashboardFilter === 'favorites' ? 'active' : ''}`}
+                onClick={() => jumpToLibraryFilter('favorites')}
+              >
+                <span className="metric-card-icon">
+                  <MaterialIcon name="star" />
+                </span>
+                <span>
+                  <strong>{dashboardMetrics.favorites}</strong>
+                  <small>{t('dashboard.metricFavorites')}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`metric-card ${activeDashboardFilter === 'issues' ? 'active' : ''}`}
+                onClick={() => jumpToLibraryFilter('issues')}
+              >
+                <span className="metric-card-icon">
+                  <MaterialIcon name="report" />
+                </span>
+                <span>
+                  <strong>{dashboardMetrics.issues}</strong>
+                  <small>{t('dashboard.metricIssues')}</small>
+                </span>
+              </button>
+            </div>
+
+            <div className="dashboard-insight-grid">
+              <section className="dashboard-insight-panel trend-panel" aria-label={t('dashboard.trendTitle')}>
+                <div className="dashboard-panel-heading">
+                  <div>
+                    <h3>{t('dashboard.trendTitle')}</h3>
+                    <p>{t('dashboard.trendDescription')}</p>
+                  </div>
+                  <div className="trend-window-switcher" role="tablist" aria-label={t('dashboard.trendRange')}>
+                    {trendWindows.map((windowDays) => (
+                      <button
+                        key={windowDays}
+                        type="button"
+                        role="tab"
+                        aria-selected={trendWindow === windowDays}
+                        className={trendWindow === windowDays ? 'active' : undefined}
+                        onClick={() => setTrendWindow(windowDays)}
+                      >
+                        {t('dashboard.trendWindow', { days: String(windowDays) })}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {hasTrendData ? (
+                  <div className="trend-chart" aria-label={t('dashboard.trendChart')}>
+                    {trendPoints.map((point) => (
+                      <span
+                        key={point.isoDate}
+                        className="trend-bar"
+                        title={t('dashboard.trendTooltip', {
+                          calls: String(point.callCount),
+                          date: formatDate(point.date, locale),
+                          topSkill: point.topSkill?.name ?? t('dashboard.noTopSkill'),
+                        })}
+                        style={{ '--trend-height': `${Math.max(8, Math.round((point.callCount / maxTrendCallCount) * 100))}%` } as CSSProperties}
+                      >
+                        <span />
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="dashboard-empty-state">
+                    <strong>{t('dashboard.noCallDataTitle')}</strong>
+                    <p>{t('dashboard.noCallDataDescription')}</p>
+                  </div>
+                )}
+              </section>
+
+              <section className="dashboard-insight-panel" aria-label={t('dashboard.frequentTitle')}>
+                <div className="dashboard-panel-heading">
+                  <div>
+                    <h3>{t('dashboard.frequentTitle')}</h3>
+                    <p>{t('dashboard.frequentDescription')}</p>
+                  </div>
+                </div>
+                {frequentSkills.length > 0 ? (
+                  <ol className="frequent-skill-list">
+                    {frequentSkills.map((skill, index) => (
+                      <li key={skill.path}>
+                        <button type="button" onClick={() => void selectSkill(skill)}>
+                          <span>{index + 1}</span>
+                          <strong>{skill.name}</strong>
+                          <small>{skillLocks[skill.path] ? t('dashboard.favoriteBadge') : t('dashboard.activityBadge')}</small>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="dashboard-empty-state compact">
+                    <strong>{t('dashboard.noFrequentTitle')}</strong>
+                  </div>
+                )}
+              </section>
+
+              <section className="dashboard-insight-panel" aria-label={t('dashboard.suggestionsTitle')}>
+                <div className="dashboard-panel-heading">
+                  <div>
+                    <h3>{t('dashboard.suggestionsTitle')}</h3>
+                    <p>{t('dashboard.suggestionsDescription')}</p>
+                  </div>
+                </div>
+                {tidySuggestions.length > 0 ? (
+                  <ul className="tidy-suggestion-list">
+                    {tidySuggestions.map((suggestion) => (
+                      <li key={suggestion.skill.path}>
+                        <button type="button" onClick={() => void selectSkill(suggestion.skill)}>
+                          <strong>{suggestion.skill.name}</strong>
+                          <span>{suggestion.reason}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="dashboard-empty-state compact">
+                    <strong>{t('dashboard.noSuggestionsTitle')}</strong>
+                  </div>
+                )}
+              </section>
+            </div>
+          </section>
+          ) : null}
           {selectionMode ? (
             <div className="bulk-action-bar" role="toolbar" aria-label={t('bulk.actions')}>
               <strong>{t('bulk.selectedCount', { count: String(selectedSkillCount) })}</strong>
