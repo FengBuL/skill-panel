@@ -83,6 +83,7 @@ type CategorySkillOrderMap = Partial<Record<CategoryId, string[]>>;
 type SkillCardColorMap = Record<string, string>;
 type SkillCategoryAssignmentMap = Partial<Record<string, CategoryId[]>>;
 type SkillLockMap = Record<string, boolean>;
+type SkillFlagMap = Record<string, boolean>;
 type CustomCategoryMap = Record<string, CustomCategorySetting>;
 type TranslateFn = (key: TranslationKey, replacements?: Record<string, string>) => string;
 type CategorySection = {
@@ -96,6 +97,33 @@ type CreateSkillDraft = {
   description: string;
   markdown: string;
   source: WritableSkillSource;
+};
+type HealthFilter =
+  | 'needs-description'
+  | 'parse-issues'
+  | 'untagged'
+  | 'low-frequency'
+  | 'duplicate-name'
+  | 'protected-source'
+  | 'stale'
+  | 'archived';
+type SkillHealthRuleId = Exclude<HealthFilter, 'archived'>;
+type SkillHealthRule = {
+  filter: SkillHealthRuleId;
+  icon: string;
+  labelKey: TranslationKey;
+  predicate: (skill: SkillSummary, context: SkillHealthContext) => boolean;
+};
+type SkillHealthContext = {
+  skillFavorites: SkillFlagMap;
+  skills: SkillSummary[];
+  skillCategoryAssignments: SkillCategoryAssignmentMap;
+  skillTags: Record<string, CustomSkillTag[]>;
+};
+type PendingDelete = {
+  count: number;
+  paths: string[];
+  timerId: ReturnType<typeof window.setTimeout>;
 };
 
 const skillsPerPage = 10;
@@ -556,6 +584,10 @@ function normalizeSkillLocks(locksBySkill: AppSettings['skillLocks']): SkillLock
   return Object.fromEntries(Object.entries(locksBySkill ?? {}).filter(([path, locked]) => Boolean(path.trim()) && locked === true));
 }
 
+function normalizeSkillFlags(flagsBySkill: AppSettings['skillArchives'] | AppSettings['skillFavorites']): SkillFlagMap {
+  return Object.fromEntries(Object.entries(flagsBySkill ?? {}).filter(([path, active]) => Boolean(path.trim()) && active === true));
+}
+
 function normalizeCategorySkillOrder(orderByCategory: AppSettings['categorySkillOrder']): CategorySkillOrderMap {
   const normalizedOrder: CategorySkillOrderMap = {};
 
@@ -713,7 +745,75 @@ function isReadOnlySkill(skill: SkillSummary | SkillDetail) {
 }
 
 function canDeleteSkill(skill: SkillSummary | SkillDetail) {
-  return isWritableSkill(skill) || isProtectedLarkSkill(skill);
+  return isWritableSkill(skill);
+}
+
+function getNormalizedSkillName(name: string) {
+  return name.trim().toLocaleLowerCase().replace(/[-_\s]+/g, ' ');
+}
+
+function getDaysSinceModified(skill: SkillSummary | SkillDetail) {
+  if (!skill.modifiedAt) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const modified = dateFromDateTimeValue(skill.modifiedAt);
+  if (!modified) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.floor((Date.now() - modified.getTime()) / 86_400_000);
+}
+
+const skillHealthRules: SkillHealthRule[] = [
+  {
+    filter: 'needs-description',
+    icon: 'subject',
+    labelKey: 'health.needsDescription',
+    predicate: (skill) => skill.description.trim().length === 0,
+  },
+  {
+    filter: 'parse-issues',
+    icon: 'error',
+    labelKey: 'health.parseIssues',
+    predicate: (skill) => skill.parseStatus !== 'parsed',
+  },
+  {
+    filter: 'untagged',
+    icon: 'label_off',
+    labelKey: 'health.untagged',
+    predicate: (skill, context) =>
+      !context.skillCategoryAssignments[skill.path]?.length && !(context.skillTags[skill.path]?.length),
+  },
+  {
+    filter: 'low-frequency',
+    icon: 'trending_down',
+    labelKey: 'health.lowFrequency',
+    predicate: (skill, context) => !context.skillFavorites[skill.path] && getDaysSinceModified(skill) > 90,
+  },
+  {
+    filter: 'duplicate-name',
+    icon: 'difference',
+    labelKey: 'health.duplicateName',
+    predicate: (skill, context) => {
+      const normalizedName = getNormalizedSkillName(skill.name);
+      return context.skills.filter((candidate) => getNormalizedSkillName(candidate.name) === normalizedName).length > 1;
+    },
+  },
+  {
+    filter: 'protected-source',
+    icon: 'shield',
+    labelKey: 'health.protectedSource',
+    predicate: (skill) => isReadOnlySkill(skill),
+  },
+  {
+    filter: 'stale',
+    icon: 'event_busy',
+    labelKey: 'health.stale',
+    predicate: (skill) => getDaysSinceModified(skill) > 180,
+  },
+];
+
+function getSkillHealthIssueIds(skill: SkillSummary, context: SkillHealthContext): SkillHealthRuleId[] {
+  return skillHealthRules.flatMap((rule) => (rule.predicate(skill, context) ? [rule.filter] : []));
 }
 
 function getRiskLevelKey(skill: SkillSummary | SkillDetail): TranslationKey {
@@ -968,6 +1068,8 @@ export function App() {
   const [skillTags, setSkillTags] = useState<Record<string, CustomSkillTag[]>>(() => normalizeSkillTags(settings.skillTags));
   const [categorySkillOrder, setCategorySkillOrder] = useState<CategorySkillOrderMap>(() => normalizeCategorySkillOrder(settings.categorySkillOrder));
   const [skillCardColors, setSkillCardColors] = useState<SkillCardColorMap>(() => normalizeSkillCardColors(settings.skillCardColors));
+  const [skillArchives, setSkillArchives] = useState<SkillFlagMap>(() => normalizeSkillFlags(settings.skillArchives));
+  const [skillFavorites, setSkillFavorites] = useState<SkillFlagMap>(() => normalizeSkillFlags(settings.skillFavorites));
   const [skillLocks, setSkillLocks] = useState<SkillLockMap>(() => normalizeSkillLocks(settings.skillLocks));
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedSkillPaths, setSelectedSkillPaths] = useState<Set<string>>(() => new Set());
@@ -976,6 +1078,7 @@ export function App() {
   const [bulkColor, setBulkColor] = useState('');
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [skillCategoryAssignments, setSkillCategoryAssignments] = useState<SkillCategoryAssignmentMap>(() =>
     normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides),
   );
@@ -989,6 +1092,8 @@ export function App() {
   const [sortByNameAscending, setSortByNameAscending] = useState(false);
   const [activeGovernanceFilter, setActiveGovernanceFilter] = useState<GovernanceFilter | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('original');
+  const [activeHealthFilter, setActiveHealthFilter] = useState<HealthFilter | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showWritableOnly, setShowWritableOnly] = useState(false);
@@ -1025,7 +1130,22 @@ export function App() {
   }, [categoryColors, categoryIcons, categoryLabels, customCategories, locale, t]);
 
   const filteredSkills = useMemo(() => {
+    const healthContext: SkillHealthContext = { skillCategoryAssignments, skillFavorites, skillTags, skills };
     const searchMatches = filterSkills(skills, searchQuery).filter((skill) => {
+      if (activeHealthFilter === 'archived') {
+        if (!skillArchives[skill.path]) {
+          return false;
+        }
+      } else if (skillArchives[skill.path]) {
+        return false;
+      }
+      if (
+        activeHealthFilter &&
+        activeHealthFilter !== 'archived' &&
+        !getSkillHealthIssueIds(skill, healthContext).includes(activeHealthFilter)
+      ) {
+        return false;
+      }
       if (showWritableOnly && !isWritableSkill(skill)) {
         return false;
       }
@@ -1057,6 +1177,7 @@ export function App() {
   }, [
     activeCategoryId,
     activeGovernanceFilter,
+    activeHealthFilter,
     activeTagLabel,
     searchQuery,
     showReadOnlyOnly,
@@ -1064,6 +1185,7 @@ export function App() {
     categoryColors,
     categoryIcons,
     categoryLabels,
+    skillArchives,
     skillCategoryAssignments,
     skillTags,
     skills,
@@ -1149,6 +1271,14 @@ export function App() {
     }),
     [skills],
   );
+  const healthRuleCounts = useMemo(() => {
+    const context: SkillHealthContext = { skillCategoryAssignments, skillFavorites, skillTags, skills };
+    return Object.fromEntries(skillHealthRules.map((rule) => [rule.filter, skills.filter((skill) => rule.predicate(skill, context)).length])) as Record<
+      SkillHealthRuleId,
+      number
+    >;
+  }, [skillCategoryAssignments, skillFavorites, skillTags, skills]);
+  const archivedSkillCount = useMemo(() => skills.filter((skill) => skillArchives[skill.path]).length, [skillArchives, skills]);
 
   const customTagCategories = useMemo(() => {
     const tagMap = new Map<string, CustomTagCategory>();
@@ -1192,6 +1322,12 @@ export function App() {
   const selectedIsLocked = selectedDetail ? selectedIsPermanentlyLocked || Boolean(skillLocks[selectedDetail.path]) : false;
   const selectedCanDelete = selectedDetail ? canDeleteSkill(selectedDetail) : false;
   const selectedSkillCount = selectedSkillPaths.size;
+  const selectedSkills = useMemo(
+    () => Array.from(selectedSkillPaths).flatMap((path) => skills.find((skill) => skill.path === path) ?? []),
+    [selectedSkillPaths, skills],
+  );
+  const selectedDeletableCount = selectedSkills.filter(canDeleteSkill).length;
+  const selectedProtectedCount = selectedSkills.filter((skill) => !canDeleteSkill(skill)).length;
   const selectedLintItems = selectedDetail ? getSkillLintItems(selectedDetail, t) : [];
   const detailHasChanges =
     Boolean(selectedDetail) &&
@@ -1235,6 +1371,8 @@ export function App() {
     setSkillTags(normalizeSkillTags(settings.skillTags));
     setCategorySkillOrder(normalizeCategorySkillOrder(settings.categorySkillOrder));
     setSkillCardColors(normalizeSkillCardColors(settings.skillCardColors));
+    setSkillArchives(normalizeSkillFlags(settings.skillArchives));
+    setSkillFavorites(normalizeSkillFlags(settings.skillFavorites));
     setSkillLocks(normalizeSkillLocks(settings.skillLocks));
     setSkillCategoryAssignments(normalizeSkillCategoryAssignments(settings.skillCategoryAssignments, settings.skillCategoryOverrides));
     setDetailPanelWidth(normalizeDetailPanelWidth(settings.detailPanelWidth));
@@ -1251,7 +1389,7 @@ export function App() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategoryId, activeGovernanceFilter, activeTagLabel, searchQuery, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
+  }, [activeCategoryId, activeGovernanceFilter, activeHealthFilter, activeTagLabel, searchQuery, showReadOnlyOnly, showWritableOnly, sortByNameAscending, sortMode]);
 
   useEffect(() => {
     if (showDeleteConfirm) {
@@ -1264,6 +1402,15 @@ export function App() {
       createTargetDirectoryRef.current?.focus();
     }
   }, [showCreateSkill]);
+
+  useEffect(
+    () => () => {
+      if (pendingDelete) {
+        window.clearTimeout(pendingDelete.timerId);
+      }
+    },
+    [pendingDelete],
+  );
 
   useEffect(() => {
     const handleOutsideMenuMouseDown = (event: globalThis.MouseEvent) => {
@@ -1306,6 +1453,8 @@ export function App() {
     nextCustomCategories = customCategories,
     nextSkillViewMode = skillViewMode,
     nextSkillLocks = skillLocks,
+    nextSkillArchives = skillArchives,
+    nextSkillFavorites = skillFavorites,
   ) => {
     const latestSettings = settingsRef.current;
     const nextSettings = {
@@ -1320,6 +1469,8 @@ export function App() {
       skillCardColors: nextSkillCardColors,
       skillCategoryAssignments: getPersistedSkillCategoryAssignments(nextSkillCategoryAssignments),
       skillCategoryOverrides: {},
+      skillArchives: nextSkillArchives,
+      skillFavorites: nextSkillFavorites,
       skillTags: nextSkillTags,
       skillViewMode: nextSkillViewMode,
       skillLocks: nextSkillLocks,
@@ -1577,14 +1728,20 @@ export function App() {
       const nextSkillCardColors = { ...skillCardColors };
       const nextSkillCategoryAssignments = { ...skillCategoryAssignments };
       const nextSkillLocks = { ...skillLocks };
+      const nextSkillArchives = { ...skillArchives };
+      const nextSkillFavorites = { ...skillFavorites };
       delete nextSkillTags[targetPath];
       delete nextSkillCardColors[targetPath];
       delete nextSkillCategoryAssignments[targetPath];
       delete nextSkillLocks[targetPath];
+      delete nextSkillArchives[targetPath];
+      delete nextSkillFavorites[targetPath];
       setSkillTags(nextSkillTags);
       setSkillCardColors(nextSkillCardColors);
       setSkillCategoryAssignments(nextSkillCategoryAssignments);
       setSkillLocks(nextSkillLocks);
+      setSkillArchives(nextSkillArchives);
+      setSkillFavorites(nextSkillFavorites);
       persistUiPreferences(
         categoryColors,
         categoryLabels,
@@ -1597,6 +1754,8 @@ export function App() {
         customCategories,
         skillViewMode,
         nextSkillLocks,
+        nextSkillArchives,
+        nextSkillFavorites,
       );
       await scanSkills();
     } catch (error) {
@@ -1936,6 +2095,7 @@ export function App() {
   };
 
   const toggleSkillSelection = (path: string) => {
+    setBulkStatus(null);
     setSelectedSkillPaths((currentPaths) => {
       const nextPaths = new Set(currentPaths);
       if (nextPaths.has(path)) {
@@ -1953,6 +2113,7 @@ export function App() {
     setBulkCategoryId('');
     setBulkTagDraft('');
     setBulkColor('');
+    setBulkStatus(null);
   };
 
   const applyBulkCategory = () => {
@@ -1964,6 +2125,7 @@ export function App() {
       nextAssignments[path] = [bulkCategoryId];
     }
     setSkillCategoryAssignments(nextAssignments);
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkillCount) }));
     persistUiPreferences(
       categoryColors,
       categoryLabels,
@@ -1993,6 +2155,7 @@ export function App() {
     }
     setSkillTags(nextTags);
     setBulkTagDraft('');
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkillCount) }));
     persistUiPreferences(
       categoryColors,
       categoryLabels,
@@ -2021,6 +2184,7 @@ export function App() {
       }
     }
     setSkillCardColors(nextColors);
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkillCount) }));
     persistUiPreferences(
       categoryColors,
       categoryLabels,
@@ -2056,6 +2220,7 @@ export function App() {
     if (selectedPathRef.current && nextLocks[selectedPathRef.current]) {
       setDetailMode('preview');
     }
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkills.filter(isWritableSkill).length) }));
     persistUiPreferences(
       categoryColors,
       categoryLabels,
@@ -2071,19 +2236,77 @@ export function App() {
     );
   };
 
-  const deleteSelectedSkills = async () => {
+  const applyBulkFavorite = (favorite: boolean) => {
     if (selectedSkillCount === 0) {
       return;
     }
+    const nextFavorites = { ...skillFavorites };
+    for (const path of selectedSkillPaths) {
+      if (favorite) {
+        nextFavorites[path] = true;
+      } else {
+        delete nextFavorites[path];
+      }
+    }
+    setSkillFavorites(nextFavorites);
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkillCount) }));
+    persistUiPreferences(
+      categoryColors,
+      categoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      categoryIcons,
+      skillCardColors,
+      skillCategoryAssignments,
+      customCategories,
+      skillViewMode,
+      skillLocks,
+      skillArchives,
+      nextFavorites,
+    );
+  };
+
+  const applyBulkArchive = (archived: boolean) => {
+    if (selectedSkillCount === 0) {
+      return;
+    }
+    const nextArchives = { ...skillArchives };
+    for (const path of selectedSkillPaths) {
+      if (archived) {
+        nextArchives[path] = true;
+      } else {
+        delete nextArchives[path];
+      }
+    }
+    setSkillArchives(nextArchives);
+    setBulkStatus(t('bulk.updatedCount', { count: String(selectedSkillCount) }));
+    persistUiPreferences(
+      categoryColors,
+      categoryLabels,
+      skillTags,
+      categorySkillOrder,
+      detailPanelWidthRef.current,
+      categoryIcons,
+      skillCardColors,
+      skillCategoryAssignments,
+      customCategories,
+      skillViewMode,
+      skillLocks,
+      nextArchives,
+      skillFavorites,
+    );
+  };
+
+  const performPendingDelete = async (targetPaths: string[]) => {
     setIsBulkDeleting(true);
     setDetailError(null);
     const deletedPaths = new Set<string>();
     const failedPaths: string[] = [];
 
-    for (const path of selectedSkillPaths) {
+    for (const path of targetPaths) {
       const skill = skills.find((candidate) => candidate.path === path);
       if (!skill || !canDeleteSkill(skill)) {
-        failedPaths.push(path);
         continue;
       }
       try {
@@ -2098,16 +2321,22 @@ export function App() {
     const nextColors = { ...skillCardColors };
     const nextAssignments = { ...skillCategoryAssignments };
     const nextLocks = { ...skillLocks };
+    const nextArchives = { ...skillArchives };
+    const nextFavorites = { ...skillFavorites };
     for (const path of deletedPaths) {
       delete nextTags[path];
       delete nextColors[path];
       delete nextAssignments[path];
       delete nextLocks[path];
+      delete nextArchives[path];
+      delete nextFavorites[path];
     }
     setSkillTags(nextTags);
     setSkillCardColors(nextColors);
     setSkillCategoryAssignments(nextAssignments);
     setSkillLocks(nextLocks);
+    setSkillArchives(nextArchives);
+    setSkillFavorites(nextFavorites);
     persistUiPreferences(
       categoryColors,
       categoryLabels,
@@ -2120,9 +2349,13 @@ export function App() {
       customCategories,
       skillViewMode,
       nextLocks,
+      nextArchives,
+      nextFavorites,
     );
     setSelectedSkillPaths(new Set(failedPaths));
     setShowBulkDeleteConfirm(false);
+    setPendingDelete(null);
+    setBulkStatus(t('bulk.deletedCount', { count: String(deletedPaths.size) }));
     if (selectedPathRef.current && deletedPaths.has(selectedPathRef.current)) {
       selectedPathRef.current = null;
       setSelectedPath(null);
@@ -2134,6 +2367,31 @@ export function App() {
     }
     await scanSkills();
     setIsBulkDeleting(false);
+  };
+
+  const scheduleSelectedSkillsDelete = () => {
+    const deletablePaths = selectedSkills.filter(canDeleteSkill).map((skill) => skill.path);
+    if (deletablePaths.length === 0) {
+      return;
+    }
+    if (pendingDelete) {
+      window.clearTimeout(pendingDelete.timerId);
+    }
+    setShowBulkDeleteConfirm(false);
+    setBulkStatus(t('bulk.deleteScheduled', { count: String(deletablePaths.length) }));
+    const timerId = window.setTimeout(() => {
+      void performPendingDelete(deletablePaths);
+    }, 8000);
+    setPendingDelete({ count: deletablePaths.length, paths: deletablePaths, timerId });
+  };
+
+  const undoPendingDelete = () => {
+    if (!pendingDelete) {
+      return;
+    }
+    window.clearTimeout(pendingDelete.timerId);
+    setPendingDelete(null);
+    setBulkStatus(t('bulk.deleteUndone', { count: String(pendingDelete.count) }));
   };
 
   const startCategorySkillDrag = (event: DragEvent<HTMLElement>, path: string) => {
@@ -2308,6 +2566,8 @@ export function App() {
         skillCardColors,
         skillCategoryAssignments: getPersistedSkillCategoryAssignments(skillCategoryAssignments),
         skillCategoryOverrides: {},
+        skillArchives,
+        skillFavorites,
         skillTags,
         skillViewMode,
         skillLocks,
@@ -2597,6 +2857,7 @@ export function App() {
                   setActiveGovernanceFilter((current) => (current === 'user-editable' ? null : 'user-editable'));
                   setActiveCategoryId(null);
                   setActiveTagLabel(null);
+                  setActiveHealthFilter(null);
                 }}
               >
                 <SourceNavIcon name="default" />
@@ -2611,11 +2872,40 @@ export function App() {
                   setActiveGovernanceFilter((current) => (current === 'read-only-plugins' ? null : 'read-only-plugins'));
                   setActiveCategoryId(null);
                   setActiveTagLabel(null);
+                  setActiveHealthFilter(null);
                 }}
               >
                 <SourceNavIcon name="tag" />
                 <span className="source-nav-label">{t('governance.readOnlyPlugins')}</span>
                 <span className="source-nav-count">{governanceCounts.readOnlyPlugins}</span>
+              </button>
+            </div>
+          </section>
+          <section className="sidebar-section organize-insights-section" aria-label={t('organize.insightsTitle')}>
+            <h3>{t('organize.insightsTitle')}</h3>
+            <div className="button-stack">
+              {skillHealthRules.map((rule) => (
+                <button
+                  key={rule.filter}
+                  type="button"
+                  aria-label={`${t(rule.labelKey)} ${healthRuleCounts[rule.filter]}`}
+                  className={activeHealthFilter === rule.filter ? 'active' : undefined}
+                  onClick={() => setActiveHealthFilter((current) => (current === rule.filter ? null : rule.filter))}
+                >
+                  <MaterialIcon name={rule.icon} size={17} />
+                  <span className="source-nav-label">{t(rule.labelKey)}</span>
+                  <span className="source-nav-count">{healthRuleCounts[rule.filter]}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-label={`${t('health.archived')} ${archivedSkillCount}`}
+                className={activeHealthFilter === 'archived' ? 'active' : undefined}
+                onClick={() => setActiveHealthFilter((current) => (current === 'archived' ? null : 'archived'))}
+              >
+                <MaterialIcon name="archive" size={17} />
+                <span className="source-nav-label">{t('health.archived')}</span>
+                <span className="source-nav-count">{archivedSkillCount}</span>
               </button>
             </div>
           </section>
@@ -2641,6 +2931,7 @@ export function App() {
                     setActiveCategoryId(item.category?.id ?? null);
                     setActiveTagLabel(null);
                     setActiveGovernanceFilter(null);
+                    setActiveHealthFilter(null);
                     setCurrentPage(1);
                   }}
                   onContextMenu={(event) => {
@@ -2669,6 +2960,7 @@ export function App() {
                     setActiveCategoryId(null);
                     setActiveTagLabel(tag.label);
                     setActiveGovernanceFilter(null);
+                    setActiveHealthFilter(null);
                     setCurrentPage(1);
                   }}
                 >
@@ -2811,6 +3103,25 @@ export function App() {
                   <button type="button" role="menuitemcheckbox" aria-checked={showReadOnlyOnly} onClick={() => setShowReadOnlyOnly((isActive) => !isActive)}>
                     {t('governance.readOnlyPlugins')}
                   </button>
+                  {skillHealthRules.map((rule) => (
+                    <button
+                      key={`library-${rule.filter}`}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={activeHealthFilter === rule.filter}
+                      onClick={() => setActiveHealthFilter((current) => (current === rule.filter ? null : rule.filter))}
+                    >
+                      {t(rule.labelKey)}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={activeHealthFilter === 'archived'}
+                    onClick={() => setActiveHealthFilter((current) => (current === 'archived' ? null : 'archived'))}
+                  >
+                    {t('health.archived')}
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -2862,10 +3173,30 @@ export function App() {
                 <MaterialIcon name="lock_open" size={17} />
                 {t('bulk.unlock')}
               </button>
-              <button type="button" className="danger-action" disabled={selectedSkillCount === 0} onClick={() => setShowBulkDeleteConfirm(true)}>
+              <button type="button" disabled={selectedSkillCount === 0} onClick={() => applyBulkFavorite(true)}>
+                <MaterialIcon name="star" size={17} />
+                {t('bulk.favorite')}
+              </button>
+              <button type="button" disabled={selectedSkillCount === 0} onClick={() => applyBulkArchive(true)}>
+                <MaterialIcon name="archive" size={17} />
+                {t('bulk.archive')}
+              </button>
+              <button type="button" disabled={selectedSkillCount === 0} onClick={() => applyBulkArchive(false)}>
+                <MaterialIcon name="unarchive" size={17} />
+                {t('bulk.unarchive')}
+              </button>
+              <button type="button" className="danger-action" disabled={selectedDeletableCount === 0} onClick={() => setShowBulkDeleteConfirm(true)}>
                 <MaterialIcon name="delete" size={17} />
                 {t('bulk.delete')}
               </button>
+              {bulkStatus ? <span className="bulk-status" role="status">{bulkStatus}</span> : null}
+              {pendingDelete ? (
+                <button type="button" className="secondary-action" onClick={undoPendingDelete}>
+                  <MaterialIcon name="undo" size={17} />
+                  {t('bulk.undoDelete')}
+                </button>
+              ) : null}
+              {selectedProtectedCount > 0 ? <span className="bulk-status warning-text">{t('bulk.protectedSkipped', { count: String(selectedProtectedCount) })}</span> : null}
             </div>
           ) : null}
           {listState === 'ready' ? (
@@ -2911,6 +3242,8 @@ export function App() {
                         const selected = selectionMode ? selectedSkillPaths.has(skill.path) : selectedPath === skill.path;
                         const customTags = skillTags[skill.path] ?? [];
                         const locked = isReadOnlySkill(skill) || Boolean(skillLocks[skill.path]);
+                        const favorite = Boolean(skillFavorites[skill.path]);
+                        const archived = Boolean(skillArchives[skill.path]);
                         return (
                           <div
                             key={`${section.category.id}-${skill.path}`}
@@ -2988,6 +3321,18 @@ export function App() {
                                 <span className="skill-card-icon">
                                   <MaterialIcon name={getSkillIcon(skill)} size={24} />
                                 </span>
+                              </span>
+                              <span className="skill-card-state-icons">
+                                {favorite ? (
+                                  <span className="skill-card-flag-state" aria-label={t('skills.favoriteSkill')} title={t('skills.favoriteSkill')}>
+                                    <MaterialIcon name="star" size={17} />
+                                  </span>
+                                ) : null}
+                                {archived ? (
+                                  <span className="skill-card-flag-state archived" aria-label={t('skills.archivedSkill')} title={t('skills.archivedSkill')}>
+                                    <MaterialIcon name="archive" size={17} />
+                                  </span>
+                                ) : null}
                               </span>
                               <span
                                 className={`skill-card-lock-state ${locked ? 'locked' : 'unlocked'}`}
@@ -3083,6 +3428,16 @@ export function App() {
                               <MaterialIcon name={getSkillIcon(skill)} />
                             </span>
                             <strong>{skill.name}</strong>
+                            {skillFavorites[skill.path] ? (
+                              <span className="table-state-icon" aria-label={t('skills.favoriteSkill')} title={t('skills.favoriteSkill')}>
+                                <MaterialIcon name="star" size={16} />
+                              </span>
+                            ) : null}
+                            {skillArchives[skill.path] ? (
+                              <span className="table-state-icon" aria-label={t('skills.archivedSkill')} title={t('skills.archivedSkill')}>
+                                <MaterialIcon name="archive" size={16} />
+                              </span>
+                            ) : null}
                           </span>
                           <span className="table-skill-tags">
                             {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
@@ -3480,6 +3835,76 @@ export function App() {
                   : 'customize.lockSkill',
             )}
           </button>
+          <button
+            type="button"
+            className="context-lock-action"
+            onClick={() => {
+              if (contextMenuSkill) {
+                const nextFavorites = { ...skillFavorites };
+                if (skillFavorites[contextMenuSkill.path]) {
+                  delete nextFavorites[contextMenuSkill.path];
+                } else {
+                  nextFavorites[contextMenuSkill.path] = true;
+                }
+                setSkillFavorites(nextFavorites);
+                setBulkStatus(t('bulk.updatedCount', { count: '1' }));
+                persistUiPreferences(
+                  categoryColors,
+                  categoryLabels,
+                  skillTags,
+                  categorySkillOrder,
+                  detailPanelWidthRef.current,
+                  categoryIcons,
+                  skillCardColors,
+                  skillCategoryAssignments,
+                  customCategories,
+                  skillViewMode,
+                  skillLocks,
+                  skillArchives,
+                  nextFavorites,
+                );
+                setSkillTagContextMenu(null);
+              }
+            }}
+          >
+            <MaterialIcon name={contextMenuSkill && skillFavorites[contextMenuSkill.path] ? 'star' : 'star_border'} size={18} />
+            {t(contextMenuSkill && skillFavorites[contextMenuSkill.path] ? 'bulk.unfavorite' : 'bulk.favorite')}
+          </button>
+          <button
+            type="button"
+            className="context-lock-action"
+            onClick={() => {
+              if (contextMenuSkill) {
+                const nextArchives = { ...skillArchives };
+                if (skillArchives[contextMenuSkill.path]) {
+                  delete nextArchives[contextMenuSkill.path];
+                } else {
+                  nextArchives[contextMenuSkill.path] = true;
+                }
+                setSkillArchives(nextArchives);
+                setBulkStatus(t('bulk.updatedCount', { count: '1' }));
+                persistUiPreferences(
+                  categoryColors,
+                  categoryLabels,
+                  skillTags,
+                  categorySkillOrder,
+                  detailPanelWidthRef.current,
+                  categoryIcons,
+                  skillCardColors,
+                  skillCategoryAssignments,
+                  customCategories,
+                  skillViewMode,
+                  skillLocks,
+                  nextArchives,
+                  skillFavorites,
+                );
+                setSkillTagContextMenu(null);
+              }
+            }}
+          >
+            <MaterialIcon name={contextMenuSkill && skillArchives[contextMenuSkill.path] ? 'unarchive' : 'archive'} size={18} />
+            {t(contextMenuSkill && skillArchives[contextMenuSkill.path] ? 'bulk.unarchive' : 'bulk.archive')}
+          </button>
           <div className="context-menu-group existing-tag-list" role="group" aria-label={t('customize.defaultCategory')}>
             <span className="context-menu-caption">{t('customize.currentCategories')}</span>
             {contextMenuCategoryIds.map((categoryId) => {
@@ -3583,13 +4008,14 @@ export function App() {
         <div className="dialog-backdrop">
           <div role="dialog" aria-modal="true" aria-labelledby="bulk-delete-title" className="confirm-dialog">
             <h2 id="bulk-delete-title">{t('bulk.deleteTitle')}</h2>
-            <p>{t('bulk.deleteConfirm', { count: String(selectedSkillCount) })}</p>
+            <p>{t('bulk.deleteConfirm', { count: String(selectedDeletableCount) })}</p>
+            {selectedProtectedCount > 0 ? <p className="muted">{t('bulk.protectedSkipped', { count: String(selectedProtectedCount) })}</p> : null}
             <p className="muted">{t('details.deleteBackupNotice')}</p>
             <div className="dialog-actions">
               <button type="button" disabled={isBulkDeleting} onClick={() => setShowBulkDeleteConfirm(false)}>
                 {t('actions.cancel')}
               </button>
-              <button type="button" className="danger-action" disabled={isBulkDeleting} onClick={() => void deleteSelectedSkills()}>
+              <button type="button" className="danger-action" disabled={isBulkDeleting} onClick={scheduleSelectedSkillsDelete}>
                 {t('actions.confirmDelete')}
               </button>
             </div>
@@ -3737,4 +4163,3 @@ export function App() {
     </main>
   );
 }
-

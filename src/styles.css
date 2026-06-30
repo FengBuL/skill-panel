@@ -946,6 +946,27 @@ button.category-chip {
   color: #166534;
 }
 
+.skill-card-state-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.skill-card-flag-state,
+.table-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #b45309;
+}
+
+.skill-card-flag-state.archived,
+.table-state-icon[aria-label*="Archived"],
+.table-state-icon[aria-label*="归档"] {
+  color: #475569;
+}
+
 .skill-card.selected-card .skill-card-icon,
 .skill-card:hover .skill-card-icon {
   background: var(--secondary-container);
@@ -1516,6 +1537,17 @@ button.category-chip {
 .bulk-action-bar select {
   width: auto;
   min-width: 130px;
+}
+
+.bulk-status {
+  flex: 0 0 auto;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.warning-text {
+  color: #9a3412;
 }
 
 .select-category-button {
