@@ -15,6 +15,9 @@ import { EmptyState } from './common/EmptyState';
 import { MarkdownPreviewBlock, MaterialIcon, PathButton } from './common/Ui';
 import { DetailDrawer } from './detail/DetailDrawer';
 import { EditorWorkspace } from './editor/EditorWorkspace';
+import { useDebouncedValue } from './hooks/useDebouncedValue';
+import { usePreferencePersistence } from './hooks/usePreferencePersistence';
+import { useSkillQuery } from './hooks/useSkillQuery';
 import { getSystemLanguages, isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import { SkillCard } from './library/SkillCard';
 import { Settings } from './settings/Settings';
@@ -402,8 +405,8 @@ function getSkillSearchText(skill: SkillSummary) {
 
 function getSourceCodeLabel(source: SkillSource) {
   const labels: Record<SkillSource, string> = {
-    'agents-user': 'Agents',
-    'codex-user': 'Codex',
+    'agents-user': 'Mine',
+    'codex-user': 'Mine',
     custom: 'Custom',
     'plugin-cache': 'Plugin',
     system: 'System',
@@ -411,6 +414,28 @@ function getSourceCodeLabel(source: SkillSource) {
   };
 
   return labels[source];
+}
+
+function formatRelativeModified(value: string | null, locale: string) {
+  if (!value) {
+    return null;
+  }
+
+  const date = dateFromDateTimeValue(value);
+  if (!date) {
+    return null;
+  }
+
+  const diffMs = date.getTime() - Date.now();
+  const absDays = Math.round(Math.abs(diffMs) / 86_400_000);
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' });
+
+  if (absDays >= 1) {
+    return formatter.format(diffMs < 0 ? -absDays : absDays, 'day');
+  }
+
+  const absHours = Math.max(1, Math.round(Math.abs(diffMs) / 3_600_000));
+  return formatter.format(diffMs < 0 ? -absHours : absHours, 'hour');
 }
 
 function filterSkills(skills: SkillSummary[], query: string) {
@@ -1275,6 +1300,7 @@ export function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [lastScanAt, setLastScanAt] = useState<Date | null>(null);
   const [scanOutcome, setScanOutcome] = useState<ScanOutcome>('idle');
   const [defaultScanPathGroups, setDefaultScanPathGroups] = useState<SkillPathGroup[]>(fallbackDefaultScanPathGroups);
@@ -1349,6 +1375,10 @@ export function App() {
   const editorSaveCompleteTimerRef = useRef<number | null>(null);
 
   const selectableLanguageOptions = useMemo(() => languageOptions.filter((option) => option.value !== 'system'), [languageOptions]);
+  const { persistPreferences } = usePreferencePersistence<AppSettings>({
+    debounceMs: 500,
+    save: saveSettings,
+  });
   const skillInsights = useMemo(() => buildSkillInsightData(skills, settings), [settings, skills]);
   const selectedInsight = selectedDetail ? skillInsights.records[selectedDetail.path] : null;
   const visibleLanguage = normalizeSelectableLanguage(language);
@@ -1378,9 +1408,27 @@ export function App() {
     ];
   }, [categoryColors, categoryIcons, categoryLabels, customCategories, locale, t]);
 
-  const filteredSkills = useMemo(() => {
-    const healthContext: SkillHealthContext = { skillCategoryAssignments, skillFavorites, skillTags, skills };
-    const searchMatches = filterSkills(skills, searchQuery).filter((skill) => {
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 500);
+  const {
+    categoryCounts,
+    categorySections,
+    filteredSkills,
+    normalizedCurrentPage,
+    paginatedSkills,
+    sortedFilteredSkills,
+    totalPages,
+  } = useSkillQuery<SkillSummary, CategoryDefinition>({
+    activeCategoryId,
+    activeTagLabel,
+    applyCategorySkillOrder,
+    categorySkillOrder,
+    filterSkills,
+    getCategoryLabel: (category) => getCategoryLabel(category, categoryLabels, t),
+    getEffectiveSkillCategories: (skill) =>
+      getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons),
+    getTagCategories: (skill) => (skillTags[skill.path] ?? []).map((tag) => buildTagCategoryDefinition(tag)),
+    isSkillVisible: (skill) => {
+      const healthContext: SkillHealthContext = { skillCategoryAssignments, skillFavorites, skillTags, skills };
       if (activeHealthFilter === 'archived') {
         if (!skillArchives[skill.path]) {
           return false;
@@ -1414,112 +1462,16 @@ export function App() {
         return false;
       }
       return true;
-    });
-
-    if (activeTagLabel) {
-      return searchMatches.filter((skill) => skillTags[skill.path]?.some((tag) => tag.label === activeTagLabel));
-    }
-
-    if (!activeCategoryId) {
-      return searchMatches;
-    }
-
-    return searchMatches.filter((skill) =>
-      getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).some(
-        (category) => category.id === activeCategoryId,
-      ),
-    );
-  }, [
-    activeCategoryId,
-    activeDashboardFilter,
-    activeGovernanceFilter,
-    activeHealthFilter,
-    activeTagLabel,
-    searchQuery,
-    showReadOnlyOnly,
-    showWritableOnly,
-    categoryColors,
-    categoryIcons,
-    categoryLabels,
-    skillArchives,
-    skillCategoryAssignments,
-    skillLocks,
-    skillTags,
-    skills,
-  ]);
-  const sortedFilteredSkills = useMemo(() => {
-    if (sortMode === 'name' || sortByNameAscending) {
-      return [...filteredSkills].sort((leftSkill, rightSkill) => leftSkill.name.localeCompare(rightSkill.name, locale));
-    }
-    if (sortMode === 'modified') {
-      return [...filteredSkills].sort((leftSkill, rightSkill) => {
-        const leftTime = leftSkill.modifiedAt ? new Date(leftSkill.modifiedAt).getTime() : 0;
-        const rightTime = rightSkill.modifiedAt ? new Date(rightSkill.modifiedAt).getTime() : 0;
-        return rightTime - leftTime;
-      });
-    }
-
-    return filteredSkills;
-  }, [filteredSkills, locale, sortByNameAscending, sortMode]);
-  const totalPages = Math.max(1, Math.ceil(sortedFilteredSkills.length / skillsPerPage));
-  const normalizedCurrentPage = Math.min(currentPage, totalPages);
-  const paginatedSkills = useMemo(() => {
-    const pageStartIndex = (normalizedCurrentPage - 1) * skillsPerPage;
-    return sortedFilteredSkills.slice(pageStartIndex, pageStartIndex + skillsPerPage);
-  }, [normalizedCurrentPage, sortedFilteredSkills]);
-  const categorySections = useMemo<CategorySection[]>(() => {
-    const sectionMap = new Map<CategoryId, { category: CategoryDefinition; skills: SkillSummary[] }>();
-
-    for (const skill of sortedFilteredSkills) {
-      const skillCategories = getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons);
-      const tagCategories =
-        activeCategoryId || activeTagLabel
-          ? []
-          : (skillTags[skill.path] ?? []).map((tag) => buildTagCategoryDefinition(tag));
-
-      for (const category of [...skillCategories, ...tagCategories]) {
-        if (activeCategoryId && category.id !== activeCategoryId) {
-          continue;
-        }
-
-        const section = sectionMap.get(category.id) ?? { category, skills: [] };
-        section.skills.push(skill);
-        sectionMap.set(category.id, section);
-      }
-    }
-
-    return Array.from(sectionMap.values())
-      .map((section) => ({
-        ...section,
-        label: getCategoryLabel(section.category, categoryLabels, t),
-        skills: applyCategorySkillOrder(section.skills, categorySkillOrder[section.category.id]),
-      }))
-      .sort((leftSection, rightSection) => leftSection.label.localeCompare(rightSection.label, locale));
-  }, [
-    activeCategoryId,
-    activeTagLabel,
-    categoryColors,
-    categoryIcons,
-    categoryLabels,
-    categorySkillOrder,
+    },
     locale,
-    skillCategoryAssignments,
-    skillTags,
-    sortedFilteredSkills,
-    t,
-  ]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<CategoryId, number> = Object.fromEntries(categoryNavItems.flatMap((item) => (item.category ? [[item.category.id, 0]] : [])));
-
-    for (const skill of skills) {
-      for (const category of getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons)) {
-        counts[category.id] = (counts[category.id] ?? 0) + 1;
-      }
-    }
-
-    return counts;
-  }, [categoryColors, categoryIcons, categoryLabels, categoryNavItems, skillCategoryAssignments, skills]);
+    page: currentPage,
+    pageSize: skillsPerPage,
+    query: debouncedSearchQuery,
+    skillCategoryNavItems: categoryNavItems,
+    skills,
+    sortByNameAscending,
+    sortMode,
+  });
 
   const governanceCounts = useMemo(
     () => ({
@@ -1673,9 +1625,11 @@ export function App() {
     try {
       const scannedSkills = await invoke<SkillSummary[]>('scan_skills');
       setSkills(scannedSkills);
+      setIsDemoMode(false);
       setScanOutcome(getScanOutcome(scannedSkills));
     } catch (error) {
-      setSkills([]);
+      setSkills(stitchDemoSkills);
+      setIsDemoMode(true);
       setScanError(error instanceof Error ? error.message : String(error));
       setScanOutcome('failed');
     } finally {
@@ -1871,9 +1825,7 @@ export function App() {
       skillLocks: nextSkillLocks,
     };
     settingsRef.current = nextSettings;
-    void saveSettings(nextSettings).catch(() => {
-      // Settings save errors are exposed through the shared settings runtime.
-    });
+    persistPreferences(nextSettings);
   };
 
   useEffect(() => {
@@ -4415,6 +4367,13 @@ export function App() {
               {selectedProtectedCount > 0 ? <span className="bulk-status warning-text">{t('bulk.protectedSkipped', { count: String(selectedProtectedCount) })}</span> : null}
             </div>
           ) : null}
+          {isDemoMode ? (
+            <div className="demo-mode-banner" role="status">
+              <MaterialIcon name="info" size={18} />
+              <strong>{t('sources.demoMode')}</strong>
+              <span>{t('sources.demoModeDescription')}</span>
+            </div>
+          ) : null}
           {listState === 'ready' ? (
             <div className="skill-list-scroll fluid-table-region">
               <div className={`skill-card-grid active library-card-grid density-${libraryDensity}`}>
@@ -4422,6 +4381,9 @@ export function App() {
                   const selected = selectionMode ? selectedSkillPaths.has(skill.path) : selectedPath === skill.path;
                   const customTags = skillTags[skill.path] ?? [];
                   const locked = isReadOnlySkill(skill) || Boolean(skillLocks[skill.path]);
+                  const favorite = Boolean(skillFavorites[skill.path]);
+                  const archived = Boolean(skillArchives[skill.path]);
+                  const relativeModified = formatRelativeModified(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown');
 
                   return (
                     <SkillCard
@@ -4466,37 +4428,33 @@ export function App() {
                             <MaterialIcon name={getSkillIcon(skill)} size={24} />
                           </span>
                         </span>
-                        <span
-                          className={`skill-card-lock-state ${locked ? 'locked' : 'unlocked'}`}
-                          aria-label={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
-                          title={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
-                        >
-                          <MaterialIcon name={locked ? 'lock' : 'lock_open'} size={18} />
+                        <span className="skill-card-state-icons">
+                          {favorite ? (
+                            <span className="skill-card-flag-state" aria-label={t('skills.favoriteSkill')} title={t('skills.favoriteSkill')}>
+                              <MaterialIcon name="star" size={17} />
+                            </span>
+                          ) : null}
+                          {archived ? (
+                            <span className="skill-card-flag-state archived" aria-label={t('skills.archivedSkill')} title={t('skills.archivedSkill')}>
+                              <MaterialIcon name="archive" size={17} />
+                            </span>
+                          ) : null}
+                          <span
+                            className={`skill-card-lock-state ${locked ? 'locked' : 'unlocked'}`}
+                            aria-label={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                            title={locked ? t('skills.lockedSkill') : t('skills.editableSkill')}
+                          >
+                            <MaterialIcon name={locked ? 'lock' : 'lock_open'} size={18} />
+                          </span>
                         </span>
                       </span>
                       <span className="skill-card-body">
                         <strong>{skill.name}</strong>
                         <span className="skill-description">{skill.description}</span>
                       </span>
-                      <dl className="library-card-meta">
-                        <div>
-                          <dt>{t('details.source')}</dt>
-                          <dd>{getSourceCodeLabel(skill.source)}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('skills.columnStatus')}</dt>
-                          <dd>{t(parseStatusLabelKeys[skill.parseStatus])}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('details.modified')}</dt>
-                          <dd>{formatDateTime(skill.modifiedAt, locale) ?? t('skills.modifiedUnknown')}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('details.path')}</dt>
-                          <dd title={skill.path}>{skill.path}</dd>
-                        </div>
-                      </dl>
                       <span className="skill-card-tags">
+                        <span className="source-chip">{t(sourceLabelKeys[skill.source])}</span>
+                        <span className="time-chip">{relativeModified}</span>
                         {getEffectiveSkillCategories(skill, skillCategoryAssignments, categoryLabels, categoryColors, categoryIcons).map((category) => (
                           <span
                             key={`${skill.path}-${category.id}`}
@@ -4522,34 +4480,14 @@ export function App() {
                       <span className="library-card-actions">
                         <button
                           type="button"
+                          className="secondary-action"
                           onClick={(event) => {
                             event.stopPropagation();
-                            void openSkillPreview(skill);
-                          }}
-                        >
-                          <MaterialIcon name="visibility" size={16} />
-                          {t('details.preview')}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={locked}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void selectSkill(skill).then(() => setDetailMode('edit'));
+                            void openEditorWorkspace(skill);
                           }}
                         >
                           <MaterialIcon name="edit" size={16} />
-                          {t('details.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void copySkillPath(skill.path);
-                          }}
-                        >
-                          <MaterialIcon name="content_copy" size={16} />
-                          {t('library.copyPath')}
+                          {t('editor.open')}
                         </button>
                         <label className="card-category-picker" onClick={(event) => event.stopPropagation()}>
                           <span>{t('customize.defaultCategory')}</span>

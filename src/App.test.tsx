@@ -1737,9 +1737,11 @@ describe('App shell', () => {
     await screen.findByRole('row', { name: /imagegen/i });
     await user.type(screen.getByRole('searchbox', { name: '搜索 Skill' }), 'plugins');
 
-    expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /standup report/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('row', { name: /browser control/i })).toBeInTheDocument();
+      expect(screen.queryByRole('row', { name: /imagegen/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('row', { name: /standup report/i })).not.toBeInTheDocument();
+    });
   });
 
   it('filters skills by category from the category rail', async () => {
@@ -1767,15 +1769,17 @@ describe('App shell', () => {
     await user.click(within(screen.getByRole('complementary', { name: 'Categories' })).getByRole('button', { name: /^Data 2$/i }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'sheet');
 
-    expect(screen.getByRole('row', { name: /sheet-flow/i })).toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /stock-flow/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('row', { name: /write-flow/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('row', { name: /sheet-flow/i })).toBeInTheDocument();
+      expect(screen.queryByRole('row', { name: /stock-flow/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('row', { name: /write-flow/i })).not.toBeInTheDocument();
+    });
     expect(screen.getAllByText('1 skills').length).toBeGreaterThan(0);
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search skills' }));
     await user.type(screen.getByRole('searchbox', { name: 'Search skills' }), 'missing skill');
 
-    expect(screen.getByText('No matching skills')).toBeInTheDocument();
+    expect(await screen.findByText('No matching skills')).toBeInTheDocument();
   });
 
   it('shows an empty filtered state when no skill matches filters', async () => {
@@ -1787,7 +1791,7 @@ describe('App shell', () => {
     await screen.findByRole('row', { name: /imagegen/i });
     await user.type(screen.getByRole('searchbox', { name: '搜索 Skill' }), 'missing skill name');
 
-    expect(screen.getByText('没有匹配的 Skill')).toBeInTheDocument();
+    expect(await screen.findByText('没有匹配的 Skill')).toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'Skill 列表' })).not.toBeInTheDocument();
   });
 
