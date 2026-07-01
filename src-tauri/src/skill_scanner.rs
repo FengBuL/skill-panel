@@ -1,4 +1,4 @@
-use crate::models::{AppSettings, ParseStatus, SkillSource, SkillSummary};
+use crate::models::{AppSettings, ParseStatus, SkillPathGroup, SkillSource, SkillSummary};
 
 use std::{
     collections::HashSet,
@@ -59,6 +59,37 @@ pub fn default_scan_roots_for_home(home: &Path) -> Vec<ScanRoot> {
     );
 
     roots
+}
+
+pub fn default_scan_path_groups() -> Result<Vec<SkillPathGroup>, String> {
+    let home = home_dir().ok_or_else(|| "Unable to resolve user home directory".to_string())?;
+    Ok(default_scan_path_groups_for_home(&home))
+}
+
+pub fn default_scan_path_groups_for_home(home: &Path) -> Vec<SkillPathGroup> {
+    vec![SkillPathGroup {
+        label_key: default_scan_path_label_key(),
+        paths: vec![
+            home.join(".codex")
+                .join("skills")
+                .to_string_lossy()
+                .to_string(),
+            home.join(".agents")
+                .join("skills")
+                .to_string_lossy()
+                .to_string(),
+        ],
+    }]
+}
+
+fn default_scan_path_label_key() -> String {
+    if cfg!(windows) {
+        "settings.windowsDefaultPaths".to_string()
+    } else if cfg!(target_os = "macos") {
+        "settings.macosDefaultPaths".to_string()
+    } else {
+        "settings.defaultPathsSection".to_string()
+    }
 }
 
 pub fn discover_plugin_skill_roots(cache_dir: &Path) -> Vec<PathBuf> {
@@ -290,7 +321,7 @@ mod tests {
     use crate::models::{ParseStatus, SkillSource};
 
     use super::{
-        default_scan_roots_for_home, discover_plugin_skill_roots,
+        default_scan_path_groups_for_home, default_scan_roots_for_home, discover_plugin_skill_roots,
         scan_configured_skill_roots_for_home, scan_skill_roots, summarize_skill_file, ScanRoot,
     };
     use crate::models::{AppSettings, Language};
@@ -343,6 +374,30 @@ mod tests {
             SkillSource::AgentsUser
         )));
         assert!(roots.contains(&ScanRoot::new(plugin_skills, SkillSource::PluginCache)));
+
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
+    fn default_scan_path_groups_return_user_writable_roots_for_home() {
+        let home = temp_home("default-path-groups");
+
+        let groups = default_scan_path_groups_for_home(&home);
+
+        assert_eq!(groups.len(), 1);
+        assert_eq!(
+            groups[0].paths,
+            vec![
+                home.join(".codex")
+                    .join("skills")
+                    .to_string_lossy()
+                    .to_string(),
+                home.join(".agents")
+                    .join("skills")
+                    .to_string_lossy()
+                    .to_string(),
+            ]
+        );
 
         fs::remove_dir_all(home).ok();
     }

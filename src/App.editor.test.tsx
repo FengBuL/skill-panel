@@ -13,6 +13,14 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
 }));
 
+const { openMock } = vi.hoisted(() => ({
+  openMock: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: openMock,
+}));
+
 function mockNavigatorLanguages(languages: readonly string[]) {
   Object.defineProperty(window.navigator, 'languages', {
     configurable: true,
@@ -128,6 +136,7 @@ function mockEditorInvoke(skills = scanResults) {
 describe('App skill editor', () => {
   beforeEach(() => {
     invokeMock.mockReset();
+    openMock.mockReset();
     window.localStorage.clear();
     mockNavigatorLanguages(['en-US']);
     mockEditorInvoke();

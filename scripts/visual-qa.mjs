@@ -333,6 +333,10 @@ async function runScenario(browser, scenario) {
   }
 
   if (scenario.bulkSelection) {
+    if (scenario.selectFirstSkill) {
+      await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '关闭' : 'Close' }).first().click();
+      await page.locator('.detail-drawer').waitFor({ state: 'detached', timeout: 5000 });
+    }
     await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '批量选择' : 'Batch select' }).click();
     await page.locator('.select-category-button').first().evaluate((element) => element.click());
     await page.getByRole('toolbar', { name: scenario.language === 'zh-CN' ? '批量操作' : 'Bulk actions' }).waitFor({ timeout: 5000 });
@@ -410,7 +414,7 @@ async function runScenario(browser, scenario) {
     assertions.push(['library pagination controls are visible', checks.paginationControlsVisible]);
   }
 
-  if (scenario.selectFirstSkill) {
+  if (scenario.selectFirstSkill && !scenario.bulkSelection) {
     assertions.push(['detail panel is visible', checks.detailPanelVisible]);
     assertions.push(['long Markdown region has usable height', checks.markdownRegionVisible]);
     assertions.push(['selected detail body is present', checks.bodyText.includes('Visual QA Skill')]);

@@ -4,9 +4,11 @@ use crate::models::{
 use crate::settings_store;
 use crate::skill_scanner::{self, ScanRoot};
 
+use fs2::FileExt;
 use serde_json::{Map, Number, Value};
 use std::{
     env, fs,
+    io::{Seek, SeekFrom, Write},
     path::{Component, Path, PathBuf},
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
@@ -226,7 +228,24 @@ fn write_skill_file(
 ) -> Result<(), String> {
     ensure_required_frontmatter(frontmatter)?;
     let raw_content = format_frontmatter(frontmatter) + body_markdown;
-    fs::write(skill_file, raw_content).map_err(|error| format!("Unable to write skill file: {error}"))
+    write_locked(skill_file, raw_content.as_bytes())
+        .map_err(|error| format!("Unable to write skill file: {error}"))
+}
+
+fn write_locked(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(path)?;
+    file.lock_exclusive()?;
+    let result = file
+        .set_len(0)
+        .and_then(|_| file.seek(SeekFrom::Start(0)).map(|_| ()))
+        .and_then(|_| file.write_all(contents))
+        .and_then(|_| file.sync_all());
+    let unlock_result = file.unlock();
+    result.and(unlock_result)
 }
 
 fn parse_skill_markdown(raw_content: &str) -> Result<ParsedSkillMarkdown, String> {
@@ -757,7 +776,7 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), Str
 mod tests {
     use super::{
         create_skill, create_skill_in_roots, delete_skill, delete_skill_in_roots,
-        format_frontmatter, parse_skill_markdown, read_skill, read_skill_in_roots,
+        format_frontmatter, parse_skill_markdown, read_skill, read_skill_in_roots, write_locked,
         resolve_skill_folder_to_open, skill_directory_name, update_skill, update_skill_in_roots,
     };
     use crate::models::{
@@ -929,6 +948,23 @@ mod tests {
         delete_skill_in_roots(updated.summary.path, &roots(&root)).expect("skill should delete");
         assert!(!skill_dir.exists());
         assert!(root.exists());
+
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn locked_skill_write_truncates_and_replaces_file_contents() {
+        let root = temp_root("locked-write");
+        let skill_path = root.join("SKILL.md");
+        fs::write(&skill_path, "older content that should be removed")
+            .expect("seed skill should be written");
+
+        write_locked(&skill_path, b"new").expect("locked write should complete");
+
+        assert_eq!(
+            fs::read_to_string(&skill_path).expect("skill should read"),
+            "new"
+        );
 
         fs::remove_dir_all(root).ok();
     }

@@ -21,7 +21,7 @@ SH
 chmod +x "$TMP_BIN/npm"
 
 cd "$ROOT_DIR"
-PATH="$TMP_BIN:$PATH" "$PNPM_BIN" exec tauri build --bundles app,dmg
+PATH="$TMP_BIN:$PATH" "$PNPM_BIN" exec tauri build --bundles app
 
 if [ -d "$DST_APP" ]; then
   mv "$DST_APP" "$BACKUP_DIR"

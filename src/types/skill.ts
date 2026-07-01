@@ -26,6 +26,11 @@ export interface SkillSummary {
   modifiedAt: string | null;
 }
 
+export interface SkillPathGroup {
+  labelKey: string;
+  paths: string[];
+}
+
 export interface SkillDetail extends SkillSummary {
   markdown: string;
   bodyMarkdown: string;
@@ -111,6 +116,7 @@ export interface UpdateSkillInput {
 export const skillCommandNames = [
   'app_version',
   'scan_skills',
+  'default_scan_path_groups',
   'read_skill',
   'create_skill',
   'update_skill',
@@ -125,6 +131,7 @@ export type SkillCommandName = (typeof skillCommandNames)[number];
 export interface SkillCommandMap {
   app_version: () => Promise<string>;
   scan_skills: () => Promise<SkillSummary[]>;
+  default_scan_path_groups: () => Promise<SkillPathGroup[]>;
   read_skill: (input: { path: string }) => Promise<SkillDetail>;
   create_skill: (input: { input: CreateSkillInput }) => Promise<SkillDetail>;
   update_skill: (input: { input: UpdateSkillInput }) => Promise<SkillDetail>;

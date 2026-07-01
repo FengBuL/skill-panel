@@ -1,7 +1,9 @@
 use crate::models::AppSettings;
 
+use fs2::FileExt;
 use std::{
     env, fs,
+    io::{Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -37,9 +39,26 @@ pub fn save_app_settings_to_path(
 
     let contents = serde_json::to_string_pretty(&settings)
         .map_err(|error| format!("Unable to serialize settings: {error}"))?;
-    fs::write(path, contents).map_err(|error| format!("Unable to write settings: {error}"))?;
+    write_locked(path, contents.as_bytes())
+        .map_err(|error| format!("Unable to write settings: {error}"))?;
 
     Ok(settings)
+}
+
+fn write_locked(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(path)?;
+    file.lock_exclusive()?;
+    let result = file
+        .set_len(0)
+        .and_then(|_| file.seek(SeekFrom::Start(0)).map(|_| ()))
+        .and_then(|_| file.write_all(contents))
+        .and_then(|_| file.sync_all());
+    let unlock_result = file.unlock();
+    result.and(unlock_result)
 }
 
 fn default_settings_path() -> Result<PathBuf, String> {
@@ -61,7 +80,7 @@ fn home_dir() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_app_settings_from_path, save_app_settings_to_path};
+    use super::{load_app_settings_from_path, save_app_settings_to_path, write_locked};
     use crate::models::{AppSettings, CustomCategorySetting, Language};
     use std::{
         fs,
@@ -215,6 +234,26 @@ mod tests {
             .parent()
             .and_then(|parent| parent.parent())
             .and_then(|parent| parent.parent());
+        if let Some(root) = root {
+            fs::remove_dir_all(root).ok();
+        }
+    }
+
+    #[test]
+    fn locked_settings_write_replaces_file_contents() {
+        let path = temp_settings_path("locked-write");
+        fs::create_dir_all(path.parent().expect("path should have parent"))
+            .expect("settings directory should be created");
+        fs::write(&path, "older and longer settings").expect("seed settings should be written");
+
+        write_locked(&path, br#"{"language":"system"}"#).expect("locked write should complete");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("settings should read"),
+            r#"{"language":"system"}"#
+        );
+
+        let root = path.parent().and_then(|parent| parent.parent());
         if let Some(root) = root {
             fs::remove_dir_all(root).ok();
         }

@@ -8,6 +8,7 @@ import {
   type CreateSkillInput,
   type SkillCommandMap,
   type SkillDetail,
+  type SkillPathGroup,
   type SkillSummary,
   type UpdateSkillInput,
 } from './skill';
@@ -30,6 +31,7 @@ describe('skill type contracts', () => {
     expect(skillCommandNames).toEqual([
       'app_version',
       'scan_skills',
+      'default_scan_path_groups',
       'read_skill',
       'create_skill',
       'update_skill',
@@ -40,6 +42,7 @@ describe('skill type contracts', () => {
     ]);
 
     expectTypeOf<SkillCommandMap['scan_skills']>().returns.resolves.toEqualTypeOf<SkillSummary[]>();
+    expectTypeOf<SkillCommandMap['default_scan_path_groups']>().returns.resolves.toEqualTypeOf<SkillPathGroup[]>();
     expectTypeOf<SkillCommandMap['read_skill']>().parameter(0).toEqualTypeOf<{ path: string }>();
     expectTypeOf<SkillCommandMap['read_skill']>().returns.resolves.toEqualTypeOf<SkillDetail>();
     expectTypeOf<SkillCommandMap['create_skill']>().parameter(0).toEqualTypeOf<{ input: CreateSkillInput }>();
@@ -56,6 +59,7 @@ describe('skill type contracts', () => {
       parseStatus: 'parsed' | 'missing-skill-file' | 'invalid-frontmatter' | 'read-error';
       modifiedAt: string | null;
     }>();
+    expectTypeOf<SkillPathGroup>().toEqualTypeOf<{ labelKey: string; paths: string[] }>();
     expectTypeOf<SkillDetail>().toMatchTypeOf<SkillSummary>();
     expectTypeOf<SkillDetail>().toMatchTypeOf<
       SkillSummary & {

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import {
   useEffect,
   useMemo,
@@ -8,18 +9,21 @@ import {
   type DragEvent,
   type MouseEvent,
   type PointerEvent,
-  type ReactNode,
-  type RefObject,
   type UIEvent,
 } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
+import { EmptyState } from './common/EmptyState';
+import { MarkdownPreviewBlock, MaterialIcon, PathButton } from './common/Ui';
+import { DetailDrawer } from './detail/DetailDrawer';
+import { EditorWorkspace } from './editor/EditorWorkspace';
+import { getSystemLanguages, isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
+import { SkillCard } from './library/SkillCard';
+import { Settings } from './settings/Settings';
 import {
   type AppSettings,
   type CustomCategorySetting,
   type ParseStatus,
   type SkillDetail,
+  type SkillPathGroup,
   type SkillSource,
   type SkillSummary,
   type WritableSkillSource,
@@ -178,6 +182,17 @@ type PendingDelete = {
   paths: string[];
   timerId: ReturnType<typeof window.setTimeout>;
 };
+type DeleteConfirmation =
+  | {
+      kind: 'single';
+      path: string;
+    }
+  | {
+      count: number;
+      kind: 'bulk';
+      protectedCount: number;
+      paths: string[];
+    };
 
 const skillsPerPage = 24;
 const defaultDetailPanelWidth = 400;
@@ -230,18 +245,7 @@ const emptyEditorDraft: SkillEditorDraft = {
   targetDirectory: '',
 };
 
-const defaultScanPathGroups: Array<{ labelKey: TranslationKey; paths: string[] }> = [
-  {
-    labelKey: 'settings.windowsDefaultPaths',
-    paths: ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'],
-  },
-  {
-    labelKey: 'settings.macosDefaultPaths',
-    paths: ['~/.codex/skills', '~/.agents/skills'],
-  },
-];
-
-const sidebarStoragePaths = ['%USERPROFILE%\\.codex\\skills', '%USERPROFILE%\\.agents\\skills'];
+const fallbackDefaultScanPathGroups: SkillPathGroup[] = [];
 const builtInCategoryIds: BuiltInCategoryId[] = ['finance', 'data', 'writing', 'default'];
 const categoryDefaults: Record<BuiltInCategoryId, CategoryDefinition> = {
   finance: { id: 'finance', label: 'Finance', labelKey: 'category.finance', className: 'category-finance', color: '#fff4d8' },
@@ -419,14 +423,6 @@ function filterSkills(skills: SkillSummary[], query: string) {
   });
 }
 
-function MaterialIcon({ name, size = 18 }: { name: string; size?: number }) {
-  return (
-    <span aria-hidden="true" className="material-symbols-outlined app-icon" style={{ fontSize: `${size}px` }}>
-      {name}
-    </span>
-  );
-}
-
 function getSkillIcon(skill: SkillSummary) {
   const text = getSkillSearchText(skill);
 
@@ -449,23 +445,8 @@ function getSkillIcon(skill: SkillSummary) {
   return 'schema';
 }
 
-function getInferredSkillCategories(skill: SkillSummary) {
-  const text = getSkillSearchText(skill);
-  const categories: CategoryDefinition[] = [];
-
-  if (text.includes('stock') || text.includes('share') || text.includes('finance') || text.includes('量化')) {
-    categories.push(categoryDefaults.finance);
-  }
-
-  if (text.includes('sheet') || text.includes('csv') || text.includes('table') || text.includes('data')) {
-    categories.push(categoryDefaults.data);
-  }
-
-  if (text.includes('doc') || text.includes('pdf') || text.includes('write') || text.includes('mail')) {
-    categories.push(categoryDefaults.writing);
-  }
-
-  return categories.length > 0 ? categories : [categoryDefaults.default];
+function getDefaultSkillCategories() {
+  return [categoryDefaults.default];
 }
 
 function getInitialCategoryColors(customCategories: CustomCategoryMap = {}): CategoryColorMap {
@@ -818,12 +799,16 @@ function getEffectiveSkillCategories(
   categoryColors: CategoryColorMap,
   categoryIcons: CategoryIconMap,
 ) {
-  const assignedCategoryIds = skillCategoryAssignments[skill.path];
+  const assignedCategoryIds = getAssignedSkillCategoryIds(skill.path, skillCategoryAssignments);
   if (assignedCategoryIds && assignedCategoryIds.length > 0) {
     return assignedCategoryIds.map((categoryId) => buildCategoryDefinition(categoryId, categoryLabels, categoryColors, categoryIcons));
   }
 
-  return getInferredSkillCategories(skill);
+  return getDefaultSkillCategories();
+}
+
+function getAssignedSkillCategoryIds(path: string, skillCategoryAssignments: SkillCategoryAssignmentMap) {
+  return skillCategoryAssignments[path] ?? [categoryDefaults.default.id];
 }
 
 function getCategoryStyle(category: CategoryDefinition, categoryColors: CategoryColorMap): CSSProperties {
@@ -854,8 +839,13 @@ function getTagStyle(color: string): CSSProperties {
   return { '--tag-color': color } as CSSProperties;
 }
 
-function normalizeSelectableLanguage(languageValue: AppSettings['language']): AppSettings['language'] {
-  return languageValue === 'system' ? 'zh-CN' : languageValue;
+function getSystemSelectableLanguage(): Exclude<AppSettings['language'], 'system'> {
+  const systemLanguages = typeof navigator === 'undefined' ? [] : getSystemLanguages(navigator);
+  return systemLanguages.some((systemLanguage) => systemLanguage.toLowerCase().startsWith('zh')) ? 'zh-CN' : 'en-US';
+}
+
+function normalizeSelectableLanguage(languageValue: AppSettings['language']): Exclude<AppSettings['language'], 'system'> {
+  return languageValue === 'system' ? getSystemSelectableLanguage() : languageValue;
 }
 
 function isProtectedLarkSkill(skill: SkillSummary | SkillDetail) {
@@ -983,62 +973,6 @@ function getSkillLintItems(detail: SkillDetail, t: TranslateFn) {
   items.push(/when to use|use when|trigger/i.test(detail.bodyMarkdown) ? t('lint.triggerFound') : t('lint.triggerMissing'));
   items.push(isWritableSkill(detail) ? t('lint.editableUserSkill') : t('lint.protectedSource'));
   return items;
-}
-
-function getMarkdownNodeText(value: ReactNode): string {
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return value.map(getMarkdownNodeText).join('');
-  }
-  return '';
-}
-
-function getMarkdownHeadingId(value: ReactNode) {
-  const text = getMarkdownNodeText(value);
-  const slug = text
-    .toLowerCase()
-    .trim()
-    .replace(/[`~!@#$%^&*()+=[\]{}\\|;:'",.<>/?]/g, '')
-    .replace(/\s+/g, '-');
-  return `markdown-heading-${slug || 'section'}`;
-}
-
-function MarkdownPreviewBlock({
-  ariaLabel,
-  emptyText,
-  markdown,
-  onScroll,
-  previewRef,
-}: {
-  ariaLabel: string;
-  emptyText: string;
-  markdown: string;
-  onScroll?: (event: UIEvent<HTMLDivElement>) => void;
-  previewRef?: RefObject<HTMLDivElement | null>;
-}) {
-  return (
-    <div ref={previewRef} className="markdown-preview markdown-content" role="region" aria-label={ariaLabel} onScroll={onScroll}>
-      {markdown.trim() ? (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            h1: ({ node: _node, ...props }) => <h1 id={getMarkdownHeadingId(props.children)} {...props} />,
-            h2: ({ node: _node, ...props }) => <h2 id={getMarkdownHeadingId(props.children)} {...props} />,
-            h3: ({ node: _node, ...props }) => <h3 id={getMarkdownHeadingId(props.children)} {...props} />,
-            h4: ({ node: _node, ...props }) => <h4 id={getMarkdownHeadingId(props.children)} {...props} />,
-            h5: ({ node: _node, ...props }) => <h5 id={getMarkdownHeadingId(props.children)} {...props} />,
-            h6: ({ node: _node, ...props }) => <h6 id={getMarkdownHeadingId(props.children)} {...props} />,
-          }}
-        >
-          {markdown}
-        </ReactMarkdown>
-      ) : (
-        <p>{emptyText}</p>
-      )}
-    </div>
-  );
 }
 
 function getSimpleDiffLines(previousDetail: SkillDetail | null, nextName: string, nextDescription: string, nextMarkdown: string) {
@@ -1299,33 +1233,6 @@ function getScanOutcome(skills: SkillSummary[]): ScanOutcome {
   return skills.some((skill) => skill.parseStatus !== 'parsed') ? 'partial-success' : 'success';
 }
 
-function PathButton({
-  className = 'path-button',
-  onOpen,
-  path,
-}: {
-  className?: string;
-  onOpen: (path: string) => void | Promise<void>;
-  path: string;
-}) {
-  return (
-    <button
-      type="button"
-      className={className}
-      title={path}
-      onClick={(event) => {
-        event.stopPropagation();
-        void onOpen(path);
-      }}
-      onKeyDown={(event) => {
-        event.stopPropagation();
-      }}
-    >
-      {path}
-    </button>
-  );
-}
-
 export function App() {
   const {
     language,
@@ -1357,9 +1264,9 @@ export function App() {
   const [detailErrorTitleKey, setDetailErrorTitleKey] = useState<DetailErrorTitleKey>('details.errorTitle');
   const [isSavingDetail, setIsSavingDetail] = useState(false);
   const [isDeletingDetail, setIsDeletingDetail] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteConfirmPath, setDeleteConfirmPath] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation | null>(null);
   const detailRequestIdRef = useRef(0);
+  const detailReturnFocusRef = useRef<HTMLElement | null>(null);
   const selectedPathRef = useRef<string | null>(null);
   const confirmDeleteButtonRef = useRef<HTMLButtonElement>(null);
   const createTargetDirectoryRef = useRef<HTMLInputElement>(null);
@@ -1370,9 +1277,11 @@ export function App() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [lastScanAt, setLastScanAt] = useState<Date | null>(null);
   const [scanOutcome, setScanOutcome] = useState<ScanOutcome>('idle');
+  const [defaultScanPathGroups, setDefaultScanPathGroups] = useState<SkillPathGroup[]>(fallbackDefaultScanPathGroups);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(settings);
   const [customDirectoryInput, setCustomDirectoryInput] = useState('');
+  const [directoryPickerError, setDirectoryPickerError] = useState<string | null>(null);
   const [showCreateSkill, setShowCreateSkill] = useState(false);
   const [createSkillDraft, setCreateSkillDraft] = useState<CreateSkillDraft>(emptyCreateSkillDraft);
   const [createSkillError, setCreateSkillError] = useState<string | null>(null);
@@ -1397,7 +1306,6 @@ export function App() {
   const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [bulkTagDraft, setBulkTagDraft] = useState('');
   const [bulkColor, setBulkColor] = useState('');
-  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [skillCategoryAssignments, setSkillCategoryAssignments] = useState<SkillCategoryAssignmentMap>(() =>
@@ -1421,6 +1329,7 @@ export function App() {
   const [showReadOnlyOnly, setShowReadOnlyOnly] = useState(false);
   const [activeDashboardFilter, setActiveDashboardFilter] = useState<DashboardFilter | null>(null);
   const [trendWindow, setTrendWindow] = useState<TrendWindow>(14);
+  const [showFoundationInsights, setShowFoundationInsights] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<EditorWorkspaceMode>('library');
   const [editorDraft, setEditorDraft] = useState<SkillEditorDraft>(() => loadStoredEditorDraft() ?? emptyEditorDraft);
@@ -1444,6 +1353,14 @@ export function App() {
   const selectedInsight = selectedDetail ? skillInsights.records[selectedDetail.path] : null;
   const visibleLanguage = normalizeSelectableLanguage(language);
   const visibleSettingsLanguage = normalizeSelectableLanguage(settingsDraft.language);
+  const defaultScanPaths = useMemo(
+    () => defaultScanPathGroups.flatMap((group) => group.paths),
+    [defaultScanPathGroups],
+  );
+  const storagePaths = useMemo(
+    () => Array.from(new Set([...defaultScanPaths, ...settings.customScanDirectories])),
+    [defaultScanPaths, settings.customScanDirectories],
+  );
   const categoryNavItems = useMemo<Array<{ category: CategoryDefinition | null; icon: SourceIconName; labelKey?: TranslationKey }>>(() => {
     const customItems = Object.entries(customCategories)
       .map(([categoryId, category]) => ({
@@ -1686,6 +1603,7 @@ export function App() {
   const selectedIsPermanentlyLocked = selectedDetail ? isReadOnlySkill(selectedDetail) : false;
   const selectedIsLocked = selectedDetail ? selectedIsPermanentlyLocked || Boolean(skillLocks[selectedDetail.path]) : false;
   const selectedCanDelete = selectedDetail ? canDeleteSkill(selectedDetail) : false;
+  const isDetailDrawerOpen = Boolean(selectedPath || selectedDetail || isLoadingDetail || detailError);
   const selectedSkillCount = selectedSkillPaths.size;
   const selectedSkills = useMemo(
     () => Array.from(selectedSkillPaths).flatMap((path) => skills.find((skill) => skill.path === path) ?? []),
@@ -1771,6 +1689,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    invoke<SkillPathGroup[]>('default_scan_path_groups')
+      .then((groups) => setDefaultScanPathGroups(Array.isArray(groups) ? groups : fallbackDefaultScanPathGroups))
+      .catch(() => setDefaultScanPathGroups(fallbackDefaultScanPathGroups));
+  }, []);
+
+  useEffect(() => {
     settingsRef.current = settings;
     setSettingsDraft({
       ...settings,
@@ -1839,10 +1763,34 @@ export function App() {
   );
 
   useEffect(() => {
-    if (showDeleteConfirm) {
+    if (deleteConfirmation) {
       confirmDeleteButtonRef.current?.focus();
     }
-  }, [showDeleteConfirm]);
+  }, [deleteConfirmation]);
+
+  useEffect(() => {
+    if (!isDetailDrawerOpen || previewDetail || isLoadingPreview || previewError || deleteConfirmation || showCreateSkill || showSaveConfirm || showEditorSaveConfirm) {
+      return;
+    }
+
+    const handleDetailDrawerKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDetailDrawer();
+      }
+    };
+
+    window.addEventListener('keydown', handleDetailDrawerKeyDown);
+    return () => window.removeEventListener('keydown', handleDetailDrawerKeyDown);
+  }, [
+    deleteConfirmation,
+    isDetailDrawerOpen,
+    isLoadingPreview,
+    previewDetail,
+    previewError,
+    showCreateSkill,
+    showEditorSaveConfirm,
+    showSaveConfirm,
+  ]);
 
   useEffect(() => {
     if (showCreateSkill) {
@@ -2071,6 +2019,7 @@ export function App() {
       return;
     }
 
+    detailReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const requestId = detailRequestIdRef.current + 1;
     detailRequestIdRef.current = requestId;
     selectedPathRef.current = skill.path;
@@ -2095,6 +2044,20 @@ export function App() {
         setIsLoadingDetail(false);
       }
     }
+  };
+
+  const closeDetailDrawer = () => {
+    detailRequestIdRef.current += 1;
+    selectedPathRef.current = null;
+    setSelectedPath(null);
+    setSelectedDetail(null);
+    setDetailError(null);
+    setIsLoadingDetail(false);
+    setDetailMode('preview');
+    window.requestAnimationFrame(() => {
+      detailReturnFocusRef.current?.focus();
+      detailReturnFocusRef.current = null;
+    });
   };
 
   const openEditorWorkspace = async (skill: SkillSummary) => {
@@ -2385,7 +2348,7 @@ export function App() {
   };
 
   const deleteSelectedSkill = async () => {
-    const targetPath = deleteConfirmPath ?? selectedDetail?.path;
+    const targetPath = deleteConfirmation?.kind === 'single' ? deleteConfirmation.path : selectedDetail?.path;
 
     if (!targetPath) {
       return;
@@ -2396,8 +2359,7 @@ export function App() {
 
     try {
       await invoke('delete_skill', { path: targetPath });
-      setShowDeleteConfirm(false);
-      setDeleteConfirmPath(null);
+      setDeleteConfirmation(null);
       if (selectedPathRef.current === targetPath) {
         selectedPathRef.current = null;
         setSelectedPath(null);
@@ -2522,6 +2484,60 @@ export function App() {
       ...currentSettings,
       customScanDirectories: currentSettings.customScanDirectories.filter((currentDirectory) => currentDirectory !== directory),
     }));
+  };
+
+  const chooseDirectory = async (defaultPath?: string) => {
+    const selectedDirectory = await open({
+      canCreateDirectories: true,
+      defaultPath: defaultPath?.trim() || undefined,
+      directory: true,
+      multiple: false,
+      title: t('settings.chooseDirectory'),
+    });
+
+    return typeof selectedDirectory === 'string' ? selectedDirectory : null;
+  };
+
+  const chooseCustomDirectory = async () => {
+    setDirectoryPickerError(null);
+    try {
+      const selectedDirectory = await chooseDirectory(customDirectoryInput);
+      if (!selectedDirectory || settingsDraft.customScanDirectories.includes(selectedDirectory)) {
+        return;
+      }
+      setSettingsDraft((currentSettings) => ({
+        ...currentSettings,
+        customScanDirectories: [...currentSettings.customScanDirectories, selectedDirectory],
+      }));
+      setCustomDirectoryInput('');
+    } catch (error) {
+      setDirectoryPickerError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const chooseCreateTargetDirectory = async () => {
+    setCreateSkillError(null);
+    try {
+      const selectedDirectory = await chooseDirectory(createSkillDraft.targetDirectory);
+      if (selectedDirectory) {
+        updateCreateSkillDraft('targetDirectory', selectedDirectory);
+      }
+    } catch (error) {
+      setCreateSkillError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const chooseEditorTargetDirectory = async () => {
+    setDetailError(null);
+    try {
+      const selectedDirectory = await chooseDirectory(editorDraft.targetDirectory);
+      if (selectedDirectory) {
+        updateEditorDraft({ targetDirectory: selectedDirectory });
+      }
+    } catch (error) {
+      setDetailErrorTitleKey('details.actionErrorTitle');
+      setDetailError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const openCategoryContextMenu = (event: MouseEvent, categoryId: CategoryId) => {
@@ -2686,24 +2702,18 @@ export function App() {
   };
 
   const addSkillCategoryAssignment = (path: string, categoryId: CategoryId) => {
-    const currentCategoryIds =
-      skillCategoryAssignments[path] ??
-      (skills.find((skill) => skill.path === path)
-        ? getInferredSkillCategories(skills.find((skill) => skill.path === path) as SkillSummary).map((category) => category.id)
-        : []);
-    setSkillCategoryAssignmentsForPath(path, [...currentCategoryIds, categoryId]);
+    const currentCategoryIds = getAssignedSkillCategoryIds(path, skillCategoryAssignments);
+    const nextCategoryIds =
+      categoryId === categoryDefaults.default.id
+        ? [categoryDefaults.default.id]
+        : [...currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryDefaults.default.id), categoryId];
+    setSkillCategoryAssignmentsForPath(path, nextCategoryIds);
   };
 
   const removeSkillCategoryAssignment = (path: string, categoryId: CategoryId) => {
-    const currentCategoryIds =
-      skillCategoryAssignments[path] ??
-      (skills.find((skill) => skill.path === path)
-        ? getInferredSkillCategories(skills.find((skill) => skill.path === path) as SkillSummary).map((category) => category.id)
-        : []);
-    setSkillCategoryAssignmentsForPath(
-      path,
-      currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryId),
-    );
+    const currentCategoryIds = getAssignedSkillCategoryIds(path, skillCategoryAssignments);
+    const nextCategoryIds = currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryId);
+    setSkillCategoryAssignmentsForPath(path, nextCategoryIds.length > 0 ? nextCategoryIds : [categoryDefaults.default.id]);
   };
 
   const createCustomCategoryForSkill = (path: string, label: string) => {
@@ -3071,7 +3081,7 @@ export function App() {
       nextFavorites,
     );
     setSelectedSkillPaths(new Set(failedPaths));
-    setShowBulkDeleteConfirm(false);
+    setDeleteConfirmation(null);
     setPendingDelete(null);
     setBulkStatus(t('bulk.deletedCount', { count: String(deletedPaths.size) }));
     if (selectedPathRef.current && deletedPaths.has(selectedPathRef.current)) {
@@ -3088,14 +3098,15 @@ export function App() {
   };
 
   const scheduleSelectedSkillsDelete = () => {
-    const deletablePaths = selectedSkills.filter(canDeleteSkill).map((skill) => skill.path);
+    const deletablePaths =
+      deleteConfirmation?.kind === 'bulk' ? deleteConfirmation.paths : selectedSkills.filter(canDeleteSkill).map((skill) => skill.path);
     if (deletablePaths.length === 0) {
       return;
     }
     if (pendingDelete) {
       window.clearTimeout(pendingDelete.timerId);
     }
-    setShowBulkDeleteConfirm(false);
+    setDeleteConfirmation(null);
     setBulkStatus(t('bulk.deleteScheduled', { count: String(deletablePaths.length) }));
     const timerId = window.setTimeout(() => {
       void performPendingDelete(deletablePaths);
@@ -3351,8 +3362,9 @@ export function App() {
         className="secondary-action"
         disabled={!selectedDetail || !selectedCanDelete}
         onClick={() => {
-          setDeleteConfirmPath(selectedDetail?.path ?? null);
-          setShowDeleteConfirm(true);
+          if (selectedDetail) {
+            setDeleteConfirmation({ kind: 'single', path: selectedDetail.path });
+          }
         }}
       >
         <MaterialIcon name="delete" />
@@ -3369,7 +3381,7 @@ export function App() {
   const contextMenuLocked = contextMenuSkill ? contextMenuPermanentlyLocked || Boolean(skillLocks[contextMenuSkill.path]) : false;
   const contextMenuCategoryIds =
     skillTagContextMenu && contextMenuSkill
-      ? skillCategoryAssignments[skillTagContextMenu.path] ?? getInferredSkillCategories(contextMenuSkill).map((category) => category.id)
+      ? getAssignedSkillCategoryIds(skillTagContextMenu.path, skillCategoryAssignments)
       : ['default'];
   const contextMenuAvailableCategories = categoryNavItems.flatMap((item) => (item.category ? [item.category] : []));
 
@@ -3411,6 +3423,10 @@ export function App() {
             <MaterialIcon name="refresh" />
             {t('actions.rescan')}
           </button>
+          <button type="button" className="primary-action" onClick={openCreateSkillDialog}>
+            <MaterialIcon name="add" />
+            {t('actions.newSkill')}
+          </button>
           <label className="locale-switcher">
             <span className="visually-hidden">{t('language.label')}</span>
             <select
@@ -3446,7 +3462,7 @@ export function App() {
       </header>
 
       {showSettings ? (
-        <section className="settings-panel" aria-label={t('settings.ariaLabel')}>
+        <Settings ariaLabel={t('settings.ariaLabel')}>
           <div className="settings-heading">
             <div>
               <h2>{t('settings.title')}</h2>
@@ -3467,6 +3483,12 @@ export function App() {
             <div className="settings-message error-state" role="status">
               <strong>{t('settings.saveErrorTitle')}</strong>
               <p>{settingsSaveError}</p>
+            </div>
+          ) : null}
+          {directoryPickerError ? (
+            <div className="settings-message error-state" role="status">
+              <strong>{t('settings.selectDirectoryFailed')}</strong>
+              <p>{directoryPickerError}</p>
             </div>
           ) : null}
           {settingsSaveStatus === 'saved' && !settingsSaveError ? (
@@ -3517,8 +3539,8 @@ export function App() {
               {settingsDraft.showDefaultScanDirectories ? (
                 <div className="default-path-grid">
                   {defaultScanPathGroups.map((group) => (
-                    <section key={group.labelKey} className="default-path-group" aria-label={t(group.labelKey)}>
-                      <h4>{t(group.labelKey)}</h4>
+                    <section key={group.labelKey} className="default-path-group" aria-label={t(group.labelKey as TranslationKey)}>
+                      <h4>{t(group.labelKey as TranslationKey)}</h4>
                       <ul>
                         {group.paths.map((path) => (
                           <li key={path}>{path}</li>
@@ -3549,6 +3571,10 @@ export function App() {
                 </label>
                 <button type="button" onClick={addCustomDirectory}>
                   {t('settings.addDirectory')}
+                </button>
+                <button type="button" className="secondary-action" onClick={() => void chooseCustomDirectory()}>
+                  <MaterialIcon name="folder_open" size={16} />
+                  {t('settings.chooseDirectory')}
                 </button>
               </div>
               {settingsDraft.customScanDirectories.length > 0 ? (
@@ -3586,11 +3612,11 @@ export function App() {
               {settingsSaveStatus === 'saving' ? t('settings.saving') : t('settings.save')}
             </button>
           </div>
-        </section>
+        </Settings>
       ) : null}
 
       {workspaceMode === 'editor' ? (
-        <section className="editor-workspace" aria-label={t('editor.workspace')}>
+        <EditorWorkspace ariaLabel={t('editor.workspace')}>
           <aside className="panel editor-rail" aria-label={t('editor.sidebar')}>
             <div className="editor-rail-heading">
               <div>
@@ -3686,15 +3712,20 @@ export function App() {
                   </select>
                 </label>
                 {editorDraft.kind !== 'existing' ? (
-                  <label className="field-stack">
-                    <span>{t('create.targetDirectory')}</span>
-                    <input
-                      aria-label={t('create.targetDirectory')}
-                      list="editor-target-directory-suggestions"
-                      value={editorDraft.targetDirectory}
-                      onChange={(event) => updateEditorDraft({ targetDirectory: event.currentTarget.value })}
-                    />
-                  </label>
+                  <div className="directory-picker-row">
+                    <label className="field-stack">
+                      <span>{t('create.targetDirectory')}</span>
+                      <input
+                        aria-label={t('create.targetDirectory')}
+                        list="editor-target-directory-suggestions"
+                        value={editorDraft.targetDirectory}
+                        onChange={(event) => updateEditorDraft({ targetDirectory: event.currentTarget.value })}
+                      />
+                    </label>
+                    <button type="button" className="icon-button" aria-label={t('settings.chooseDirectory')} onClick={() => void chooseEditorTargetDirectory()}>
+                      <MaterialIcon name="folder_open" />
+                    </button>
+                  </div>
                 ) : null}
                 <dl className="editor-meta-list">
                   <div>
@@ -3727,18 +3758,14 @@ export function App() {
               {settings.customScanDirectories.map((directory) => (
                 <option key={directory} value={directory} />
               ))}
-              {defaultScanPathGroups.flatMap((group) =>
-                group.paths.map((path) => <option key={`${group.labelKey}-${path}`} value={path} />),
-              )}
+              {defaultScanPaths.map((path) => (
+                <option key={path} value={path} />
+              ))}
             </datalist>
           </section>
-        </section>
+        </EditorWorkspace>
       ) : (
-      <section
-        className="dashboard-grid fluid-dashboard-grid"
-        aria-label={t('layout.dashboard')}
-        style={{ '--detail-panel-width': `${detailPanelWidth}px` } as CSSProperties}
-      >
+      <section className="dashboard-grid fluid-dashboard-grid" aria-label={t('layout.dashboard')}>
         <aside className="panel sidebar fluid-sidebar-panel" aria-label={t('workspace.primaryNavigation')}>
           <div className="sidebar-kicker">
             <h2>{t('workspace.title')}</h2>
@@ -3998,28 +4025,48 @@ export function App() {
                   ))
                 )}
               </div>
-          <section className="foundation-insights" aria-label={t('insights.foundationSummary')}>
-            <div>
-              <span>{t('insights.favorites')}</span>
-              <strong>{skillInsights.favoriteCount}</strong>
-            </div>
-            <div>
-              <span>{t('insights.calls')}</span>
-              <strong>{skillInsights.totalCalls}</strong>
-            </div>
-            <div>
-              <span>{t('insights.suggestions')}</span>
-              <strong>{skillInsights.suggestionCount}</strong>
-            </div>
-            <div>
-              <span>{t('insights.health')}</span>
-              <strong>{skillInsights.averageHealthScore}</strong>
-            </div>
-            <div>
-              <span>{t('insights.drafts')}</span>
-              <strong>{skillInsights.draftCount}</strong>
-            </div>
-          </section>
+              <section className={`foundation-insights ${showFoundationInsights ? 'expanded' : 'collapsed'}`} aria-label={t('insights.foundationSummary')}>
+                <button
+                  type="button"
+                  className="foundation-insights-toggle"
+                  aria-expanded={showFoundationInsights}
+                  onClick={() => setShowFoundationInsights((isExpanded) => !isExpanded)}
+                >
+                  <span>
+                    <MaterialIcon name="analytics" size={18} />
+                    {t('insights.foundationSummary')}
+                  </span>
+                  <strong>{t('insights.foundationDigest', {
+                    calls: String(skillInsights.totalCalls),
+                    health: String(skillInsights.averageHealthScore),
+                  })}</strong>
+                  <MaterialIcon name={showFoundationInsights ? 'expand_less' : 'expand_more'} size={20} />
+                </button>
+                {showFoundationInsights ? (
+                  <div className="foundation-insights-grid">
+                    <div>
+                      <span>{t('insights.favorites')}</span>
+                      <strong>{skillInsights.favoriteCount}</strong>
+                    </div>
+                    <div>
+                      <span>{t('insights.calls')}</span>
+                      <strong>{skillInsights.totalCalls}</strong>
+                    </div>
+                    <div>
+                      <span>{t('insights.suggestions')}</span>
+                      <strong>{skillInsights.suggestionCount}</strong>
+                    </div>
+                    <div>
+                      <span>{t('insights.health')}</span>
+                      <strong>{skillInsights.averageHealthScore}</strong>
+                    </div>
+                    <div>
+                      <span>{t('insights.drafts')}</span>
+                      <strong>{skillInsights.draftCount}</strong>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
 
           <aside className="library-filter-strip fluid-sidebar-panel" aria-label={t('category.title')}>
             <h3>{t('governance.title')}</h3>
@@ -4117,7 +4164,7 @@ export function App() {
                 </button>
               </div>
               <ul className="storage-path-list">
-                {Array.from(new Set([...sidebarStoragePaths, ...settings.customScanDirectories])).map((path) => (
+                {storagePaths.map((path) => (
                   <li key={path}>{path}</li>
                 ))}
               </ul>
@@ -4342,7 +4389,19 @@ export function App() {
                 <MaterialIcon name="unarchive" size={17} />
                 {t('bulk.unarchive')}
               </button>
-              <button type="button" className="danger-action" disabled={selectedDeletableCount === 0} onClick={() => setShowBulkDeleteConfirm(true)}>
+              <button
+                type="button"
+                className="danger-action"
+                disabled={selectedDeletableCount === 0}
+                onClick={() =>
+                  setDeleteConfirmation({
+                    count: selectedDeletableCount,
+                    kind: 'bulk',
+                    paths: selectedSkills.filter(canDeleteSkill).map((skill) => skill.path),
+                    protectedCount: selectedProtectedCount,
+                  })
+                }
+              >
                 <MaterialIcon name="delete" size={17} />
                 {t('bulk.delete')}
               </button>
@@ -4365,14 +4424,13 @@ export function App() {
                   const locked = isReadOnlySkill(skill) || Boolean(skillLocks[skill.path]);
 
                   return (
-                    <div
+                    <SkillCard
                       key={skill.path}
-                      role="button"
-                      tabIndex={0}
-                      className={`skill-card library-skill-card ${selected ? 'selected-card' : ''}`}
-                      aria-pressed={selected}
+                      className="library-skill-card"
+                      ariaPressed={selected}
                       draggable={!selectionMode}
-                      data-skill-card-path={skill.path}
+                      path={skill.path}
+                      selected={selected}
                       style={getSkillCardStyle(skill.path, skillCardColors)}
                       onClick={() => {
                         if (selectionMode) {
@@ -4493,8 +4551,22 @@ export function App() {
                           <MaterialIcon name="content_copy" size={16} />
                           {t('library.copyPath')}
                         </button>
+                        <label className="card-category-picker" onClick={(event) => event.stopPropagation()}>
+                          <span>{t('customize.defaultCategory')}</span>
+                          <select
+                            aria-label={t('customize.defaultCategory')}
+                            value={getAssignedSkillCategoryIds(skill.path, skillCategoryAssignments)[0] ?? categoryDefaults.default.id}
+                            onChange={(event) => setSkillCategoryAssignmentsForPath(skill.path, [event.currentTarget.value])}
+                          >
+                            {contextMenuAvailableCategories.map((category) => (
+                              <option key={`${skill.path}-picker-${category.id}`} value={category.id}>
+                                {getCategoryLabel(category, categoryLabels, t)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                       </span>
-                    </div>
+                    </SkillCard>
                   );
                 })}
               </div>
@@ -4542,15 +4614,15 @@ export function App() {
                         const favorite = Boolean(skillFavorites[skill.path]);
                         const archived = Boolean(skillArchives[skill.path]);
                         return (
-                          <div
+                          <SkillCard
                             key={`legacy-${section.category.id}-${skill.path}`}
-                            role="button"
-                            tabIndex={0}
-                            className={`skill-card ${selected ? 'selected-card' : ''} ${draggedSkillPath === skill.path ? 'dragging-card' : ''} ${dragOverSkillPath === skill.path ? 'drag-over-card' : ''}`}
-                            aria-pressed={selected}
+                            ariaPressed={selected}
                             draggable={!selectionMode}
-                            data-skill-card-category={section.category.id}
-                            data-skill-card-path={skill.path}
+                            categoryId={section.category.id}
+                            path={skill.path}
+                            selected={selected}
+                            isDragging={draggedSkillPath === skill.path}
+                            isDragOver={dragOverSkillPath === skill.path}
                             style={getSkillCardStyle(skill.path, skillCardColors)}
                             onDragStart={(event) => startCategorySkillDrag(event, skill.path)}
                             onDragEnd={() => {
@@ -4679,7 +4751,7 @@ export function App() {
                                 </span>
                               ))}
                             </span>
-                          </div>
+                          </SkillCard>
                         );
                       })}
                     </div>
@@ -4839,7 +4911,23 @@ export function App() {
               </div>
             </div>
           ) : (
-            <div className={`empty-state ${listState === 'error' ? 'error-state' : ''}`}>
+            <EmptyState
+              state={listState}
+              title={
+                listState === 'loading'
+                  ? t('skills.loadingTitle')
+                  : listState === 'filtered-empty'
+                    ? t('skills.noMatchesTitle')
+                    : t('skills.emptyTitle')
+              }
+              description={
+                listState === 'loading'
+                  ? t('skills.loadingDescription')
+                  : listState === 'filtered-empty'
+                    ? t('skills.noMatchesDescription')
+                    : t('skills.emptyDescription')
+              }
+            >
               {listState === 'error' ? (
                 <section className="scan-diagnostics" aria-label={t('diagnostics.scanDiagnostics')}>
                   <strong>{t('skills.errorTitle')}</strong>
@@ -4851,7 +4939,7 @@ export function App() {
                   </p>
                   {scanError && isTauriUnavailable(scanError) ? <code>{scanError}</code> : null}
                   <div className="diagnostic-paths">
-                    {Array.from(new Set([...sidebarStoragePaths, ...settings.customScanDirectories, ...settingsDraft.customScanDirectories])).map((path) => (
+                    {Array.from(new Set([...defaultScanPaths, ...settings.customScanDirectories, ...settingsDraft.customScanDirectories])).map((path) => (
                       <span key={path}>{t('diagnostics.scanPath', { path })}</span>
                     ))}
                   </div>
@@ -4866,6 +4954,13 @@ export function App() {
                 </section>
               ) : (
                 <>
+                  {listState === 'loading' ? (
+                    <div className="skeleton-stack" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  ) : null}
                   <strong>
                     {listState === 'loading'
                       ? t('skills.loadingTitle')
@@ -4882,22 +4977,11 @@ export function App() {
                   </p>
                 </>
               )}
-            </div>
+            </EmptyState>
           )}
         </section>
 
-        <button
-          type="button"
-          className="detail-resize-handle"
-          role="separator"
-          aria-label={t('details.resizePanel')}
-          aria-orientation="vertical"
-          onMouseDown={startDetailResize}
-        >
-          <span />
-        </button>
-
-        <aside className="panel detail-panel fluid-detail-panel" aria-label={t('details.ariaLabel')}>
+        <DetailDrawer ariaLabel={t('details.ariaLabel')} closeLabel={t('actions.close')} isOpen={isDetailDrawerOpen} onClose={closeDetailDrawer}>
           <div className="detail-panel-heading">
             <div className="detail-title-row">
               <span className="detail-eyebrow">{t('details.title')}</span>
@@ -4922,10 +5006,6 @@ export function App() {
                   {t('details.edit')}
                 </button>
               </div>
-              <button type="button" className="primary-action editor-create-action" onClick={openCreateSkillDialog}>
-                <MaterialIcon name="add" />
-                {t('actions.newSkill')}
-              </button>
             </div>
             <span className="status-pill">
               {selectedDetail ? t(parseStatusLabelKeys[selectedDetail.parseStatus]) : t('details.placeholderStatus')}
@@ -5114,7 +5194,7 @@ export function App() {
               {detailActions}
             </div>
           )}
-        </aside>
+        </DetailDrawer>
       </section>
       )}
       {previewDetail || isLoadingPreview || previewError ? (
@@ -5447,46 +5527,40 @@ export function App() {
           </div>
         </div>
       ) : null}
-      {showBulkDeleteConfirm ? (
+      {deleteConfirmation ? (
         <div className="dialog-backdrop">
-          <div role="dialog" aria-modal="true" aria-labelledby="bulk-delete-title" className="confirm-dialog">
-            <h2 id="bulk-delete-title">{t('bulk.deleteTitle')}</h2>
-            <p>{t('bulk.deleteConfirm', { count: String(selectedDeletableCount) })}</p>
-            {selectedProtectedCount > 0 ? <p className="muted">{t('bulk.protectedSkipped', { count: String(selectedProtectedCount) })}</p> : null}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirmation-title"
+            className="confirm-dialog"
+          >
+            <h2 id="delete-confirmation-title">{deleteConfirmation.kind === 'bulk' ? t('bulk.deleteTitle') : t('actions.delete')}</h2>
+            <p>
+              {deleteConfirmation.kind === 'bulk'
+                ? t('bulk.deleteConfirm', { count: String(deleteConfirmation.count) })
+                : t('details.deleteConfirm')}
+            </p>
+            {deleteConfirmation.kind === 'bulk' && deleteConfirmation.protectedCount > 0 ? (
+              <p className="muted">{t('bulk.protectedSkipped', { count: String(deleteConfirmation.protectedCount) })}</p>
+            ) : null}
             <p className="muted">{t('details.deleteBackupNotice')}</p>
             <div className="dialog-actions">
-              <button type="button" disabled={isBulkDeleting} onClick={() => setShowBulkDeleteConfirm(false)}>
-                {t('actions.cancel')}
-              </button>
-              <button type="button" className="danger-action" disabled={isBulkDeleting} onClick={scheduleSelectedSkillsDelete}>
-                {t('actions.confirmDelete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {showDeleteConfirm && deleteConfirmPath ? (
-        <div className="dialog-backdrop">
-          <div role="dialog" aria-modal="true" aria-labelledby="delete-skill-title" className="confirm-dialog">
-            <h2 id="delete-skill-title">{t('actions.delete')}</h2>
-            <p>{t('details.deleteConfirm')}</p>
-            <p className="muted">{t('details.deleteBackupNotice')}</p>
-            <div className="dialog-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteConfirmPath(null);
-                }}
-              >
+              <button type="button" disabled={isBulkDeleting || isDeletingDetail} onClick={() => setDeleteConfirmation(null)}>
                 {t('actions.cancel')}
               </button>
               <button
                 type="button"
                 ref={confirmDeleteButtonRef}
                 className="danger-action"
-                disabled={isDeletingDetail}
-                onClick={() => void deleteSelectedSkill()}
+                disabled={isBulkDeleting || isDeletingDetail}
+                onClick={() => {
+                  if (deleteConfirmation.kind === 'bulk') {
+                    scheduleSelectedSkillsDelete();
+                  } else {
+                    void deleteSelectedSkill();
+                  }
+                }}
               >
                 {t('actions.confirmDelete')}
               </button>
@@ -5590,15 +5664,20 @@ export function App() {
               </div>
             </section>
             <div className="create-form-grid">
-              <label className="field-stack">
-                <span>{t('create.targetDirectory')}</span>
-                <input
-                  ref={createTargetDirectoryRef}
-                  list="create-skill-directory-suggestions"
-                  value={createSkillDraft.targetDirectory}
-                  onChange={(event) => updateCreateSkillDraft('targetDirectory', event.target.value)}
-                />
-              </label>
+              <div className="directory-picker-row">
+                <label className="field-stack">
+                  <span>{t('create.targetDirectory')}</span>
+                  <input
+                    ref={createTargetDirectoryRef}
+                    list="create-skill-directory-suggestions"
+                    value={createSkillDraft.targetDirectory}
+                    onChange={(event) => updateCreateSkillDraft('targetDirectory', event.target.value)}
+                  />
+                </label>
+                <button type="button" className="icon-button" aria-label={t('settings.chooseDirectory')} onClick={() => void chooseCreateTargetDirectory()}>
+                  <MaterialIcon name="folder_open" />
+                </button>
+              </div>
               <label className="field-stack">
                 <span>{t('details.name')}</span>
                 <input value={createSkillDraft.name} onChange={(event) => updateCreateSkillDraft('name', event.target.value)} />
@@ -5631,9 +5710,9 @@ export function App() {
               {settings.customScanDirectories.map((directory) => (
                 <option key={directory} value={directory} />
               ))}
-              {defaultScanPathGroups.flatMap((group) =>
-                group.paths.map((path) => <option key={`${group.labelKey}-${path}`} value={path} />),
-              )}
+              {defaultScanPaths.map((path) => (
+                <option key={path} value={path} />
+              ))}
             </datalist>
             <div className="dialog-actions">
               <button type="button" disabled={isCreatingSkill} onClick={closeCreateSkillDialog}>

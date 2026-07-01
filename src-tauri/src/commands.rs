@@ -1,4 +1,6 @@
-use crate::models::{AppSettings, CreateSkillInput, SkillDetail, SkillSummary, UpdateSkillInput};
+use crate::models::{
+    AppSettings, CreateSkillInput, SkillDetail, SkillPathGroup, SkillSummary, UpdateSkillInput,
+};
 use crate::settings_store;
 use crate::skill_scanner;
 use crate::skill_store;
@@ -12,6 +14,11 @@ pub fn app_version() -> &'static str {
 pub fn scan_skills() -> Result<Vec<SkillSummary>, String> {
     let settings = settings_store::load_app_settings()?;
     skill_scanner::scan_configured_skill_roots(&settings)
+}
+
+#[tauri::command]
+pub fn default_scan_path_groups() -> Result<Vec<SkillPathGroup>, String> {
+    skill_scanner::default_scan_path_groups()
 }
 
 #[tauri::command]
@@ -51,7 +58,7 @@ pub fn save_app_settings(settings: AppSettings) -> Result<AppSettings, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{app_version, scan_skills};
+    use super::{app_version, default_scan_path_groups, scan_skills};
     use crate::models::{AppSettings, Language};
 
     #[test]
@@ -62,6 +69,17 @@ mod tests {
     #[test]
     fn scan_skills_returns_a_real_scan_result() {
         assert!(scan_skills().is_ok());
+    }
+
+    #[test]
+    fn default_scan_path_groups_returns_user_roots() {
+        let groups = default_scan_path_groups().expect("default scan path groups should load");
+
+        assert!(!groups.is_empty());
+        assert!(groups.iter().any(|group| group
+            .paths
+            .iter()
+            .any(|path| path.contains(".codex") && path.contains("skills"))));
     }
 
     #[test]

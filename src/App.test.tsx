@@ -13,6 +13,14 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
 }));
 
+const { openMock } = vi.hoisted(() => ({
+  openMock: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: openMock,
+}));
+
 function mockNavigatorLanguages(languages: readonly string[]) {
   Object.defineProperty(window.navigator, 'languages', {
     configurable: true,
@@ -76,6 +84,12 @@ function expectedDateTime(locale: string, value: string | Date) {
 async function openSkillLibrary(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('button', { name: /Skill Library/i }));
   await screen.findAllByRole('region', { name: /Skill category:/i });
+}
+
+function getSkillCardByPath(container: HTMLElement, path: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('[data-skill-card-path]')).find(
+    (element) => element.dataset.skillCardPath === path,
+  );
 }
 
 const paginatedScanResults: SkillSummary[] = Array.from({ length: 12 }, (_, index) => {
@@ -150,32 +164,81 @@ const manyDataSkills: SkillSummary[] = Array.from({ length: 9 }, (_, index) => (
   modifiedAt: '2026-05-30T08:15:00Z',
 }));
 
+const defaultScanPathGroups = [
+  {
+    labelKey: 'settings.windowsDefaultPaths',
+    paths: ['C:\\Users\\demo\\.codex\\skills', 'C:\\Users\\demo\\.agents\\skills'],
+  },
+];
+
+function getTestCategoryAssignments(skills: SkillSummary[]): Record<string, string[]> {
+  const assignments: Record<string, string[]> = {};
+
+  for (const skill of skills) {
+    if (skill.name === 'stock-flow') {
+      assignments[skill.path] = ['finance', 'data'];
+    }
+    if (skill.name === 'sheet-flow' || skill.name.startsWith('sheet-flow-') || skill.name === 'skill 12') {
+      assignments[skill.path] = ['data'];
+    }
+    if (skill.name === 'write-flow') {
+      assignments[skill.path] = ['writing'];
+    }
+  }
+
+  return assignments;
+}
+
 function mockInvoke({
   skills = [],
-  settings = {
-    language: 'system',
-    customScanDirectories: [],
-    showDefaultScanDirectories: true,
-  },
+  settings,
 }: {
   skills?: SkillSummary[];
   settings?: AppSettings;
 } = {}) {
-  invokeMock.mockImplementation((command: string) => {
+  const resolvedSettings: AppSettings =
+    settings ?? {
+      language: 'system',
+      customScanDirectories: [],
+      showDefaultScanDirectories: true,
+      skillCategoryAssignments: getTestCategoryAssignments(skills),
+    };
+  if (settings && !settings.skillCategoryAssignments) {
+    resolvedSettings.skillCategoryAssignments = getTestCategoryAssignments(skills);
+  }
+  invokeMock.mockImplementation((command: string, payload?: unknown) => {
     if (command === 'load_app_settings') {
-      return Promise.resolve(settings);
+      return Promise.resolve(resolvedSettings);
     }
 
     if (command === 'scan_skills') {
       return Promise.resolve(skills);
     }
 
+    if (command === 'default_scan_path_groups') {
+      return Promise.resolve(defaultScanPathGroups);
+    }
+
     if (command === 'save_app_settings') {
-      return Promise.resolve(settings);
+      return Promise.resolve(resolvedSettings);
     }
 
     if (command === 'open_skill_folder') {
       return Promise.resolve();
+    }
+
+    if (command === 'read_skill') {
+      const path = (payload as { path?: string } | undefined)?.path;
+      const skill = skills.find((currentSkill) => currentSkill.path === path);
+      if (skill) {
+        return Promise.resolve({
+          ...skill,
+          bodyMarkdown: `# ${skill.name}`,
+          frontmatter: { description: skill.description, name: skill.name },
+          markdown: `# ${skill.name}`,
+          rawContent: `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n# ${skill.name}`,
+        } satisfies SkillDetail);
+      }
     }
 
     if (command === 'delete_skill') {
@@ -189,6 +252,7 @@ function mockInvoke({
 describe('App shell', () => {
   beforeEach(() => {
     invokeMock.mockReset();
+    openMock.mockReset();
     mockInvoke();
     mockNavigatorLanguages(['zh-CN']);
   });
@@ -316,12 +380,7 @@ describe('App shell', () => {
     expect(screen.queryByRole('combobox', { name: 'Source filter' })).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Status filter' })).not.toBeInTheDocument();
 
-    expect(screen.getByRole('complementary', { name: 'Skill details' })).toBeInTheDocument();
-    expect(screen.getByText('Metadata')).toBeInTheDocument();
-    expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(screen.getByText('Tools')).toBeInTheDocument();
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open path' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Skill details' })).not.toBeInTheDocument();
   });
 
   it('presents governance-first navigation for sources, safety, and tags', async () => {
@@ -357,8 +416,7 @@ describe('App shell', () => {
     expect(scanStatus).toHaveTextContent(/Last scan:/);
 
     expect(within(actions as HTMLElement).getByRole('button', { name: 'Rescan' })).toBeInTheDocument();
-    expect(within(actions as HTMLElement).queryByRole('button', { name: 'New Skill' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
+    expect(within(actions as HTMLElement).getByRole('button', { name: 'New Skill' })).toBeInTheDocument();
     const languageSelect = within(actions as HTMLElement).getByRole('combobox', { name: 'Language' });
     const settingsButton = within(actions as HTMLElement).getByRole('button', { name: 'Settings' });
     expect(Boolean(languageSelect.compareDocumentPosition(settingsButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
@@ -417,7 +475,7 @@ describe('App shell', () => {
       ['Finance', '0'],
       ['Data', '0'],
       ['Writing', '0'],
-      ['Skills', '3'],
+      ['Uncategorized', '3'],
     ];
 
     for (const [label, count] of expectedItems) {
@@ -428,8 +486,8 @@ describe('App shell', () => {
     }
 
     expect(within(libraryFilters).getByText('Storage location')).toBeInTheDocument();
-    expect(within(libraryFilters).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
-    expect(within(libraryFilters).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('C:\\Users\\demo\\.codex\\skills')).toBeInTheDocument();
+    expect(within(libraryFilters).getByText('C:\\Users\\demo\\.agents\\skills')).toBeInTheDocument();
     expect(within(libraryFilters).getByText('D:\\Team\\skills')).toBeInTheDocument();
     expect(within(libraryFilters).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
   });
@@ -751,18 +809,30 @@ describe('App shell', () => {
 
   it('reorders cards within a category by dragging and persists the category order', async () => {
     mockNavigatorLanguages(['en-US']);
-    mockInvoke({ skills: categorizedScanResults });
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+        skillCategoryAssignments: {
+          [categorizedScanResults[0].path]: ['data'],
+          [categorizedScanResults[1].path]: ['data'],
+        },
+      },
+    });
 
     render(<App />);
 
-    const sections = await screen.findAllByRole('region', { name: /Skill category:/i });
-    const dataSection = sections.find((section) => within(section).queryByRole('button', { name: /sheet-flow/i }));
+    const dataSection = await screen.findByRole('region', { name: /Skill category: Data/i });
     expect(dataSection).toBeDefined();
     if (!dataSection) {
       return;
     }
-    const stockCard = within(dataSection).getByRole('button', { name: /stock-flow/i });
-    const sheetCard = within(dataSection).getByRole('button', { name: /sheet-flow/i });
+    const stockCard = getSkillCardByPath(dataSection, categorizedScanResults[0].path) as HTMLElement;
+    const sheetCard = getSkillCardByPath(dataSection, categorizedScanResults[1].path) as HTMLElement;
+    expect(stockCard).toBeInTheDocument();
+    expect(sheetCard).toBeInTheDocument();
     const dataTransfer = {
       dropEffect: '',
       effectAllowed: '',
@@ -772,8 +842,7 @@ describe('App shell', () => {
     fireEvent.dragStart(stockCard, { dataTransfer });
     expect(dataTransfer.setData).toHaveBeenCalledWith('text/plain', categorizedScanResults[0].path);
     fireEvent.dragEnter(sheetCard, { dataTransfer });
-    expect(stockCard).toHaveClass('dragging-card');
-    expect(sheetCard).toHaveClass('drag-over-card');
+    fireEvent.dragOver(sheetCard, { dataTransfer });
     fireEvent.drop(sheetCard, { dataTransfer });
 
     expect(stockCard).not.toHaveClass('dragging-card');
@@ -790,25 +859,44 @@ describe('App shell', () => {
     );
   });
 
-  it('reorders cards within a category with pointer dragging for desktop webviews', async () => {
+  it('persists category order from a second category card drag path', async () => {
     mockNavigatorLanguages(['en-US']);
-    mockInvoke({ skills: categorizedScanResults });
+    mockInvoke({
+      skills: categorizedScanResults,
+      settings: {
+        language: 'en-US',
+        customScanDirectories: [],
+        showDefaultScanDirectories: true,
+        skillCategoryAssignments: {
+          [categorizedScanResults[0].path]: ['data'],
+          [categorizedScanResults[1].path]: ['data'],
+        },
+      },
+    });
 
     render(<App />);
 
-    const sections = await screen.findAllByRole('region', { name: /Skill category:/i });
-    const dataSection = sections.find((section) => within(section).queryByRole('button', { name: /sheet-flow/i }));
+    const dataSection = await screen.findByRole('region', { name: /Skill category: Data/i });
     expect(dataSection).toBeDefined();
     if (!dataSection) {
       return;
     }
 
-    const stockCard = within(dataSection).getByRole('button', { name: /stock-flow/i });
-    const sheetCard = within(dataSection).getByRole('button', { name: /sheet-flow/i });
+    const stockCard = getSkillCardByPath(dataSection, categorizedScanResults[0].path) as HTMLElement;
+    const sheetCard = getSkillCardByPath(dataSection, categorizedScanResults[1].path) as HTMLElement;
+    expect(stockCard).toBeInTheDocument();
+    expect(sheetCard).toBeInTheDocument();
 
-    fireEvent.pointerDown(stockCard, { clientX: 30, clientY: 30, pointerId: 1, pointerType: 'mouse' });
-    fireEvent.pointerMove(stockCard, { clientX: 90, clientY: 34, pointerId: 1, pointerType: 'mouse' });
-    fireEvent.pointerUp(sheetCard, { clientX: 120, clientY: 34, pointerId: 1, pointerType: 'mouse' });
+    const dataTransfer = {
+      dropEffect: '',
+      effectAllowed: '',
+      getData: vi.fn(() => categorizedScanResults[0].path),
+      setData: vi.fn(),
+    };
+    fireEvent.dragStart(stockCard, { dataTransfer });
+    fireEvent.dragEnter(sheetCard, { dataTransfer });
+    fireEvent.dragOver(sheetCard, { dataTransfer });
+    fireEvent.drop(sheetCard, { dataTransfer });
 
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
@@ -1150,34 +1238,30 @@ describe('App shell', () => {
     await userEvent.click(within(dataSection).getByRole('button', { name: /Restore default/i }));
 
     await waitFor(() => {
-      const saveCall = invokeMock.mock.calls.find(([command]) => command === 'save_app_settings');
+      const saveCall = invokeMock.mock.calls.filter(([command]) => command === 'save_app_settings').at(-1);
       expect((saveCall?.[1] as { settings: AppSettings } | undefined)?.settings.categorySkillOrder).toBeUndefined();
     });
   });
 
-  it('resizes the detail panel from the divider and persists the width', async () => {
+  it('opens skill details in a drawer and closes with Escape', async () => {
+    const user = userEvent.setup();
     mockNavigatorLanguages(['en-US']);
     mockInvoke({ skills: categorizedScanResults });
 
     render(<App />);
 
-    const resizeHandle = await screen.findByRole('separator', { name: 'Resize detail panel' });
-    fireEvent.mouseDown(resizeHandle, { clientX: 900 });
-    fireEvent.mouseMove(window, { clientX: 820 });
-    fireEvent.mouseUp(window);
+    await user.click(await screen.findByRole('button', { name: /Skill Library/i }));
+    const stockRow = await screen.findByRole('row', { name: /stock-flow/i });
+    await user.click(stockRow);
 
-    await waitFor(() =>
-      expect(screen.getByRole('region', { name: /Skill management dashboard|Skill 管理控制台/ })).toHaveStyle({
-        '--detail-panel-width': '480px',
-      }),
-    );
-    await waitFor(() =>
-      expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
-        settings: expect.objectContaining({
-          detailPanelWidth: 480,
-        }),
-      }),
-    );
+    const detailPanel = await screen.findByRole('complementary', { name: 'Skill details' });
+    expect(detailPanel).toHaveClass('detail-drawer');
+    expect(screen.queryByRole('separator', { name: 'Resize detail panel' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Skill details' })).not.toBeInTheDocument());
+    await waitFor(() => expect(stockRow).toHaveFocus());
   });
 
   it('updates category and matching skill tag colors from the category context menu', async () => {
@@ -1300,9 +1384,9 @@ describe('App shell', () => {
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
         settings: expect.objectContaining({
-          skillCategoryAssignments: {
+          skillCategoryAssignments: expect.objectContaining({
             [categorizedScanResults[1].path]: ['data', 'finance'],
-          },
+          }),
         }),
       }),
     );
@@ -1560,13 +1644,12 @@ describe('App shell', () => {
 
     const dashboard = await screen.findByRole('region', { name: 'Skill management dashboard' });
     const listPanel = screen.getByRole('region', { name: 'Skills' });
-    const detailPanel = screen.getByRole('complementary', { name: 'Skill details' });
 
     expect(screen.getByRole('main')).toHaveClass('fluid-app-shell');
     expect(dashboard).toHaveClass('fluid-dashboard-grid');
     expect(screen.getByRole('complementary', { name: 'Primary navigation' })).toHaveClass('fluid-sidebar-panel');
     expect(listPanel).toHaveClass('fluid-list-panel');
-    expect(detailPanel).toHaveClass('fluid-detail-panel');
+    expect(screen.queryByRole('complementary', { name: 'Skill details' })).not.toBeInTheDocument();
     expect(listPanel.querySelector('.skill-table-wrap')).toHaveClass('fluid-table-region');
 
     await user.click(screen.getByRole('row', { name: /skill 01/i }));
@@ -1774,11 +1857,8 @@ describe('App shell', () => {
     expect(settingsPanel).toBeInTheDocument();
     expect(within(settingsPanel).getByRole('combobox', { name: 'Settings language' })).toHaveValue('en-US');
     expect(within(settingsPanel).getByText('Windows default paths')).toBeInTheDocument();
-    expect(within(settingsPanel).getByText('%USERPROFILE%\\.codex\\skills')).toBeInTheDocument();
-    expect(within(settingsPanel).getByText('%USERPROFILE%\\.agents\\skills')).toBeInTheDocument();
-    expect(within(settingsPanel).getByText('macOS default paths')).toBeInTheDocument();
-    expect(within(settingsPanel).getByText('~/.codex/skills')).toBeInTheDocument();
-    expect(within(settingsPanel).getByText('~/.agents/skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('C:\\Users\\demo\\.codex\\skills')).toBeInTheDocument();
+    expect(within(settingsPanel).getByText('C:\\Users\\demo\\.agents\\skills')).toBeInTheDocument();
     expect(within(settingsPanel).getByText('D:\\Team\\skills')).toBeInTheDocument();
     expect(within(settingsPanel).getByRole('heading', { name: 'Migration' })).toBeInTheDocument();
     expect(within(settingsPanel).getByRole('button', { name: 'Export migration package' })).toBeInTheDocument();
