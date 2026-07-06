@@ -5,3 +5,5 @@
 .log-status { font-size:9px; padding:2px 6px; border-radius:3px; }
 .log-status.ok { background:var(--success-soft); color:var(--success); }
 .log-status.fail { background:var(--danger-soft); color:var(--danger); }
+.log-state { background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-muted); font-size:12px; margin-bottom:12px; padding:12px; }
+.log-state.error { color:var(--danger); background:var(--danger-soft); border-color:var(--danger-border); }

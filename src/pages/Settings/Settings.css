@@ -11,3 +11,6 @@
 .sv-name { font-weight:600; color:var(--text); }
 .set-vendor.active .sv-name { color:var(--ai-text); }
 .set-budget { width:50px; padding:3px 6px; border:1px solid var(--border); border-radius:4px; font-size:11px; text-align:center; background:#fff; }
+.set-key-controls { display:flex; align-items:center; gap:8px; }
+.set-key-input { width:220px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:11px; }
+.set-error { color:var(--danger); background:var(--danger-soft); border:1px solid var(--danger-border); border-radius:var(--radius-md); font-size:11px; margin-top:6px; padding:8px; }

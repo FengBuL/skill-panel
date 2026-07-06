@@ -37,6 +37,7 @@ interface SettingsState {
   toggleRule: (id: string) => void;
   setRuleThreshold: (id: string, v: number) => void;
   setAIVendor: (v: AIVendor) => void;
+  setAIKeyStored: (stored: boolean) => void;
   setAIDesensitize: (b: boolean) => void;
   setAIDiffConfirm: (b: boolean) => void;
   setAIBudget: (v: number) => void;
@@ -71,6 +72,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   toggleRule: (id) => set({ attentionRules: get().attentionRules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r) }),
   setRuleThreshold: (id, v) => set({ attentionRules: get().attentionRules.map(r => r.id === id ? { ...r, threshold: v } : r) }),
   setAIVendor: (v) => set({ aiVendor: v }),
+  setAIKeyStored: (stored) => set({ aiKeyStored: stored }),
   setAIDesensitize: (b) => set({ aiDesensitize: b }),
   setAIDiffConfirm: (b) => set({ aiDiffConfirm: b }),
   setAIBudget: (v) => set({ aiMonthlyBudget: v }),

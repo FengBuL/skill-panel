@@ -2,11 +2,32 @@
 import { useState } from 'react';
 import { Button, Toggle, Segment } from '../../components/ui';
 import { useSettingsStore, type Theme, type AIVendor } from '../../store/settingsStore';
+import { setAIKey } from '../../lib/ai';
 import './Settings.css';
 
 export default function SettingsPage() {
   const s = useSettingsStore();
-  const [showAI, setShowAI] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
+  const [keyError, setKeyError] = useState('');
+  const [keyStatus, setKeyStatus] = useState(s.aiKeyStored ? '已存储' : '未配置');
+  const saveKey = async () => {
+    if (!apiKey.trim() || savingKey) return;
+    setSavingKey(true);
+    setKeyError('');
+    try {
+      await setAIKey(s.aiVendor, apiKey.trim());
+      s.setAIKeyStored(true);
+      setApiKey('');
+      setKeyStatus('已存储');
+    } catch (err) {
+      setKeyError(String(err));
+      setKeyStatus('保存失败');
+    } finally {
+      setSavingKey(false);
+    }
+  };
+
   return (
     <div className="set-drawer">
       <div className="set-header"><span style={{fontSize:16,fontWeight:600}}>设置</span></div>
@@ -40,7 +61,14 @@ export default function SettingsPage() {
               <div key={v} className={`set-vendor ${s.aiVendor===v?'active':''}`} onClick={()=>s.setAIVendor(v)}><div className="sv-name">{n}</div></div>
             ))}
           </div>
-          <div className="set-row"><div><div className="set-label">API Key</div><div className="set-desc">存储于系统 Keychain</div></div><Button variant="secondary" size="sm">🔑 已存储·更换</Button></div>
+          <div className="set-row ai-key-row">
+            <div><div className="set-label">API Key</div><div className="set-desc">存储于系统 Keychain · {keyStatus}</div></div>
+            <div className="set-key-controls">
+              <input className="set-key-input" type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder={s.aiKeyStored ? '输入新 Key 替换' : '输入 API Key'} />
+              <Button variant="secondary" size="sm" disabled={!apiKey.trim() || savingKey} onClick={saveKey}>{savingKey ? '保存中' : '保存'}</Button>
+            </div>
+          </div>
+          {keyError && <div className="set-error">Key 保存失败：{keyError}</div>}
           <div className="set-row"><span className="set-label">脱敏发送</span><Toggle on={s.aiDesensitize} onClick={()=>s.setAIDesensitize(!s.aiDesensitize)} /></div>
           <div className="set-row"><span className="set-label">diff 确认后写入</span><Toggle on={s.aiDiffConfirm} onClick={()=>s.setAIDiffConfirm(!s.aiDiffConfirm)} /></div>
           <div className="set-row"><span className="set-label">月预算</span><span style={{fontSize:11}}>¥<input className="set-budget" value={s.aiMonthlyBudget} onChange={e=>s.setAIBudget(+e.target.value)} /></span></div>

@@ -24,6 +24,10 @@ export interface SkillSummary {
   source: SkillSource;
   parseStatus: ParseStatus;
   modifiedAt: string | null;
+  category?: string | null;
+  categories?: string[] | null;
+  tags?: string[] | null;
+  frontmatter?: Record<string, unknown> | null;
 }
 
 export interface SkillPathGroup {

@@ -74,6 +74,10 @@ describe('skill type contracts', () => {
       source: 'codex-user' | 'agents-user' | 'system' | 'plugin-cache' | 'custom' | 'unknown';
       parseStatus: 'parsed' | 'missing-skill-file' | 'invalid-frontmatter' | 'read-error';
       modifiedAt: string | null;
+      category?: string | null;
+      categories?: string[] | null;
+      tags?: string[] | null;
+      frontmatter?: Record<string, unknown> | null;
     }>();
     expectTypeOf<SkillPathGroup>().toEqualTypeOf<{ labelKey: string; paths: string[] }>();
     expectTypeOf<SkillDetail>().toMatchTypeOf<SkillSummary>();

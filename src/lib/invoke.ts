@@ -18,14 +18,63 @@ const MOCK_SKILLS: Skill[] = [
   { name: 'Lark Bot Bridge', description: 'Integrate Lark messaging with skill execution.', source: 'plugin', category: '常用', path: '', modifiedAt: '1个月前', size: 11200, starred: false, disabled: false, protected: true },
 ];
 
+const CATEGORY_ALIASES: Record<string, string> = {
+  browser: '浏览器',
+  web: '浏览器',
+  finance: '金融',
+  stock: '金融',
+  market: '金融',
+  data: '数据',
+  csv: '数据',
+  sheet: '数据',
+  document: '文案',
+  docs: '文案',
+  writing: '文案',
+  mail: '文案',
+  automation: '自动化',
+  workflow: '自动化',
+  common: '常用',
+};
+
+function normalizeCategory(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return CATEGORY_ALIASES[trimmed.toLowerCase()] || trimmed;
+}
+
+function firstCategorySignal(s: SkillSummary): string | null {
+  const frontmatter = s.frontmatter || {};
+  const candidates: unknown[] = [
+    s.category,
+    ...(s.categories || []),
+    frontmatter.category,
+    ...((Array.isArray(frontmatter.categories) ? frontmatter.categories : []) as unknown[]),
+    ...((Array.isArray(s.tags) ? s.tags : []) as unknown[]),
+    ...((Array.isArray(frontmatter.tags) ? frontmatter.tags : []) as unknown[]),
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeCategory(candidate);
+    if (normalized) return normalized;
+  }
+
+  const haystack = `${s.path} ${s.name} ${s.description}`.toLowerCase();
+  for (const [needle, category] of Object.entries(CATEGORY_ALIASES)) {
+    if (haystack.includes(needle)) return category;
+  }
+
+  return null;
+}
+
 // SkillSummary → store Skill 映射
-function mapSummary(s: SkillSummary): Skill {
+export function mapSummary(s: SkillSummary): Skill {
   const isPlugin = s.source === 'plugin-cache' || s.source === 'system' || s.source === 'unknown';
   return {
     name: s.name,
     description: s.description || '(无描述)',
     source: isPlugin ? 'plugin' : 'mine',
-    category: '未分类', // 待 frontmatter 解析或用户分类
+    category: firstCategorySignal(s) || '未分类',
     path: s.path,
     modifiedAt: s.modifiedAt || '未知',
     size: 0,
@@ -39,7 +88,7 @@ function mapSummary(s: SkillSummary): Skill {
 export async function scanSkills(): Promise<{ skills: Skill[]; isMock: boolean }> {
   try {
     const summaries = await invoke<SkillSummary[]>('scan_skills');
-    if (summaries && summaries.length) {
+    if (Array.isArray(summaries)) {
       return { skills: summaries.map(mapSummary), isMock: false };
     }
     return { skills: MOCK_SKILLS, isMock: true };
