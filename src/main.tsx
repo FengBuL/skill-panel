@@ -1,10 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
+import { AppShell } from "./AppShell";
+import { ErrorBoundary } from "./common/ErrorBoundary";
 import "./styles.css";
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <AppShell />
+    </ErrorBoundary>
   </StrictMode>,
 );

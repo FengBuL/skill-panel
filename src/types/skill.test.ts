@@ -37,8 +37,21 @@ describe('skill type contracts', () => {
       'update_skill',
       'delete_skill',
       'open_skill_folder',
+      'append_audit_log',
       'load_app_settings',
       'save_app_settings',
+      'clone_skill',
+      'toggle_skill_enabled',
+      'validate_skill',
+      'read_skill_files',
+      'write_skill_file',
+      'get_version_history',
+      'restore_version',
+      'get_call_logs',
+      'analyze_deps',
+      'ai_optimize',
+      'watch_scan_dirs',
+      'set_ai_key',
     ]);
 
     expectTypeOf<SkillCommandMap['scan_skills']>().returns.resolves.toEqualTypeOf<SkillSummary[]>();
@@ -47,6 +60,9 @@ describe('skill type contracts', () => {
     expectTypeOf<SkillCommandMap['read_skill']>().returns.resolves.toEqualTypeOf<SkillDetail>();
     expectTypeOf<SkillCommandMap['create_skill']>().parameter(0).toEqualTypeOf<{ input: CreateSkillInput }>();
     expectTypeOf<SkillCommandMap['update_skill']>().parameter(0).toEqualTypeOf<{ input: UpdateSkillInput }>();
+    expectTypeOf<SkillCommandMap['append_audit_log']>().parameter(0).toEqualTypeOf<{
+      entry: { action: string; detail: Record<string, unknown>; timestamp: string };
+    }>();
     expectTypeOf<SkillCommandMap['save_app_settings']>().parameter(0).toEqualTypeOf<{ settings: AppSettings }>();
   });
 

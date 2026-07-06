@@ -375,6 +375,7 @@ describe('App shell', () => {
     expect(screen.queryByRole('button', { name: 'With issues' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('region', { name: 'Skills' })).toBeInTheDocument();
+    await user.click(within(navigation).getByRole('button', { name: /Dashboard/i }));
     expect(screen.getByRole('region', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'Search skills' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Source filter' })).not.toBeInTheDocument();
@@ -485,11 +486,9 @@ describe('App shell', () => {
       expect(button.querySelector('.source-nav-icon')).toBeInTheDocument();
     }
 
-    expect(within(libraryFilters).getByText('Storage location')).toBeInTheDocument();
-    expect(within(libraryFilters).getByText('C:\\Users\\demo\\.codex\\skills')).toBeInTheDocument();
-    expect(within(libraryFilters).getByText('C:\\Users\\demo\\.agents\\skills')).toBeInTheDocument();
-    expect(within(libraryFilters).getByText('D:\\Team\\skills')).toBeInTheDocument();
-    expect(within(libraryFilters).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
+    const storageSummary = screen.getByRole('region', { name: 'Storage location' });
+    expect(within(storageSummary).getByText('3 scan locations')).toBeInTheDocument();
+    expect(within(storageSummary).getByRole('button', { name: 'Manage storage' })).toBeInTheDocument();
   });
 
   it('keeps local language state when saving settings fails', async () => {
@@ -932,6 +931,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await user.click(await screen.findByRole('button', { name: /Dashboard/i }));
     const dashboard = screen.getByRole('region', { name: 'Dashboard' });
     await user.click(within(dashboard).getByRole('button', { name: /Needs review/i }));
 
@@ -957,6 +957,7 @@ describe('App shell', () => {
 
     render(<App />);
 
+    await user.click(await screen.findByRole('button', { name: /Dashboard/i }));
     const dashboard = await screen.findByRole('region', { name: 'Dashboard' });
     const favoritesMetric = within(dashboard).getByText('Favorites').closest('button');
     expect(favoritesMetric).toBeInTheDocument();
@@ -983,6 +984,7 @@ describe('App shell', () => {
 
     const { unmount } = render(<App />);
 
+    await user.click(await screen.findByRole('button', { name: /Dashboard/i }));
     const trendPanel = await screen.findByRole('region', { name: 'Invocation trend' });
     const trendBar = trendPanel.querySelector('.trend-bar');
     expect(trendBar).toHaveAttribute('title', expect.stringContaining('calls'));
@@ -994,6 +996,7 @@ describe('App shell', () => {
     unmount();
     mockInvoke({ skills: [] });
     render(<App />);
+    await user.click(await screen.findByRole('button', { name: /Dashboard/i }));
     expect(await screen.findByText('No invocation data yet')).toBeInTheDocument();
   });
 
@@ -1588,8 +1591,8 @@ describe('App shell', () => {
   it('keeps the pagination controls fixed at the skill list bottom', () => {
     const css = readFileSync('src/styles.css', 'utf8');
 
-    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*position:\s*sticky;[^}]*bottom:\s*0;/s);
-    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*margin:\s*32px -24px -108px;[^}]*padding:\s*18px 24px 24px;/s);
+    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*position:\s*static;/s);
+    expect(css).toMatch(/\.pagination-controls\s*\{[^}]*margin:\s*10px 0 0;[^}]*padding:\s*10px 0 0;/s);
   });
 
   it('styles selected resource rows with a pale fill and thin outline', () => {

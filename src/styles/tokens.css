@@ -1,0 +1,75 @@
+/* Skill Panel v3.7 设计 Token — 对齐原型配色 */
+/* wt-0-foundation 产出，所有组件消费 */
+
+:root {
+  /* 背景 */
+  --bg: #EEF1F6;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --surface-3: #F1F4F9;
+
+  /* 文本（对比度提升：#69707d → #5A6270 达 WCAG AA） */
+  --text: #171A1F;
+  --text-2: #3D4350;
+  --text-muted: #5A6270;
+  --text-faint: #8A92A0;
+
+  /* 主色 */
+  --accent: #0A84FF;
+  --accent-hover: #0070E0;
+  --accent-soft: #E8F0FF;
+  --accent-border: #B8D4FF;
+
+  /* 边框 */
+  --border: #dce2eb;
+  --border-2: #e8ecf2;
+
+  /* 语义色 */
+  --success: #2FB344;
+  --success-soft: #EAFBEF;
+  --warning: #B54708;
+  --warning-soft: #fff7ed;
+  --warning-border: #fed7aa;
+  --danger: #E5484D;
+  --danger-soft: #FCEBEB;
+  --danger-border: #F5C2C4;
+
+  /* AI 紫 */
+  --ai: #6B5DD3;
+  --ai-soft: #F0EDFF;
+  --ai-border: #D4CDF5;
+  --ai-text: #3C3489;
+
+  /* 布局 */
+  --rail-width: 200px;
+  --topbar-global-height: 44px;
+  --topbar-context-height: 40px;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(23,26,31,0.04);
+  --shadow-md: 0 4px 12px rgba(23,26,31,0.06);
+  --shadow-lg: 0 12px 32px rgba(23,26,31,0.10);
+
+  /* 动效 */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* focus ring（可访问性修复） */
+  --focus-ring: 0 0 0 2px #fff, 0 0 0 4px var(--accent);
+
+  color: var(--text);
+  background: var(--bg);
+  font-family: -apple-system, 'SF Pro Display', 'PingFang SC', system-ui, sans-serif;
+}
+
+/* 全局 focus-visible（修复20） */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}

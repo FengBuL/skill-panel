@@ -119,6 +119,15 @@ pub struct SkillDraftSetting {
     pub updated_at: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditLogEntry {
+    pub action: String,
+    pub timestamp: String,
+    #[serde(default)]
+    pub detail: serde_json::Value,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {

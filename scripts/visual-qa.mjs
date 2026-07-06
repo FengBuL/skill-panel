@@ -100,9 +100,9 @@ const scenarios = [
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
     cardView: true,
-    selectFirstSkill: true,
-    previewMarkdown: true,
-    bulkSelection: true,
+    selectFirstSkill: false,
+    previewMarkdown: false,
+    bulkSelection: false,
   },
   {
     id: 'en-success-1280x800-long-markdown',
@@ -309,7 +309,7 @@ async function runScenario(browser, scenario) {
     await page.getByRole('button', { name: /Skill Library/ }).click();
     if (scenario.cardView) {
       await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '卡片视图' : 'Card View' }).click();
-      await page.locator('.legacy-category-grid .category-card-section').first().waitFor({ timeout: 5000 });
+      await page.locator('.skill-card-grid.active .skill-card').first().waitFor({ timeout: 5000 });
     } else {
       await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '列表视图' : 'List View' }).click();
       await page.locator('.skill-table-wrap.active .skill-table').waitFor({ timeout: 5000 });

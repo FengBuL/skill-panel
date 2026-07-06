@@ -122,8 +122,21 @@ export const skillCommandNames = [
   'update_skill',
   'delete_skill',
   'open_skill_folder',
+  'append_audit_log',
   'load_app_settings',
   'save_app_settings',
+  'clone_skill',
+  'toggle_skill_enabled',
+  'validate_skill',
+  'read_skill_files',
+  'write_skill_file',
+  'get_version_history',
+  'restore_version',
+  'get_call_logs',
+  'analyze_deps',
+  'ai_optimize',
+  'watch_scan_dirs',
+  'set_ai_key',
 ] as const;
 
 export type SkillCommandName = (typeof skillCommandNames)[number];
@@ -137,6 +150,28 @@ export interface SkillCommandMap {
   update_skill: (input: { input: UpdateSkillInput }) => Promise<SkillDetail>;
   delete_skill: (input: { path: string }) => Promise<void>;
   open_skill_folder: (input: { path: string }) => Promise<void>;
+  append_audit_log: (input: { entry: { action: string; detail: Record<string, unknown>; timestamp: string } }) => Promise<void>;
   load_app_settings: () => Promise<AppSettings>;
   save_app_settings: (input: { settings: AppSettings }) => Promise<AppSettings>;
+  clone_skill: (input: { srcPath: string; destName: string }) => Promise<{ newPath: string }>;
+  toggle_skill_enabled: (input: { path: string; enabled: boolean }) => Promise<void>;
+  validate_skill: (input: { path: string }) => Promise<{
+    score: number;
+    checks: { id: string; label: string; status: string; detail?: string }[];
+  }>;
+  read_skill_files: (input: { dir: string }) => Promise<
+    { name: string; content: string; size: number; isMain: boolean }[]
+  >;
+  write_skill_file: (input: { dir: string; fileName: string; content: string }) => Promise<void>;
+  get_version_history: (input: { path: string }) => Promise<
+    { id: string; time: string; note: string; diffLines: number; source: string }[]
+  >;
+  restore_version: (input: { path: string; versionId: string }) => Promise<void>;
+  get_call_logs: (input: { range: string }) => Promise<
+    { time: string; skillName: string; prompt: string; status: string; durationMs: number; tokens: number }[]
+  >;
+  analyze_deps: (input: { path: string }) => Promise<Record<string, unknown>>;
+  ai_optimize: (input: { content: string; action: string; vendor: string }) => Promise<void>;
+  watch_scan_dirs: (input: { dirs: string[] }) => Promise<void>;
+  set_ai_key: (input: { vendor: string; key: string }) => Promise<void>;
 }

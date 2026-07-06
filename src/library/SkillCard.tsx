@@ -1,13 +1,20 @@
 import { type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { type DragOverPosition } from '../hooks/useDragDrop';
 
 type SkillCardProps = {
   ariaPressed: boolean;
   categoryId?: string;
   children: ReactNode;
   className?: string;
+  dragOffset?: {
+    x: number;
+    y: number;
+  };
+  dragOverPosition?: DragOverPosition;
   draggable?: boolean;
   isDragOver?: boolean;
   isDragging?: boolean;
+  isReleasing?: boolean;
   onClick: () => void;
   onContextMenu: (event: MouseEvent<HTMLDivElement>) => void;
   onDragEnd?: () => void;
@@ -30,9 +37,12 @@ export function SkillCard({
   categoryId,
   children,
   className = '',
+  dragOffset,
+  dragOverPosition = 'before',
   draggable = true,
   isDragOver = false,
   isDragging = false,
+  isReleasing = false,
   onClick,
   onContextMenu,
   path,
@@ -40,8 +50,17 @@ export function SkillCard({
   style,
   ...dragHandlers
 }: SkillCardProps) {
-  const stateClassName = `${selected ? 'selected-card' : ''} ${isDragging ? 'dragging-card' : ''} ${isDragOver ? 'drag-over-card' : ''}`.trim();
+  const stateClassName = `${selected ? 'selected-card' : ''} ${isDragging ? 'dragging-card' : ''} ${isDragOver ? 'drag-over-card' : ''} ${isReleasing ? 'release-card' : ''}`.trim();
   const mergedClassName = ['skill-card', className, stateClassName].filter(Boolean).join(' ');
+  const mergedStyle = {
+    ...style,
+    ...(dragOffset
+      ? ({
+          '--drag-x': `${dragOffset.x}px`,
+          '--drag-y': `${dragOffset.y}px`,
+        } as CSSProperties)
+      : null),
+  };
 
   return (
     <div
@@ -51,13 +70,19 @@ export function SkillCard({
       aria-pressed={ariaPressed}
       draggable={draggable}
       data-skill-card-category={categoryId}
+      data-drag-over-position={isDragOver ? dragOverPosition : undefined}
       data-skill-card-path={path}
-      style={style}
+      style={mergedStyle}
       onClick={onClick}
       onContextMenu={onContextMenu}
       {...dragHandlers}
     >
       {children}
+      {draggable ? (
+        <span className="skill-card-drag-handle material-symbols-outlined" aria-hidden="true" title="Drag">
+          drag_indicator
+        </span>
+      ) : null}
     </div>
   );
 }
