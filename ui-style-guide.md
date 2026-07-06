@@ -1,176 +1,176 @@
-# Skill Panel v3.8.1 UI Style Guide
+# Skill Panel v3.8.1 UI 样式规范
 
-This guide is the execution standard for Skill Panel UI work. It captures the v3.8.1 visual language after the AI Rail integration.
+本文件是 Skill Panel UI 工作的执行标准。规范基于 v3.8.1 和 AI Rail 集成后的界面语言整理。
 
-## Product Feel
+## 产品气质
 
-Skill Panel is a desktop productivity tool for managing local skills. The UI should feel quiet, dense, and operational. Prefer clear workspace surfaces, compact controls, visible status, and fast scanning over decorative presentation.
+Skill Panel 是用于管理本地 skills 的桌面生产力工具。界面要安静、紧凑、偏操作台，强调清晰工作区、紧凑控件、状态可见和快速浏览。
 
-## Layout
+## 布局
 
-- Use the existing shell pattern: global top bar, page workspace, contextual drawers or rails.
-- Keep primary work areas full height and avoid nested page cards.
-- Use cards only for repeated items, modals, drawers, and framed tools.
-- Preserve stable dimensions for grids, rails, cards, buttons, counters, and editor panes.
-- The v3.8.1 editor layout remains three columns: file rail, editor body, preview or AI rail.
-- AI tools live in the right rail and use a modal only for diff confirmation.
+- 使用现有 shell 模式：全局顶栏、页面工作区、上下文抽屉或工具 rail。
+- 主工作区保持全高。
+- 卡片只用于重复条目、模态框、抽屉和工具面板。
+- 网格、rail、卡片、按钮、计数器、编辑器面板需要稳定尺寸。
+- v3.8.1 编辑器保持三列：文件 rail、编辑区、预览或 AI rail。
+- AI 工具位于右侧 rail，diff 确认使用模态框。
 
-## Color Tokens
+## 颜色 Token
 
-Use tokens from `src/styles/tokens.css` and `src/styles.css`.
+使用 `src/styles/tokens.css` 和 `src/styles.css` 中的 token。
 
-Core surfaces:
+核心表面：
 
-- App background: `--bg` or `--background`
-- Main panel: `--surface`
-- Secondary panel: `--surface-2`
-- Subtle fill: `--surface-3`
-- Borders: `--border`, `--border-2`, `--outline-variant`
+- 应用背景：`--bg` 或 `--background`
+- 主面板：`--surface`
+- 次级面板：`--surface-2`
+- 轻量填充：`--surface-3`
+- 边框：`--border`、`--border-2`、`--outline-variant`
 
-Text:
+文字：
 
-- Primary: `--text` or `--on-surface`
-- Secondary: `--text-2` or `--on-surface-variant`
-- Muted: `--text-muted`
-- Faint metadata: `--text-faint`
+- 主文字：`--text` 或 `--on-surface`
+- 次级文字：`--text-2` 或 `--on-surface-variant`
+- 弱化文字：`--text-muted`
+- 元信息文字：`--text-faint`
 
-Status:
+状态：
 
-- Primary action: `--accent`
-- Success: `--success`
-- Warning: `--warning`
-- Danger: `--danger`
-- AI neutral surface: `--ai-soft`
-- AI text: `--ai-text`
+- 主操作：`--accent`
+- 成功：`--success`
+- 警告：`--warning`
+- 危险：`--danger`
+- AI 中性表面：`--ai-soft`
+- AI 文字：`--ai-text`
 
-Avoid adding new hex values when an existing token fits. Add a token only when a repeated semantic role has no existing match.
+已有 token 能满足时，不新增十六进制颜色。重复出现的新语义角色可以新增 token。
 
-## Typography
+## 字体
 
-- Use system UI typography already defined in the app.
-- Keep compact workspace headings around 12-16px.
-- Use 10-12px for metadata, labels, table-like rows, and rail text.
-- Use monospace only for code, Markdown, diff lines, paths, and logs.
-- Letter spacing stays `0`.
-- Do not scale font sizes with viewport width.
+- 使用应用已定义的系统 UI 字体。
+- 工作区紧凑标题保持在 12-16px。
+- 元信息、标签、表格行、rail 文本使用 10-12px。
+- 等宽字体只用于代码、Markdown、diff 行、路径和日志。
+- 字间距保持 `0`。
+- 字号不得随视口宽度缩放。
 
-## Spacing
+## 间距
 
-- Compact controls: 4-8px internal gaps.
-- Standard panel padding: 10-16px.
-- Dense rows: 24-36px height.
-- Cards and list rows should use predictable spacing and avoid layout jumps.
-- Prefer tokenized radii: `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-pill`.
-- For new repeated UI, use 8px radius unless a matching local pattern already uses another token.
+- 紧凑控件内部间距：4-8px。
+- 标准面板内边距：10-16px。
+- 密集行高：24-36px。
+- 卡片和列表行需要可预测间距，避免布局跳动。
+- 优先使用圆角 token：`--radius-sm`、`--radius-md`、`--radius-lg`、`--radius-pill`。
+- 新增重复 UI 默认使用 8px 圆角，已有局部模式可沿用当前 token。
 
-## Buttons And Controls
+## 按钮和控件
 
-- Use icon buttons for compact tools when a clear Material Symbol exists.
-- Use text buttons for commands that need explicit wording.
-- Keep destructive commands visually distinct with danger tokens.
-- Disabled states use opacity and retain layout size.
-- Every icon-only control needs an accessible label or title.
-- Toggle binary settings with `Toggle`.
-- Use segmented controls for small mode sets.
-- Use menus, drawers, or modals for multi-step choices.
+- 紧凑工具优先使用清晰的 Material Symbol 图标按钮。
+- 需要明确语义的命令使用文字按钮。
+- 破坏性操作使用 danger token。
+- 禁用态使用透明度，保留布局尺寸。
+- 纯图标控件必须提供可访问标签或 title。
+- 二元设置使用 `Toggle`。
+- 少量模式切换使用分段控件。
+- 多步骤选择使用菜单、抽屉或模态框。
 
-## Icons
+## 图标
 
-- Use Material Symbols, matching existing v3.8.1 pages.
-- Current AI icons:
-  - `auto_awesome` for AI entry
-  - `account_tree` for structure
-  - `notes` for description
-  - `auto_fix_high` for polish
-  - `sell` for frontmatter
-  - `policy` for safety review
-  - `stop_circle` for cancel
-  - `shield` for privacy notice
-- Keep icon sizes between 14-20px in dense UI.
+- 使用 Material Symbols，并匹配现有 v3.8.1 页面。
+- 当前 AI 图标：
+  - `auto_awesome`：AI 入口
+  - `account_tree`：完善结构
+  - `notes`：优化描述
+  - `auto_fix_high`：润色正文
+  - `sell`：生成 frontmatter
+  - `policy`：安全审查
+  - `stop_circle`：取消
+  - `shield`：隐私提示
+- 密集 UI 中图标尺寸保持 14-20px。
 
 ## AI Rail
 
-The AI Rail is the reference pattern for assistant-powered workflows.
+AI Rail 是助手型工作流的参考模式。
 
-Required states:
+必备状态：
 
-- Idle with action list
-- Generating with streaming text
-- Cancel available during generation
-- Error or missing key message
-- Diff confirmation before writeback
-- Cost and token summary
+- 空闲态展示动作列表
+- 生成态展示流式文本
+- 生成期间可取消
+- 错误或缺少 Key 提示
+- 写回前 diff 确认
+- 费用和 token 摘要
 
-Behavior rules:
+行为规则：
 
-- Check stored API key before starting generation.
-- Do not write AI output directly into the editor for writeback actions.
-- Show diff confirmation for writeback actions.
-- Safety review is read-only.
-- Keep generated text selectable and scrollable.
-- Preserve the editor draft until the user accepts changes.
+- 生成前检查所选厂商是否已存储 API Key。
+- 写回动作不得直接覆盖编辑器内容。
+- 写回动作必须展示 diff 确认。
+- 安全审查为只读动作。
+- 生成内容需要可选择、可滚动。
+- 用户接受前保留编辑器草稿。
 
-## Diff Modal
+## Diff 模态框
 
-- Use a modal overlay for AI diff review.
-- Show changed hunk count, added lines, removed lines, token count, and cost.
-- Default to all hunks selected.
-- Support select all, clear selection, reject, apply selected, and accept all.
-- Apply hunks from bottom to top in code to avoid offset drift.
-- Keep diff lines monospace and wrapped.
+- AI diff 审查使用模态框覆盖层。
+- 展示修改块数量、新增行、删除行、token 数和费用。
+- 默认选中全部修改块。
+- 支持全选、取消全选、拒绝、采纳所选、全部接受。
+- 代码层从底部向顶部应用 hunk，避免行偏移。
+- diff 行使用等宽字体并允许换行。
 
-## Forms
+## 表单
 
-- Labels should be short and directly tied to the field.
-- Help text belongs under the label in muted text.
-- Inputs keep consistent height and border treatment.
-- Password fields must never echo secrets into settings state.
-- Store API keys in Keychain through backend commands.
+- 标签短而明确，直接对应字段。
+- 帮助文字放在标签下方，使用弱化文字。
+- 输入框保持统一高度和边框。
+- 密码字段不得把密钥回显到设置状态。
+- API Key 通过后端 Keychain 命令存储。
 
-## Drawers, Rails, And Modals
+## 抽屉、Rail 和模态框
 
-- Drawers show details and secondary workflows.
-- Rails show persistent tools tied to the current workspace.
-- Modals are reserved for confirmation, review, and blocking decisions.
-- Avoid putting page sections inside card-like wrappers.
+- 抽屉用于详情和次级工作流。
+- Rail 用于当前工作区绑定的持续工具。
+- 模态框用于确认、审查和阻塞式决策。
+- 页面区块避免套入卡片式外框。
 
-## Motion
+## 动效
 
-- Motion should explain state changes and stay subtle.
-- Use existing transition timing around 0.15-0.2s.
-- Keep hover, active, and modal fade effects restrained.
-- Avoid decorative moving backgrounds.
-- Do not animate layout in ways that shift editor text, card grids, or controls.
+- 动效用于解释状态变化，保持克制。
+- 使用现有 0.15-0.2s 左右的过渡节奏。
+- hover、active、模态框淡入保持轻量。
+- 避免装饰性动态背景。
+- 不要用会移动编辑器文字、卡片网格或控件位置的布局动画。
 
-## Accessibility
+## 可访问性
 
-- Use semantic buttons for actions.
-- Every icon-only button needs `aria-label` or `title`.
-- Preserve keyboard focus visibility.
-- Keep text contrast aligned with current tokens.
-- Do not rely on color alone for critical status.
-- Toast messages should be short and actionable.
+- 操作使用语义化 button。
+- 纯图标按钮需要 `aria-label` 或 `title`。
+- 保留键盘焦点可见状态。
+- 文本对比度遵守当前 token。
+- 关键状态不得只依赖颜色表达。
+- Toast 文案短、明确、可行动。
 
-## Responsive Rules
+## 响应式规则
 
-- The app is desktop-first with a minimum width near 900px.
-- No content should overlap at 1024x768, 1280x800, and 1440x960.
-- Text in buttons and cards must fit or wrap cleanly.
-- Rails and sidebars should remain fixed width unless a page already defines a responsive pattern.
+- 应用以桌面为主，最小宽度接近 900px。
+- 1024x768、1280x800、1440x960 下内容不得重叠。
+- 按钮和卡片文本需要完整显示或自然换行。
+- rail 和侧栏保持固定宽度，除非页面已有响应式模式。
 
-## File Ownership
+## 文件归属
 
-- Global tokens: `src/styles/tokens.css`
-- Global base styles: `src/styles.css`
-- Shared UI components: `src/components/ui.tsx`, `src/components/ui.css`
-- AI UI: `src/components/ai/**`
-- Page-local styles: `src/pages/**/**.css`
+- 全局 token：`src/styles/tokens.css`
+- 全局基础样式：`src/styles.css`
+- 共享 UI 组件：`src/components/ui.tsx`、`src/components/ui.css`
+- AI UI：`src/components/ai/**`
+- 页面局部样式：`src/pages/**/**.css`
 
-New UI should use local page CSS only when the style is page-specific. Shared patterns should move into shared components after reuse appears in at least two places.
+新增 UI 仅在页面专属时放入页面 CSS。复用超过两个位置后，应抽取到共享组件或共享样式。
 
-## Verification
+## 验证
 
-Before UI work is accepted, run:
+UI 工作验收前运行：
 
 ```bash
 npm run typecheck
@@ -178,13 +178,13 @@ npm test
 npm run build
 ```
 
-For UI changes with visible layout impact, also capture Playwright screenshots at:
+可见布局变化需要额外截取 Playwright 截图：
 
 - 1024x768
 - 1280x800
 - 1440x960
 
-For Tauri or backend-linked UI, also run:
+涉及 Tauri 或后端联动 UI 时，还需要运行：
 
 ```bash
 npm run cargo:test
