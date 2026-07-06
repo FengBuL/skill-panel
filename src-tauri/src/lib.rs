@@ -14,6 +14,7 @@ use commands::{
     open_skill_folder, read_skill, save_app_settings, scan_skills, update_skill, ai_optimize,
     analyze_deps, clone_skill, get_call_logs, get_version_history, read_skill_files, restore_version,
     set_ai_key, toggle_skill_enabled, validate_skill, watch_scan_dirs, write_skill_file,
+    ai_cancel, get_ai_key,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -43,7 +44,9 @@ pub fn run() {
             analyze_deps,
             ai_optimize,
             watch_scan_dirs,
-            set_ai_key
+            set_ai_key,
+            ai_cancel,
+            get_ai_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running Skill Panel");

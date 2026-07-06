@@ -100,6 +100,11 @@ export interface AppSettings {
   skillOrganizationSuggestions?: Record<string, SkillOrganizationSuggestionSetting[]>;
   skillHealth?: Record<string, SkillHealthSetting>;
   skillDrafts?: Record<string, SkillDraftSetting>;
+  aiVendor?: string;
+  aiDesensitize?: boolean;
+  aiDiffConfirm?: boolean;
+  aiMonthlyBudget?: number;
+  aiMonthlyUsed?: number;
 }
 
 export interface CreateSkillInput {
@@ -141,6 +146,8 @@ export const skillCommandNames = [
   'ai_optimize',
   'watch_scan_dirs',
   'set_ai_key',
+  'ai_cancel',
+  'get_ai_key',
 ] as const;
 
 export type SkillCommandName = (typeof skillCommandNames)[number];
@@ -175,7 +182,9 @@ export interface SkillCommandMap {
     { time: string; skillName: string; prompt: string; status: string; durationMs: number; tokens: number }[]
   >;
   analyze_deps: (input: { path: string }) => Promise<Record<string, unknown>>;
-  ai_optimize: (input: { content: string; action: string; vendor: string }) => Promise<void>;
+  ai_optimize: (input: { content: string; action: string; vendor: string; desensitize: boolean }) => Promise<void>;
   watch_scan_dirs: (input: { dirs: string[] }) => Promise<void>;
   set_ai_key: (input: { vendor: string; key: string }) => Promise<void>;
+  ai_cancel: () => Promise<void>;
+  get_ai_key: (input: { vendor: string }) => Promise<boolean>;
 }

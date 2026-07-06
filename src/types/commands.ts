@@ -84,8 +84,20 @@ export interface AnalyzeDepsCmd {
 // ============ AI 命令（wt-3-ai 依赖） ============
 export interface AIOptimizeCmd {
   name: 'ai_optimize';
-  args: { content: string; action: AIAction; vendor: AIVendor };
+  args: { content: string; action: AIAction; vendor: AIVendor; desensitize: boolean };
   returns: void; // 通过 Tauri event 'ai-chunk' 流式推送，'ai-done' 结束
+}
+
+export interface AICancelCmd {
+  name: 'ai_cancel';
+  args: {};
+  returns: void;
+}
+
+export interface GetAIKeyCmd {
+  name: 'get_ai_key';
+  args: { vendor: AIVendor };
+  returns: boolean;
 }
 
 // ============ 类型定义 ============
@@ -153,7 +165,7 @@ export type CommandName =
   | CloneSkillCmd['name'] | ToggleSkillEnabledCmd['name'] | ValidateSkillCmd['name']
   | ReadSkillFilesCmd['name'] | WriteSkillFileCmd['name'] | WatchScanDirsCmd['name']
   | GetVersionHistoryCmd['name'] | RestoreVersionCmd['name'] | GetCallLogsCmd['name']
-  | AnalyzeDepsCmd['name'] | AIOptimizeCmd['name'];
+  | AnalyzeDepsCmd['name'] | AIOptimizeCmd['name'] | AICancelCmd['name'] | GetAIKeyCmd['name'];
 
 // mock invoke（前端开发用，wt-6 实现后切真实）
 export const mockInvoke = async <T>(cmd: string, _args?: unknown): Promise<T> => {

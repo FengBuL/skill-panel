@@ -128,7 +128,7 @@ pub struct AuditLogEntry {
     pub detail: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub language: Language,
@@ -170,7 +170,20 @@ pub struct AppSettings {
     pub skill_health: HashMap<String, SkillHealthSetting>,
     #[serde(default)]
     pub skill_drafts: HashMap<String, SkillDraftSetting>,
+    #[serde(default)]
+    pub ai_vendor: String,
+    #[serde(default = "default_true")]
+    pub ai_desensitize: bool,
+    #[serde(default = "default_true")]
+    pub ai_diff_confirm: bool,
+    #[serde(default = "default_budget")]
+    pub ai_monthly_budget: f64,
+    #[serde(default)]
+    pub ai_monthly_used: f64,
 }
+
+fn default_true() -> bool { true }
+fn default_budget() -> f64 { 50.0 }
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -196,6 +209,11 @@ impl Default for AppSettings {
             skill_organization_suggestions: HashMap::new(),
             skill_health: HashMap::new(),
             skill_drafts: HashMap::new(),
+            ai_vendor: "glm".to_string(),
+            ai_desensitize: true,
+            ai_diff_confirm: true,
+            ai_monthly_budget: 50.0,
+            ai_monthly_used: 0.0,
         }
     }
 }

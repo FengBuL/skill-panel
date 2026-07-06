@@ -52,6 +52,8 @@ describe('skill type contracts', () => {
       'ai_optimize',
       'watch_scan_dirs',
       'set_ai_key',
+      'ai_cancel',
+      'get_ai_key',
     ]);
 
     expectTypeOf<SkillCommandMap['scan_skills']>().returns.resolves.toEqualTypeOf<SkillSummary[]>();
@@ -114,6 +116,11 @@ describe('skill type contracts', () => {
       >;
       skillHealth?: Record<string, { issues: string[]; score: number; status: 'healthy' | 'warning' | 'critical' }>;
       skillDrafts?: Record<string, { description: string; markdown: string; name: string; updatedAt: string }>;
+      aiVendor?: string;
+      aiDesensitize?: boolean;
+      aiDiffConfirm?: boolean;
+      aiMonthlyBudget?: number;
+      aiMonthlyUsed?: number;
     }>();
     expectTypeOf<CreateSkillInput>().toEqualTypeOf<{
       name: string;

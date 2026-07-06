@@ -143,4 +143,73 @@ describe('AppShell Tauri event fallback', () => {
     expect(useSettingsStore.getState().aiKeyStored).toBe(true);
     expect(JSON.stringify(useSettingsStore.getState())).not.toContain('sk-test-secret');
   });
+
+  it('blocks editor AI actions until the selected vendor has a stored key', async () => {
+    const user = userEvent.setup();
+    useUIStore.setState({ subView: 'editor', subParam: null });
+    useSettingsStore.setState({ aiVendor: 'glm', aiKeyStored: false, aiDesensitize: true });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'get_ai_key') return Promise.resolve(false);
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: 'AI' }));
+    await user.click(screen.getByRole('button', { name: '完善结构' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('get_ai_key', { vendor: 'glm' }));
+    expect(invokeMock).not.toHaveBeenCalledWith('ai_optimize', expect.anything());
+    expect(await screen.findByText('未配置 glm 的 API Key，请先在设置中添加')).toBeInTheDocument();
+  });
+
+  it('applies selected AI diff output back into the editor markdown', async () => {
+    const user = userEvent.setup();
+    const listeners = new Map<string, (event: { payload: unknown }) => void>();
+    useUIStore.setState({ subView: 'editor', subParam: null });
+    useSettingsStore.setState({
+      aiVendor: 'glm',
+      aiKeyStored: true,
+      aiDesensitize: true,
+      aiMonthlyBudget: 50,
+      aiMonthlyUsed: 2.4,
+    });
+    listenMock.mockImplementation((event: string, handler: (event: { payload: unknown }) => void) => {
+      listeners.set(event, handler);
+      return Promise.resolve(() => listeners.delete(event));
+    });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'get_ai_key') return Promise.resolve(true);
+      if (command === 'ai_optimize') {
+        listeners.get('ai-chunk')?.({ payload: { chunk: '# Improved', done: false } });
+        listeners.get('ai-done')?.({
+          payload: {
+            content: '# Improved Skill\n\n## Steps\n\n- Do the safer thing',
+            usage: { prompt_tokens: 12, completion_tokens: 18 },
+            cost_cny: 0.002,
+          },
+        });
+        return Promise.resolve();
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: 'AI' }));
+    await user.click(screen.getByRole('button', { name: '润色正文' }));
+
+    expect(await screen.findByText('AI 修改对比 · polish')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '全部接受' }));
+
+    expect(await screen.findByDisplayValue(/# Improved Skill/)).toBeInTheDocument();
+    expect(invokeMock).toHaveBeenCalledWith('ai_optimize', {
+      content: expect.stringContaining('# Browser Control'),
+      action: 'polish',
+      vendor: 'glm',
+      desensitize: true,
+    });
+  });
 });

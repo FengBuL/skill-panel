@@ -12,6 +12,8 @@ pub struct CallLog {
     pub status: String,
     pub duration_ms: u64,
     pub tokens: u64,
+    #[serde(default)]
+    pub cost: f64,
 }
 
 fn log_path() -> PathBuf {

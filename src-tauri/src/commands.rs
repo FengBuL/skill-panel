@@ -346,13 +346,25 @@ pub async fn ai_optimize(
     content: String,
     action: String,
     vendor: String,
+    desensitize: bool,
 ) -> Result<(), String> {
-    crate::ai_proxy::optimize(app, content, action, vendor).await
+    crate::ai_proxy::optimize(app, content, action, vendor, desensitize).await
 }
 
 #[tauri::command]
 pub fn set_ai_key(vendor: String, key: String) -> Result<(), String> {
     crate::ai_proxy::set_api_key(&vendor, &key)
+}
+
+#[tauri::command]
+pub fn ai_cancel() -> Result<(), String> {
+    crate::ai_proxy::cancel();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_ai_key(vendor: String) -> bool {
+    crate::ai_proxy::has_api_key(&vendor)
 }
 
 #[tauri::command]

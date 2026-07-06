@@ -1,17 +1,21 @@
 // 编辑器/新建/预览 共用三栏布局 — wt-2-editor 职责
 import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { useUIStore } from '../../store/uiStore';
 import { useSkillStore } from '../../store/skillStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { Button } from '../../components/ui';
 import { showToast } from '../../components/Toast';
 import { readSkill, validateSkill } from '../../lib/invoke';
-import { safeListen } from '../../lib/tauriEvents';
+import { useAIRail } from '../../hooks/useAIRail';
+import { AIRail } from '../../components/ai/AIRail';
+import { DiffModal } from '../../components/ai/DiffModal';
 import './Editor.css';
+import '../../components/ai/ai.css';
 
 export default function EditorPage() {
   const ui = useUIStore();
   const skillStore = useSkillStore();
+  const settings = useSettingsStore();
   const [title, setTitle] = useState(ui.subParam || 'Browser Control');
   const [desc, setDesc] = useState('Open, navigate, inspect, test web targets.');
   const [md, setMd] = useState('# Browser Control\n\nOpen, navigate, inspect, test web targets.\n\n## When To Use\n\nUse when user asks to open a URL.\n\n## Commands\n\n- `open_url` — Navigate\n- `screenshot` — Capture\n\n## Safety\n\nOnly operate on localhost.');
@@ -19,26 +23,6 @@ export default function EditorPage() {
   const [showAI, setShowAI] = useState(false);
   const [showValidate, setShowValidate] = useState(false);
   const [validateResult, setValidateResult] = useState<{ score: number; checks: { id: string; label: string; status: string; detail?: string }[] } | null>(null);
-  const [aiStream, setAiStream] = useState('');
-
-  // AI 调用：invoke('ai_optimize') + 监听 ai-chunk 事件流式显示
-  const callAI = async (action: string) => {
-    setAiStream('');
-    const unlisten = await safeListen<{ chunk: string; done: boolean }>('ai-chunk', (e) => {
-      if (e.payload.done) {
-        setTimeout(() => { showToast('AI 生成完成，请确认 diff', '查看'); }, 200);
-        unlisten();
-      } else {
-        setAiStream(prev => prev + e.payload.chunk);
-      }
-    });
-    try {
-      await invoke('ai_optimize', { content: md, action, vendor: 'glm' });
-    } catch (err) {
-      setAiStream('调用失败: ' + String(err) + '（需先在设置配置 API Key）');
-      unlisten();
-    }
-  };
 
   // 真实加载 Skill 内容
   useEffect(() => {
@@ -57,6 +41,16 @@ export default function EditorPage() {
 
   const markDirty = () => setDirty(true);
   const save = () => { setDirty(false); showToast('已保存', ''); };
+  const aiRail = useAIRail({
+    content: md,
+    vendor: settings.aiVendor,
+    desensitize: settings.aiDesensitize,
+    onApply: (newContent) => {
+      setMd(newContent);
+      markDirty();
+    },
+    onToast: (message) => showToast(message, ''),
+  });
 
   return (
     <div className="ed-main">
@@ -114,17 +108,17 @@ export default function EditorPage() {
       {/* 右栏：预览 / AI */}
       <div className="ed-preview">
         {showAI ? (
-          <div className="ed-ai-rail">
-            <div className="ed-ai-title"><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">auto_awesome</span>AI 助手 <span style={{fontSize:9,color:'var(--text-faint)'}}>GLM-4</span></div>
-            <div className="ed-ai-warn"><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">shield</span>内容将发送至厂商 API（已脱敏）</div>
-            <div className="ed-ai-action" onClick={()=>callAI('struct')}><span className="ed-ai-icon material-symbols-outlined" aria-hidden="true">account_tree</span>完善结构</div>
-            <div className="ed-ai-action" onClick={()=>callAI('desc')}><span className="ed-ai-icon material-symbols-outlined" aria-hidden="true">notes</span>优化描述</div>
-            <div className="ed-ai-action" onClick={()=>callAI('polish')}><span className="ed-ai-icon material-symbols-outlined" aria-hidden="true">auto_fix_high</span>润色正文</div>
-            <div className="ed-ai-action" onClick={()=>callAI('fm')}><span className="ed-ai-icon material-symbols-outlined" aria-hidden="true">sell</span>生成 frontmatter</div>
-            <div className="ed-ai-action" onClick={()=>callAI('safe')}><span className="ed-ai-icon material-symbols-outlined" aria-hidden="true">policy</span>安全审查</div>
-            {aiStream && <div className="ed-ai-stream">{aiStream}<span className="ed-ai-typing" /></div>}
-            <div className="ed-ai-cost">本次约 1.2k token · ¥0.003 · 本月 ¥2.4/¥50</div>
-          </div>
+          <AIRail
+            status={aiRail.status}
+            stream={aiRail.stream}
+            result={aiRail.result}
+            vendor={settings.aiVendor}
+            monthlyUsed={settings.aiMonthlyUsed}
+            monthlyBudget={settings.aiMonthlyBudget}
+            desensitize={settings.aiDesensitize}
+            onRun={aiRail.run}
+            onCancel={aiRail.cancel}
+          />
         ) : (
           <>
             <div className="ed-preview-title">{title}</div>
@@ -139,6 +133,15 @@ export default function EditorPage() {
           </>
         )}
       </div>
+      {aiRail.status === 'diffing' && aiRail.result && aiRail.lastAction && (
+        <DiffModal
+          hunks={aiRail.hunks}
+          result={aiRail.result}
+          action={aiRail.lastAction}
+          onApply={aiRail.applySelected}
+          onReject={aiRail.reject}
+        />
+      )}
     </div>
   );
 }

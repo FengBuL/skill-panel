@@ -1,6 +1,6 @@
 {
   "name": "skill-panel",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,6 +25,7 @@
     "@tanstack/react-virtual": "^3.14.5",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
+    "diff": "^9.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
@@ -36,6 +37,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/diff": "^7.0.2",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^6.0.2",

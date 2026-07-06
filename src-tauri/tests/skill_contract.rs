@@ -94,7 +94,12 @@ fn app_settings_serializes_skill_roots_and_default_source() {
             "skillUsage": {},
             "skillOrganizationSuggestions": {},
             "skillHealth": {},
-            "skillDrafts": {}
+            "skillDrafts": {},
+            "aiVendor": "glm",
+            "aiDesensitize": true,
+            "aiDiffConfirm": true,
+            "aiMonthlyBudget": 50.0,
+            "aiMonthlyUsed": 0.0
         })
     );
 }
