@@ -3,7 +3,6 @@
 // 各 worktree 填充 pages/ 后，此处自动渲染对应页面
 import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import './styles/tokens.css';
 import { useUIStore } from './store/uiStore';
 import { useSkillStore } from './store/skillStore';
@@ -11,6 +10,7 @@ import { TopBar } from './components/TopBar';
 import { ToastHost, showToast } from './components/Toast';
 import { Button } from './components/ui';
 import { scanSkills } from './lib/invoke';
+import { safeListen } from './lib/tauriEvents';
 
 // 页面（各 worktree 实现，当前为占位）
 import LibraryPage from './pages/Library';
@@ -42,7 +42,7 @@ export function AppShell() {
     // 启动文件监听（Tauri 可用时）
     invoke('watch_scan_dirs', { dirs }).catch(() => {});
     // 监听变化事件 → 重新扫描
-    listen('scan-changed', () => {
+    safeListen('scan-changed', () => {
       scanSkills().then(r => { skillStore.setSkills(r.skills); showToast('检测到文件变化，已重新扫描', ''); });
     }).then(fn => { unlisten = fn; });
     return () => { unlisten?.(); };

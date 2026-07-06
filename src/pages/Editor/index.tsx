@@ -6,6 +6,7 @@ import { useSkillStore } from '../../store/skillStore';
 import { Button } from '../../components/ui';
 import { showToast } from '../../components/Toast';
 import { readSkill, validateSkill } from '../../lib/invoke';
+import { safeListen } from '../../lib/tauriEvents';
 import './Editor.css';
 
 export default function EditorPage() {
@@ -23,8 +24,7 @@ export default function EditorPage() {
   // AI 调用：invoke('ai_optimize') + 监听 ai-chunk 事件流式显示
   const callAI = async (action: string) => {
     setAiStream('');
-    const { listen } = await import('@tauri-apps/api/event');
-    const unlisten = await listen<{ chunk: string; done: boolean }>('ai-chunk', (e) => {
+    const unlisten = await safeListen<{ chunk: string; done: boolean }>('ai-chunk', (e) => {
       if (e.payload.done) {
         setTimeout(() => { showToast('AI 生成完成，请确认 diff', '查看'); }, 200);
         unlisten();
