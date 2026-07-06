@@ -31,7 +31,15 @@ pub fn create_skill(input: CreateSkillInput) -> Result<SkillDetail, String> {
 }
 
 pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
-    update_skill_in_roots(input, &configured_allowed_roots()?)
+    let roots = configured_allowed_roots()?;
+    let skill_file = skill_file_from_input(&input.path)?;
+    ensure_existing_path_allowed(&skill_file, &roots)?;
+    crate::version_store::create_snapshot(
+        &skill_file.to_string_lossy(),
+        "Before save",
+        "manual",
+    )?;
+    update_skill_in_roots(input, &roots)
 }
 
 pub fn delete_skill(path: String) -> Result<(), String> {
@@ -1067,6 +1075,64 @@ mod tests {
         fs::remove_dir_all(home).ok();
         fs::remove_dir_all(custom_root).ok();
         fs::remove_dir_all(outside_root).ok();
+    }
+
+    #[test]
+    fn update_skill_records_version_snapshot_before_saving() {
+        let _home_env_lock = home_env_lock()
+            .lock()
+            .expect("home env lock should be available");
+        let home = temp_root("version-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let custom_root = temp_root("version-custom");
+        let settings_path = home
+            .join(".codex")
+            .join("skill-panel")
+            .join("settings.json");
+        save_app_settings_to_path(
+            &settings_path,
+            AppSettings {
+                language: Language::System,
+                custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+                show_default_scan_directories: false,
+                ..AppSettings::default()
+            },
+        )
+        .expect("settings should save");
+
+        let skill_dir = custom_root.join("versioned");
+        fs::create_dir_all(&skill_dir).expect("skill dir should be created");
+        let skill_path = skill_dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            "---\nname: Versioned\ndescription: Original\n---\n# Original\n",
+        )
+        .expect("skill should be written");
+
+        update_skill(UpdateSkillInput {
+            path: skill_path.to_string_lossy().to_string(),
+            name: None,
+            description: Some("Updated".to_string()),
+            markdown: Some("# Updated\n".to_string()),
+        })
+        .expect("skill should update");
+
+        let versions = crate::version_store::list_versions(&skill_path.to_string_lossy())
+            .expect("version history should load");
+        assert!(!versions.is_empty());
+        assert_eq!(versions[0].note, "Before save");
+        let snapshot_path = home
+            .join(".codex")
+            .join("skill-panel")
+            .join("versions")
+            .join("versioned")
+            .join(&versions[0].id)
+            .join("SKILL.md");
+        let snapshot = fs::read_to_string(snapshot_path).expect("snapshot should read");
+        assert!(snapshot.contains("description: Original\n"));
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
     }
 
     #[test]

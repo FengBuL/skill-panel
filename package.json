@@ -19,7 +19,7 @@
     "tauri:icons": "tauri icon src-tauri/icons/source.png",
     "visual:qa": "node scripts/visual-qa.mjs",
     "packaging:check": "vitest run src/packaging.config.test.ts",
-    "cargo:test": "cd src-tauri && cargo test --lib --bins --tests"
+    "cargo:test": "export PATH=\"$HOME/.cargo/bin:$PATH\"; cd src-tauri && cargo test --lib --bins --tests"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.5",
