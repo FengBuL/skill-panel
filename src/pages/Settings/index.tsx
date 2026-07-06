@@ -51,11 +51,11 @@ export default function SettingsPage() {
         </div>
         <div className="set-section">
           <div className="set-section-label">数据</div>
-          <div className="set-row"><span className="set-label">导入 Skill</span><Button variant="secondary" size="sm">📥 从文件导入</Button></div>
-          <div className="set-row"><span className="set-label">导出全部</span><Button variant="secondary" size="sm">📤 导出</Button></div>
+          <div className="set-row"><span className="set-label">导入 Skill</span><Button variant="secondary" size="sm"><span className="material-symbols-outlined sp-btn-icon" aria-hidden="true">upload_file</span>从文件导入</Button></div>
+          <div className="set-row"><span className="set-label">导出全部</span><Button variant="secondary" size="sm"><span className="material-symbols-outlined sp-btn-icon" aria-hidden="true">download</span>导出</Button></div>
         </div>
-        <div className="set-section" style={{background:'linear-gradient(180deg,var(--ai-soft) 0%,transparent 100%)'}}>
-          <div className="set-section-label" style={{color:'var(--ai-text)'}}>✨ AI 助手配置</div>
+        <div className="set-section set-section-ai">
+          <div className="set-section-label">AI 助手配置</div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
             {([['glm','智谱 GLM'],['openai','OpenAI'],['claude','Claude'],['ollama','Ollama 本地']] as [AIVendor,string][]).map(([v,n])=>(
               <div key={v} className={`set-vendor ${s.aiVendor===v?'active':''}`} onClick={()=>s.setAIVendor(v)}><div className="sv-name">{n}</div></div>

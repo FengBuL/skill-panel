@@ -101,6 +101,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     if (filters.category.length) r = r.filter(s => filters.category.includes(s.category));
     if (filters.status.includes('starred')) r = r.filter(s => s.starred);
     if (filters.status.includes('disabled')) r = r.filter(s => s.disabled);
+    if (filters.status.includes('attention')) r = r.filter(s => s.disabled || !s.description || s.description === '(无描述)');
     set({ filtered: r });
   },
 
@@ -116,8 +117,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   selectAll: () => {
-    const { filtered } = get();
-    set({ bulkSelected: new Set(filtered.map((_, i) => i)) });
+    const { skills, filtered } = get();
+    set({ bulkSelected: new Set(filtered.map((skill) => skills.indexOf(skill)).filter((idx) => idx >= 0)) });
   },
 
   clearSelection: () => set({ bulkSelected: new Set() }),
@@ -137,5 +138,5 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   },
 
   openDrawer: (idx) => set({ drawerIdx: idx, drawerOpen: true }),
-  closeDrawer: () => set({ drawerOpen: false }),
+  closeDrawer: () => set({ drawerOpen: false, drawerIdx: -1 }),
 }));

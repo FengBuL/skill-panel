@@ -18,7 +18,10 @@ export default function PreviewPage() {
         </div>
         <div className="ed-rail-section"><div className="ed-rail-label">文件信息</div>
           <div style={{padding:'0 8px',fontSize:10,color:'var(--text-muted)',lineHeight:1.9}}>
-            <div>📐 12.4 KB</div><div>📝 186 行</div><div>📄 Markdown</div><div>📅 3 天前</div>
+            <div><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">straighten</span>12.4 KB</div>
+            <div><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">format_list_numbered</span>186 行</div>
+            <div><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">description</span>Markdown</div>
+            <div><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">schedule</span>3 天前</div>
           </div>
         </div>
       </aside>
@@ -26,7 +29,7 @@ export default function PreviewPage() {
         <div style={{padding:'8px 16px',display:'flex',alignItems:'center',borderBottom:'1px solid var(--border-2)'}}>
           <span style={{fontSize:10,color:'var(--text-faint)',fontWeight:600}}>预览模式</span>
           <div style={{flex:1}} />
-          <Button variant="secondary" size="sm" onClick={()=>showToast('已复制路径','')}>📋 复制路径</Button>
+          <Button variant="secondary" size="sm" onClick={()=>showToast('已复制路径','')}><span className="material-symbols-outlined sp-btn-icon" aria-hidden="true">content_copy</span>复制路径</Button>
         </div>
         <div style={{flex:1,overflow:'auto',padding:'24px 32px',maxWidth:720,margin:'0 auto',width:'100%'}}>
           <div style={{display:'flex',gap:8,fontSize:11,color:'var(--text-muted)',padding:'8px 12px',background:'var(--surface-2)',borderRadius:'var(--radius-md)',marginBottom:16}}>
@@ -42,8 +45,8 @@ export default function PreviewPage() {
           <div className="ed-preview-p" style={{fontSize:12}}>Always backup before overwriting.</div>
         </div>
         <div style={{padding:'10px 16px',borderTop:'1px solid var(--border-2)',display:'flex',gap:8}}>
-          <Button variant="primary" size="sm" onClick={()=>ui.enterSub('editor','A-Share Daily Update')}>✏️ 编辑</Button>
-          <Button variant="secondary" size="sm">📂 目录</Button>
+          <Button variant="primary" size="sm" onClick={()=>ui.enterSub('editor','A-Share Daily Update')}><span className="material-symbols-outlined sp-btn-icon" aria-hidden="true">edit</span>编辑</Button>
+          <Button variant="secondary" size="sm"><span className="material-symbols-outlined sp-btn-icon" aria-hidden="true">folder_open</span>目录</Button>
         </div>
       </div>
     </div>

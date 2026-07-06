@@ -13,7 +13,7 @@ export interface OpenSkillFolderCmd { name: 'open_skill_folder'; args: { path: s
 export interface LoadSettingsCmd { name: 'load_app_settings'; args: {}; returns: Record<string, unknown> }
 export interface SaveSettingsCmd { name: 'save_app_settings'; args: { settings: Record<string, unknown> }; returns: void }
 
-// ============ v3.7 新增命令（wt-6 实现） ============
+// ============ v3.8 命令（wt-6 实现） ============
 
 // P0 复制/克隆
 export interface CloneSkillCmd {

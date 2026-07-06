@@ -49,14 +49,14 @@ export default function CreatePage() {
     <div className="ed-main">
       <aside className="ed-rail">
         <div className="ed-rail-section"><div className="ed-rail-label">校验</div>
-          <div className={`ed-val-item ${name.trim() ? 'ok' : 'fail'}`} style={{padding:'4px 8px'}}>{name.trim() ? '✓' : '✗'} 名称可用</div>
-          <div className={`ed-val-item ${targetDir.trim() ? 'ok' : 'fail'}`} style={{padding:'4px 8px'}}>{targetDir.trim() ? '✓' : '✗'} 目录可创建</div>
-          <div className={`ed-val-item ${desc.trim() ? 'ok' : 'warn'}`} style={{padding:'4px 8px'}}>{desc.trim() ? '✓' : '⚠'} 描述{desc.trim() ? '已填写' : '为空'}</div>
+          <div className={`ed-val-item ${name.trim() ? 'ok' : 'fail'}`} style={{padding:'4px 8px'}}><span className="material-symbols-outlined ed-val-icon" aria-hidden="true">{name.trim() ? 'check_circle' : 'cancel'}</span>名称可用</div>
+          <div className={`ed-val-item ${targetDir.trim() ? 'ok' : 'fail'}`} style={{padding:'4px 8px'}}><span className="material-symbols-outlined ed-val-icon" aria-hidden="true">{targetDir.trim() ? 'check_circle' : 'cancel'}</span>目录可创建</div>
+          <div className={`ed-val-item ${desc.trim() ? 'ok' : 'warn'}`} style={{padding:'4px 8px'}}><span className="material-symbols-outlined ed-val-icon" aria-hidden="true">{desc.trim() ? 'check_circle' : 'warning'}</span>描述{desc.trim() ? '已填写' : '为空'}</div>
           {error && <div className="ed-val-item fail" style={{padding:'4px 8px'}}>{error}</div>}
         </div>
       </aside>
       <div className="ed-center">
-        <div className="ed-fm"><div className="ed-fm-header">▾ Frontmatter</div>
+        <div className="ed-fm"><div className="ed-fm-header"><span className="material-symbols-outlined ed-inline-icon" aria-hidden="true">expand_more</span>Frontmatter</div>
           <div className="ed-fm-body">
             <div className="ed-fm-field"><div className="ed-fm-label">名称 <span style={{color:'var(--success)'}}>✓ 可用</span></div><input className="ed-input" value={name} onChange={e=>setName(e.target.value)} /></div>
             <div className="ed-fm-field"><div className="ed-fm-label">分类</div><select className="ed-input"><option>未分类</option><option>金融</option></select></div>

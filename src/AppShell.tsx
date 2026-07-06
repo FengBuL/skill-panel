@@ -1,4 +1,4 @@
-// AppShell — v3.7 应用壳
+// AppShell — v3.8 应用壳
 // wt-0-foundation 产出：Provider + TopBar + 路由分发 + Toast
 // 各 worktree 填充 pages/ 后，此处自动渲染对应页面
 import { useEffect } from 'react';

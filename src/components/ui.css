@@ -1,10 +1,10 @@
 /* UI 基础组件样式 — wt-0-foundation 产出 */
 .sp-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  min-height: 30px; padding: 0 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 500;
   transition: all 0.15s var(--ease); white-space: nowrap; cursor: pointer; border: none;
 }
-.sp-btn-sm { padding: 4px 10px; font-size: 11px; }
+.sp-btn-sm { min-height: 28px; padding: 0 10px; font-size: 11px; }
 .sp-btn-primary { background: var(--accent); color: #fff; }
 .sp-btn-primary:hover { background: var(--accent-hover); }
 .sp-btn-primary:disabled { opacity: 0.5; cursor: default; }
@@ -16,11 +16,11 @@
 .sp-btn-danger:hover { background: var(--danger-soft); }
 
 .sp-icon-btn {
-  width: 30px; height: 30px; border-radius: 7px; display: inline-flex;
+  width: 28px; height: 28px; min-height: 28px; border-radius: var(--radius-md); display: inline-flex;
   align-items: center; justify-content: center; color: var(--text-muted);
-  font-size: 15px; transition: all 0.15s var(--ease); cursor: pointer; border: none; background: none;
+  font-size: 15px; transition: all 0.15s var(--ease); cursor: pointer; border: 1px solid transparent; background: transparent; padding: 0;
 }
-.sp-icon-btn:hover { background: var(--surface-3); color: var(--text); }
+.sp-icon-btn:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
 
 .sp-kbd {
   display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px;
@@ -28,9 +28,9 @@
   font-family: ui-monospace, monospace; border: 1px solid var(--border);
 }
 
-.sp-segment { display: flex; background: var(--surface-3); border-radius: 8px; padding: 2px; gap: 2px; }
+.sp-segment { display: flex; background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px; gap: 2px; }
 .sp-segment-item {
-  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  min-height: 24px; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
   color: var(--text-muted); transition: all 0.2s var(--ease); cursor: pointer; border: none; background: none;
 }
 .sp-segment-item:hover { color: var(--text); }
@@ -59,9 +59,10 @@
 .sp-bc-badge.create { background: var(--warning-soft); color: var(--warning); }
 
 .sp-search-box {
-  display: flex; align-items: center; gap: 6px; width: 200px; height: 28px;
-  padding: 0 10px; border-radius: 100px; background: var(--surface-3);
-  border: 1px solid transparent; transition: all 0.15s var(--ease);
+  display: flex; align-items: center; gap: 6px; width: clamp(220px, 26vw, 320px); height: 30px;
+  padding: 0 10px; border-radius: var(--radius-pill); background: var(--surface);
+  border: 1px solid var(--border); transition: all 0.15s var(--ease);
 }
-.sp-search-box:focus-within { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10,132,255,0.12); }
+.sp-search-box:focus-within { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgb(10 132 255 / 12%); }
 .sp-search-box input { flex: 1; font-size: 12px; border: none; outline: none; background: none; color: var(--text); }
+.sp-search-icon { color: var(--text-faint); font-size: 15px; }

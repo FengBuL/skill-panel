@@ -1,6 +1,6 @@
 [package]
 name = "skill-panel"
-version = "3.7.1"
+version = "3.8.0"
 description = "Desktop shell for the Skill Panel application"
 authors = ["Skill Panel Contributors"]
 edition = "2021"

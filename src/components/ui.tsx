@@ -70,7 +70,7 @@ export function Breadcrumb({ items }: { items: { label: string; badge?: 'edit' |
 export function SearchBox({ value, onChange, placeholder = '搜索...' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="sp-search-box">
-      <span aria-hidden="true">🔍</span>
+      <span className="sp-search-icon material-symbols-outlined" aria-hidden="true">search</span>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} aria-label="搜索" />
       <Kbd>⌘K</Kbd>
     </div>

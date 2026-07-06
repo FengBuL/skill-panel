@@ -70,6 +70,7 @@ function firstCategorySignal(s: SkillSummary): string | null {
 // SkillSummary → store Skill 映射
 export function mapSummary(s: SkillSummary): Skill {
   const isPlugin = s.source === 'plugin-cache' || s.source === 'system' || s.source === 'unknown';
+  const frontmatter = s.frontmatter || {};
   return {
     name: s.name,
     description: s.description || '(无描述)',
@@ -78,8 +79,8 @@ export function mapSummary(s: SkillSummary): Skill {
     path: s.path,
     modifiedAt: s.modifiedAt || '未知',
     size: 0,
-    starred: false,
-    disabled: false,
+    starred: Boolean(frontmatter.starred || frontmatter.favorite),
+    disabled: Boolean(frontmatter.disabled),
     protected: isPlugin,
   };
 }

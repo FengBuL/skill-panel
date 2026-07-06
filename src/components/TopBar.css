@@ -1,11 +1,46 @@
-.sp-topbar-wrap { flex-shrink: 0; z-index: 10; }
+.sp-topbar-wrap { flex-shrink: 0; z-index: 10; box-shadow: var(--shadow-sm); }
 .sp-topbar-global {
-  height: 44px; background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
+  height: var(--topbar-global-height); background: rgb(247 250 254 / 96%); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border); display: flex; align-items: center;
   padding: 0 16px; gap: 12px;
 }
-.sp-topbar-brand { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.sp-topbar-brand { font-size: 14px; font-weight: 700; white-space: nowrap; color: var(--text); }
 .sp-topbar-context {
-  min-height: 40px; background: #fff; border-bottom: 1px solid var(--border-2);
-  display: flex; align-items: center; padding: 0 16px; gap: 8px;
+  height: var(--topbar-context-height); background: var(--surface);
+  border-bottom: 1px solid var(--border-2);
+  display: flex; align-items: center; padding: 0 16px; gap: 8px; overflow: hidden;
+}
+.sp-toolbar-spacer { flex: 1 1 auto; min-width: 8px; }
+.sp-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: 2px;
+}
+.sp-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sp-pill-blue { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+.sp-pill-green { background: var(--success-soft); border-color: var(--success-border); color: var(--success); }
+.sp-pill-muted { background: var(--surface-2); cursor: pointer; }
+.sp-pill-muted[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
+.sp-pill-quiet { color: var(--text-faint); font-weight: 500; }
+.sp-btn-icon { font-size: 15px; }
+.sp-topbar-context .material-symbols-outlined,
+.sp-topbar-global .material-symbols-outlined {
+  font-size: 16px;
 }

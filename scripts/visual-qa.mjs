@@ -63,6 +63,28 @@ const baseSkills = [
   }),
 ];
 
+const prototypeSkills = [
+  ['Browser Control', 'Open, navigate, inspect, and test web targets.', 'plugin-cache', '浏览器', true],
+  ['A-Share Daily Update', 'Standardizes daily stock updates for MarketData.', 'codex-user', '金融', false],
+  ['Claude-to-IM Bridge', 'Bridge model responses to IM platforms.', 'codex-user', '常用', false],
+  ['PDF Analysis Core', 'Financial PDF processing pipeline.', 'codex-user', '数据', false],
+  ['Document Illustrator', 'Auto-generate illustrations for documents.', 'codex-user', '文案', true],
+  ['Youtube Clipper', 'Download and clip videos for research.', 'codex-user', '常用', false],
+  ['Email Composer', 'Compose professional emails with templates.', 'codex-user', '文案', false],
+  ['Serenity Stock', 'Stock screening engine with technical filters.', 'codex-user', '金融', false],
+  ['Data Validator', 'Validate and clean datasets before processing.', 'codex-user', '数据', false],
+  ['Lark Bot Bridge', 'Integrate Lark messaging with skill execution.', 'plugin-cache', '常用', false],
+].map(([name, description, source, category, starred], index) => ({
+  path: `C:\\Users\\demo\\.codex\\skills\\prototype-${index + 1}\\SKILL.md`,
+  name,
+  description,
+  source,
+  category,
+  frontmatter: { starred },
+  parseStatus: 'parsed',
+  modifiedAt: '2026-07-06T08:00:00Z',
+}));
+
 const detailsByPath = Object.fromEntries(
   baseSkills.map((skill) => [
     skill.path,
@@ -83,72 +105,92 @@ const detailsByPath = Object.fromEntries(
 
 const scenarios = [
   {
-    id: 'v37-library-1440x960',
-    title: 'v3.7 Library card grid',
+    id: 'v38-library-1440x960',
+    title: 'v3.8 Library card grid',
     viewport: { width: 1440, height: 960 },
     page: 'library',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-drawer-1280x800',
-    title: 'v3.7 Library detail drawer',
+    id: 'prototype-parity-library-1280x768',
+    title: 'v3.8 prototype parity Library',
+    viewport: { width: 1280, height: 768 },
+    page: 'library',
+    mode: 'success',
+    skills: prototypeSkills,
+    expectedText: '10 个 · 8 可编辑 · 2 已收藏',
+    checkPrototype: true,
+  },
+  {
+    id: 'prototype-parity-library-1440x960',
+    title: 'v3.8 prototype parity Library large',
+    viewport: { width: 1440, height: 960 },
+    page: 'library',
+    mode: 'success',
+    skills: prototypeSkills,
+    expectedText: '10 个 · 8 可编辑 · 2 已收藏',
+    checkPrototype: true,
+  },
+  {
+    id: 'v38-drawer-1280x800',
+    title: 'v3.8 Library detail drawer',
     viewport: { width: 1280, height: 800 },
     page: 'drawer',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-dashboard-1280x800',
-    title: 'v3.7 Dashboard',
+    id: 'v38-dashboard-1280x800',
+    title: 'v3.8 Dashboard',
     viewport: { width: 1280, height: 800 },
     page: 'dashboard',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-editor-1440x960',
-    title: 'v3.7 Editor with AI rail',
+    id: 'v38-editor-1440x960',
+    title: 'v3.8 Editor with AI rail',
     viewport: { width: 1440, height: 960 },
     page: 'editor',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-create-1280x800',
-    title: 'v3.7 Create skill flow',
+    id: 'v38-create-1280x800',
+    title: 'v3.8 Create skill flow',
     viewport: { width: 1280, height: 800 },
     page: 'create',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-settings-1280x800',
-    title: 'v3.7 Settings and AI key area',
+    id: 'v38-settings-1280x800',
+    title: 'v3.8 Settings and AI key area',
     viewport: { width: 1280, height: 800 },
     page: 'settings',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-logs-1280x800',
-    title: 'v3.7 Logs',
+    id: 'v38-logs-1280x800',
+    title: 'v3.8 Logs',
     viewport: { width: 1280, height: 800 },
     page: 'logs',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'v37-empty-1024x768',
-    title: 'v3.7 empty Library',
+    id: 'v38-empty-1024x768',
+    title: 'v3.8 empty Library',
     viewport: { width: 1024, height: 768 },
     page: 'library',
     mode: 'empty',
     skills: [],
   },
   {
-    id: 'v37-failed-1024x768',
-    title: 'v3.7 failed scan fallback',
+    id: 'v38-failed-1024x768',
+    title: 'v3.8 failed scan fallback',
     viewport: { width: 1024, height: 768 },
     page: 'library',
     mode: 'failed',
@@ -367,8 +409,10 @@ async function runScenario(browser, scenario) {
 
   const checks = await page.evaluate(() => {
     const topBar = document.querySelector('.sp-topbar-global');
+    const topBarWrap = document.querySelector('.sp-topbar-wrap');
     const libraryGrid = document.querySelector('.lib-grid');
     const libraryCard = document.querySelector('.lib-card');
+    const librarySidebar = document.querySelector('.lib-sidebar');
     const drawer = document.querySelector('.lib-drawer.open');
     const dashboard = document.querySelector('.dash-main');
     const editor = document.querySelector('.ed-main');
@@ -385,6 +429,14 @@ async function runScenario(browser, scenario) {
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       documentHorizontalOverflowPx: Math.max(0, horizontalOverflow),
       topBarVisible: topBar ? topBar.getBoundingClientRect().height > 0 : false,
+      topBarTotalHeight: topBarWrap ? Math.round(topBarWrap.getBoundingClientRect().height) : 0,
+      librarySidebarWidth: librarySidebar ? Math.round(librarySidebar.getBoundingClientRect().width) : 0,
+      libraryGridColumns: libraryGrid ? getComputedStyle(libraryGrid).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      libraryCardHeight: libraryCard ? Math.round(libraryCard.getBoundingClientRect().height) : 0,
+      paginationBottom: paginationControls ? Math.round(paginationControls.getBoundingClientRect().bottom) : 0,
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+      cardBackground: libraryCard ? getComputedStyle(libraryCard).backgroundColor : '',
+      cardBorderColor: libraryCard ? getComputedStyle(libraryCard).borderTopColor : '',
       dashboardVisible: dashboard ? dashboard.getBoundingClientRect().height > 0 : false,
       libraryGridVisible: libraryGrid ? libraryGrid.getBoundingClientRect().height > 0 : false,
       libraryCardVisible: libraryCard ? libraryCard.getBoundingClientRect().height > 0 : false,
@@ -398,7 +450,7 @@ async function runScenario(browser, scenario) {
     };
   });
 
-  const expectedText = {
+  const expectedText = scenario.expectedText || {
     success:
       scenario.page === 'dashboard'
         ? '仪表板'
@@ -422,6 +474,17 @@ async function runScenario(browser, scenario) {
   if (scenario.page === 'library') {
     assertions.push(['library grid is visible', checks.libraryGridVisible]);
     assertions.push(['library pagination controls are visible', checks.paginationControlsVisible]);
+  }
+
+  if (scenario.checkPrototype) {
+    assertions.push(['prototype top bar total height is about 82px', checks.topBarTotalHeight >= 80 && checks.topBarTotalHeight <= 84]);
+    assertions.push(['prototype sidebar width is 200px', checks.librarySidebarWidth === 200]);
+    assertions.push(['prototype Library grid has three columns', checks.libraryGridColumns === 3]);
+    assertions.push(['prototype card height is about 164px', checks.libraryCardHeight >= 160 && checks.libraryCardHeight <= 168]);
+    assertions.push(['prototype pagination is visible inside viewport', checks.paginationBottom <= scenario.viewport.height]);
+    assertions.push(['prototype page background uses token #EEF2F7', checks.bodyBackground === 'rgb(238, 242, 247)']);
+    assertions.push(['prototype cards use white background', checks.cardBackground === 'rgb(255, 255, 255)']);
+    assertions.push(['prototype card border uses token #D7DEE8', checks.cardBorderColor === 'rgb(215, 222, 232)']);
   }
 
   if (scenario.skills.length > 0 && scenario.page === 'library') {
@@ -496,13 +559,14 @@ function buildMarkdownReport(results) {
     '',
     '## Design Checklist',
     '',
-    '- [x] v3.7 information architecture: top bar, Library grid, drawer, Dashboard, Editor, Create, Settings, and Logs are present in screenshots.',
+    '- [x] v3.8 information architecture: top bar, Library grid, drawer, Dashboard, Editor, Create, Settings, and Logs are present in screenshots.',
+    '- [x] Prototype parity: 1280x768 and 1440x960 Library screenshots check top bar height, 200px rail, three columns, pagination, and color tokens.',
     '- [x] 18.4 visual direction: light desktop workbench surface, subtle borders, status colors, compact typography, and selected row treatment are visible.',
-    '- [x] v3.7 Library behavior: card grid, drawer, pagination, and compact filters have screenshot coverage.',
-    '- [x] v3.7 workflow behavior: editor AI rail, create form, settings, logs, and dashboard have screenshot coverage.',
-    '- [x] v3.7 scan states: success, failed fallback, and empty Library states have screenshot coverage.',
+    '- [x] v3.8 Library behavior: card grid, drawer, pagination, and compact filters have screenshot coverage.',
+    '- [x] v3.8 workflow behavior: editor AI rail, create form, settings, logs, and dashboard have screenshot coverage.',
+    '- [x] v3.8 scan states: success, failed fallback, and empty Library states have screenshot coverage.',
     '- [x] v3 QA Release responsive behavior: 1440x960, 1280x800, and 1024x768 viewports have screenshot coverage with no page-level horizontal overflow.',
-    '- [x] v3.7.1 stabilization scope: browser-safe event mocks are exercised through visual QA.',
+    '- [x] v3.8 stabilization scope: browser-safe event mocks are exercised through visual QA.',
     '',
     '## Notes',
     '',
