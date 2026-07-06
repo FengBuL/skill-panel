@@ -83,66 +83,75 @@ const detailsByPath = Object.fromEntries(
 
 const scenarios = [
   {
-    id: 'zh-success-1440x960-long-markdown',
-    title: 'Chinese success state, selected detail, long Markdown',
+    id: 'v37-library-1440x960',
+    title: 'v3.7 Library card grid',
     viewport: { width: 1440, height: 960 },
-    language: 'zh-CN',
+    page: 'library',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
-    selectFirstSkill: true,
-    previewMarkdown: true,
   },
   {
-    id: 'zh-success-1280x800-card-groups',
-    title: 'Chinese success state, grouped card view',
+    id: 'v37-drawer-1280x800',
+    title: 'v3.7 Library detail drawer',
     viewport: { width: 1280, height: 800 },
-    language: 'zh-CN',
+    page: 'drawer',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
-    cardView: true,
-    selectFirstSkill: false,
-    previewMarkdown: false,
-    bulkSelection: false,
   },
   {
-    id: 'en-success-1280x800-long-markdown',
-    title: 'English success state, selected detail, long Markdown',
+    id: 'v37-dashboard-1280x800',
+    title: 'v3.7 Dashboard',
     viewport: { width: 1280, height: 800 },
-    language: 'en-US',
+    page: 'dashboard',
     mode: 'success',
     skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
-    selectFirstSkill: true,
   },
   {
-    id: 'en-partial-1024x768-resource-table',
-    title: 'English partial success state at compact desktop size',
-    viewport: { width: 1024, height: 768 },
-    language: 'en-US',
-    mode: 'partial',
-    skills: baseSkills,
+    id: 'v37-editor-1440x960',
+    title: 'v3.7 Editor with AI rail',
+    viewport: { width: 1440, height: 960 },
+    page: 'editor',
+    mode: 'success',
+    skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
   },
   {
-    id: 'zh-empty-1024x768',
-    title: 'Chinese empty list state at compact desktop size',
+    id: 'v37-create-1280x800',
+    title: 'v3.7 Create skill flow',
+    viewport: { width: 1280, height: 800 },
+    page: 'create',
+    mode: 'success',
+    skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
+  },
+  {
+    id: 'v37-settings-1280x800',
+    title: 'v3.7 Settings and AI key area',
+    viewport: { width: 1280, height: 800 },
+    page: 'settings',
+    mode: 'success',
+    skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
+  },
+  {
+    id: 'v37-logs-1280x800',
+    title: 'v3.7 Logs',
+    viewport: { width: 1280, height: 800 },
+    page: 'logs',
+    mode: 'success',
+    skills: baseSkills.filter((skill) => skill.parseStatus === 'parsed'),
+  },
+  {
+    id: 'v37-empty-1024x768',
+    title: 'v3.7 empty Library',
     viewport: { width: 1024, height: 768 },
-    language: 'zh-CN',
+    page: 'library',
     mode: 'empty',
     skills: [],
   },
   {
-    id: 'en-failed-1280x800',
-    title: 'English failed scan state',
-    viewport: { width: 1280, height: 800 },
-    language: 'en-US',
+    id: 'v37-failed-1024x768',
+    title: 'v3.7 failed scan fallback',
+    viewport: { width: 1024, height: 768 },
+    page: 'library',
     mode: 'failed',
-    skills: [],
-  },
-  {
-    id: 'zh-scanning-1440x960',
-    title: 'Chinese scanning state',
-    viewport: { width: 1440, height: 960 },
-    language: 'zh-CN',
-    mode: 'scanning',
     skills: [],
   },
 ];
@@ -234,9 +243,17 @@ async function installTauriMock(page, scenario) {
         },
         unregisterCallback: (id) => callbacks.delete(id),
         invoke: async (command, args = {}) => {
+          if (command === 'plugin:event|listen') {
+            return args.handler;
+          }
+
+          if (command === 'plugin:event|unlisten') {
+            return null;
+          }
+
           if (command === 'load_app_settings') {
             return {
-              language: scenarioData.language,
+              language: 'zh-CN',
               customScanDirectories: ['D:\\Team\\skills'],
               showDefaultScanDirectories: true,
             };
@@ -277,6 +294,10 @@ async function installTauriMock(page, scenario) {
           throw new Error(`Unexpected command in visual QA: ${command}`);
         },
       };
+
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+        unregisterListener: () => {},
+      };
     },
     { scenarioData: scenario, detailFixtures: detailsByPath },
   );
@@ -297,64 +318,64 @@ async function runScenario(browser, scenario) {
 
   await page.goto(`${baseUrl}/?visualQa=${scenario.id}`, { waitUntil: 'domcontentloaded' });
 
-  if (scenario.mode === 'scanning') {
-    await page.waitForTimeout(350);
-  } else if (scenario.mode === 'failed') {
-    await page.locator('.empty-state strong').getByText(scenario.language === 'zh-CN' ? '扫描失败' : 'Scan failed').waitFor({
-      timeout: 5000,
-    });
+  await page.locator('.sp-topbar-global').waitFor({ timeout: 5000 });
+
+  if (scenario.mode === 'failed') {
+    await page.getByText('Tauri 不可用，使用示例数据').waitFor({ timeout: 5000 });
   } else if (scenario.skills.length === 0) {
-    await page.getByText(scenario.language === 'zh-CN' ? '暂无已扫描的 Skill' : 'No scanned skills yet').waitFor({ timeout: 5000 });
+    await page.getByText('0 个 · 0 可编辑 · 0 已收藏').waitFor({ timeout: 5000 });
   } else {
-    await page.getByRole('button', { name: /Skill Library/ }).click();
-    if (scenario.cardView) {
-      await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '卡片视图' : 'Card View' }).click();
-      await page.locator('.skill-card-grid.active .skill-card').first().waitFor({ timeout: 5000 });
-    } else {
-      await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '列表视图' : 'List View' }).click();
-      await page.locator('.skill-table-wrap.active .skill-table').waitFor({ timeout: 5000 });
-    }
+    await page.locator('.lib-card').first().waitFor({ timeout: 5000 });
   }
 
-  if (scenario.selectFirstSkill) {
-    if (scenario.cardView) {
-      await page.locator('.skill-card-grid.active .skill-card').filter({ hasText: 'visual qa skill' }).first().evaluate((element) => element.click());
-    } else {
-      await page.locator('.skill-table-wrap.active tbody tr').filter({ hasText: 'visual qa skill' }).evaluate((element) => element.click());
-    }
-    await page.getByRole('region', { name: scenario.language === 'zh-CN' ? 'Markdown 预览' : 'Markdown preview' }).waitFor({
-      timeout: 5000,
-    });
+  if (scenario.page === 'dashboard') {
+    await page.getByRole('button', { name: '仪表板' }).click();
+    await page.locator('.dash-main').waitFor({ timeout: 5000 });
   }
 
-  if (scenario.previewMarkdown) {
-    await page.getByRole('tab', { name: scenario.language === 'zh-CN' ? '预览' : 'Preview' }).click();
-    await page.locator('.markdown-preview').waitFor({ timeout: 5000 });
+  if (scenario.page === 'drawer') {
+    await page.locator('.lib-card').filter({ hasText: 'visual qa skill' }).first().click();
+    await page.locator('.lib-drawer.open').waitFor({ timeout: 5000 });
+    await page.waitForTimeout(350);
   }
 
-  if (scenario.bulkSelection) {
-    if (scenario.selectFirstSkill) {
-      await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '关闭' : 'Close' }).first().click();
-      await page.locator('.detail-drawer').waitFor({ state: 'detached', timeout: 5000 });
-    }
-    await page.getByRole('button', { name: scenario.language === 'zh-CN' ? '批量选择' : 'Batch select' }).click();
-    await page.locator('.select-category-button').first().evaluate((element) => element.click());
-    await page.getByRole('toolbar', { name: scenario.language === 'zh-CN' ? '批量操作' : 'Bulk actions' }).waitFor({ timeout: 5000 });
+  if (scenario.page === 'editor') {
+    await page.locator('.lib-card').filter({ hasText: 'visual qa skill' }).first().click();
+    await page.locator('.lib-drawer.open').waitFor({ timeout: 5000 });
+    await page.getByRole('button', { name: /在编辑器打开/ }).click();
+    await page.locator('.ed-main').waitFor({ timeout: 5000 });
+    await page.getByRole('button', { name: /AI/ }).click();
+    await page.locator('.ed-ai-rail').waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'create') {
+    await page.getByRole('button', { name: /\+ 新建/ }).click();
+    await page.locator('.ed-main').waitFor({ timeout: 5000 });
+    await page.getByRole('button', { name: '创建 Skill' }).waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'settings') {
+    await page.getByRole('button', { name: '设置' }).click();
+    await page.locator('.set-drawer').waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'logs') {
+    await page.getByRole('button', { name: '仪表板' }).click();
+    await page.getByRole('button', { name: /调用日志/ }).click();
+    await page.locator('.log-table').waitFor({ timeout: 5000 });
   }
 
   const checks = await page.evaluate(() => {
-    const appShell = document.querySelector('.app-shell');
-    const topBar = document.querySelector('.top-bar');
-    const dashboard = document.querySelector('.dashboard-grid');
-    const listControls = document.querySelector('.list-controls');
-    const table = document.querySelector('.skill-table-wrap.active .skill-table');
-    const detailPanel = document.querySelector('.detail-panel');
-    const markdownRegion = document.querySelector('.detail-markdown-section');
-    const markdownPreview = document.querySelector('.markdown-preview');
-    const markdownNextSection = markdownPreview?.closest('.detail-markdown-section')?.nextElementSibling;
-    const cardGrid = document.querySelector('.skill-card-grid.active');
-    const paginationControls = document.querySelector('.pagination-controls');
-    const bulkToolbar = document.querySelector('.bulk-action-bar');
+    const topBar = document.querySelector('.sp-topbar-global');
+    const libraryGrid = document.querySelector('.lib-grid');
+    const libraryCard = document.querySelector('.lib-card');
+    const drawer = document.querySelector('.lib-drawer.open');
+    const dashboard = document.querySelector('.dash-main');
+    const editor = document.querySelector('.ed-main');
+    const aiRail = document.querySelector('.ed-ai-rail');
+    const settings = document.querySelector('.set-drawer');
+    const logs = document.querySelector('.log-table');
+    const paginationControls = document.querySelector('.lib-pagination');
     const horizontalOverflow = document.documentElement.scrollWidth - window.innerWidth;
     const formControlText = Array.from(document.querySelectorAll('input, textarea, select'))
       .map((element) => element.value)
@@ -363,70 +384,74 @@ async function runScenario(browser, scenario) {
     return {
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       documentHorizontalOverflowPx: Math.max(0, horizontalOverflow),
-      appShellFillsViewport: appShell ? appShell.getBoundingClientRect().width >= window.innerWidth - 32 : false,
       topBarVisible: topBar ? topBar.getBoundingClientRect().height > 0 : false,
       dashboardVisible: dashboard ? dashboard.getBoundingClientRect().height > 0 : false,
-      listControlsFit: listControls
-        ? Array.from(listControls.children).every((child) => {
-            const parentRect = listControls.getBoundingClientRect();
-            const childRect = child.getBoundingClientRect();
-            return childRect.left >= parentRect.left - 4 && childRect.right <= parentRect.right + 4;
-          })
-        : true,
-      tableRendered: Boolean(table),
-      cardGridRendered: Boolean(cardGrid),
-      bulkToolbarVisible: Boolean(bulkToolbar && bulkToolbar.getBoundingClientRect().height > 0),
+      libraryGridVisible: libraryGrid ? libraryGrid.getBoundingClientRect().height > 0 : false,
+      libraryCardVisible: libraryCard ? libraryCard.getBoundingClientRect().height > 0 : false,
+      drawerVisible: drawer ? drawer.getBoundingClientRect().width > 0 : false,
+      editorVisible: editor ? editor.getBoundingClientRect().height > 0 : false,
+      aiRailVisible: aiRail ? aiRail.getBoundingClientRect().height > 0 : false,
+      settingsVisible: settings ? settings.getBoundingClientRect().height > 0 : false,
+      logsVisible: logs ? logs.getBoundingClientRect().height > 0 : false,
       paginationControlsVisible: Boolean(paginationControls && paginationControls.getBoundingClientRect().height > 0),
-      detailPanelVisible: detailPanel ? detailPanel.getBoundingClientRect().height > 0 : false,
-      markdownRegionVisible: markdownRegion ? markdownRegion.getBoundingClientRect().height >= 260 : true,
-      markdownOutlineAbsent: !document.querySelector('.markdown-outline'),
-      markdownPreviewContained:
-        markdownPreview && markdownNextSection
-          ? markdownPreview.getBoundingClientRect().bottom <= markdownNextSection.getBoundingClientRect().top + 1
-          : true,
       bodyText: `${document.body.innerText}\n${formControlText}`,
     };
   });
 
   const expectedText = {
-    success: scenario.language === 'zh-CN' ? '成功' : 'Success',
-    partial: scenario.language === 'zh-CN' ? '部分成功' : 'Partial success',
-    empty: scenario.language === 'zh-CN' ? '暂无已扫描的 Skill' : 'No scanned skills yet',
-    failed: scenario.language === 'zh-CN' ? '扫描失败' : 'Scan failed',
-    scanning: scenario.language === 'zh-CN' ? '正在加载 Skill' : 'Loading skills',
+    success:
+      scenario.page === 'dashboard'
+        ? '仪表板'
+        : scenario.page === 'settings'
+          ? 'AI 助手配置'
+          : scenario.page === 'create'
+            ? '创建 Skill'
+            : scenario.page === 'logs'
+              ? '总调用'
+              : 'visual qa skill',
+    empty: '0 个 · 0 可编辑 · 0 已收藏',
+    failed: 'Tauri 不可用，使用示例数据',
   }[scenario.mode];
 
   const assertions = [
     ['document has no page-level horizontal overflow', checks.documentHorizontalOverflowPx <= 1],
-    ['app shell fills the viewport width', checks.appShellFillsViewport],
-    ['top command bar is visible', checks.topBarVisible],
-    ['dashboard region is visible', checks.dashboardVisible],
-    ['list toolbar controls fit their container', checks.listControlsFit],
+    ['top bar is visible', checks.topBarVisible],
     ['expected scenario text is present', checks.bodyText.includes(expectedText)],
   ];
 
-  if (scenario.skills.length > 0 && scenario.mode !== 'failed' && !scenario.cardView) {
-    assertions.push(['resource table is rendered', checks.tableRendered]);
-  }
-
-  if (scenario.cardView) {
-    assertions.push(['grouped card grid is rendered', checks.cardGridRendered]);
+  if (scenario.page === 'library') {
+    assertions.push(['library grid is visible', checks.libraryGridVisible]);
     assertions.push(['library pagination controls are visible', checks.paginationControlsVisible]);
   }
 
-  if (scenario.selectFirstSkill && !scenario.bulkSelection) {
-    assertions.push(['detail panel is visible', checks.detailPanelVisible]);
-    assertions.push(['long Markdown region has usable height', checks.markdownRegionVisible]);
-    assertions.push(['selected detail body is present', checks.bodyText.includes('Visual QA Skill')]);
+  if (scenario.skills.length > 0 && scenario.page === 'library') {
+    assertions.push(['library cards are visible', checks.libraryCardVisible]);
   }
 
-  if (scenario.previewMarkdown) {
-    assertions.push(['Markdown preview does not duplicate an outline', checks.markdownOutlineAbsent]);
-    assertions.push(['Markdown preview does not overlap following detail sections', checks.markdownPreviewContained]);
+  if (scenario.page === 'drawer') {
+    assertions.push(['detail drawer is visible', checks.drawerVisible]);
   }
 
-  if (scenario.bulkSelection) {
-    assertions.push(['bulk selection toolbar is visible', checks.bulkToolbarVisible]);
+  if (scenario.page === 'dashboard') {
+    assertions.push(['dashboard is visible', checks.dashboardVisible]);
+  }
+
+  if (scenario.page === 'editor') {
+    assertions.push(['editor is visible', checks.editorVisible]);
+    assertions.push(['AI rail is visible', checks.aiRailVisible]);
+  }
+
+  if (scenario.page === 'create') {
+    assertions.push(['create editor surface is visible', checks.editorVisible]);
+    assertions.push(['create action is present', checks.bodyText.includes('创建 Skill')]);
+  }
+
+  if (scenario.page === 'settings') {
+    assertions.push(['settings drawer is visible', checks.settingsVisible]);
+  }
+
+  if (scenario.page === 'logs') {
+    assertions.push(['logs table is visible', checks.logsVisible]);
   }
 
   const failedAssertions = assertions.filter(([, passed]) => !passed).map(([name]) => name);
@@ -437,7 +462,7 @@ async function runScenario(browser, scenario) {
   return {
     id: scenario.id,
     title: scenario.title,
-    language: scenario.language,
+    page: scenario.page,
     viewport: checks.viewport,
     screenshot: path.relative(rootDir, screenshotPath).replaceAll('\\', '/'),
     passed: failedAssertions.length === 0 && pageErrors.length === 0,
@@ -455,13 +480,13 @@ function buildMarkdownReport(results) {
     '',
     '## Scenario Coverage',
     '',
-    '| Scenario | Language | Viewport | Screenshot | Result |',
+    '| Scenario | Page | Viewport | Screenshot | Result |',
     '| --- | --- | --- | --- | --- |',
   ];
 
   for (const result of results) {
     lines.push(
-      `| ${result.title} | ${result.language} | ${result.viewport} | \`${result.screenshot}\` | ${
+      `| ${result.title} | ${result.page} | ${result.viewport} | \`${result.screenshot}\` | ${
         result.passed ? 'PASS' : 'FAIL'
       } |`,
     );
@@ -471,13 +496,13 @@ function buildMarkdownReport(results) {
     '',
     '## Design Checklist',
     '',
-    '- [x] 18.3 information architecture: top command bar, source rail, resource table, and detail inspector are present in screenshots.',
+    '- [x] v3.7 information architecture: top bar, Library grid, drawer, Dashboard, Editor, Create, Settings, and Logs are present in screenshots.',
     '- [x] 18.4 visual direction: light desktop workbench surface, subtle borders, status colors, compact typography, and selected row treatment are visible.',
-    '- [x] 18.8 list behavior: table remains paginated at 10 items per page, descriptions use the compact table class, and paths remain clickable.',
-    '- [x] 18.8 detail behavior: selected detail shows complete description and a long Markdown region with usable height.',
-    '- [x] 18.8 scan states: success, partial success, failed, empty, and scanning states have screenshot coverage.',
+    '- [x] v3.7 Library behavior: card grid, drawer, pagination, and compact filters have screenshot coverage.',
+    '- [x] v3.7 workflow behavior: editor AI rail, create form, settings, logs, and dashboard have screenshot coverage.',
+    '- [x] v3.7 scan states: success, failed fallback, and empty Library states have screenshot coverage.',
     '- [x] v3 QA Release responsive behavior: 1440x960, 1280x800, and 1024x768 viewports have screenshot coverage with no page-level horizontal overflow.',
-    '- [x] 19.3 session 33 scope: Chinese, English, long Markdown, empty list, and scan status coverage are recorded.',
+    '- [x] v3.7.1 stabilization scope: browser-safe event mocks are exercised through visual QA.',
     '',
     '## Notes',
     '',
