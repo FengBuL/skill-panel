@@ -25,8 +25,8 @@ describe('packaging configuration', () => {
     expect(tauriConfig.app.windows[0].title).toBe('Skill Panel');
   });
 
-  it('keeps release version metadata aligned for v3.7.0 release', () => {
-    expect(packageJson.version).toBe('3.7.0');
+  it('keeps release version metadata aligned for v3.7.1 release', () => {
+    expect(packageJson.version).toBe('3.7.1');
     expect(tauriConfig.version).toBe(packageJson.version);
   });
 
