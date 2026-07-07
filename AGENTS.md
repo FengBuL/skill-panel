@@ -61,7 +61,7 @@ git status --short --branch
 不同 agent 使用不同文件夹。
 
 - Codex 工作目录：`/Users/shovy/Documents/skill-panel-codex-v3.8`
-- WorkBuddy 工作目录：`/Users/shovy/Documents/skill-panel-workbuddy-v3.9`
+- WorkBuddy 工作目录：`/Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype`
 - 管理目录：`/Users/shovy/Documents/skill-panel`
 
 硬规则：
@@ -69,6 +69,8 @@ git status --short --branch
 - Codex 只能在 Codex 工作目录改稳定线代码。
 - WorkBuddy 只能在 WorkBuddy 工作目录做原型。
 - 管理目录只用于查看 worktree 和历史状态。
+- WorkBuddy 原型目录必须从 Codex 当前稳定线复制或克隆生成。
+- 废弃的 WorkBuddy 3.9 基座只可作为历史参考，禁止继续作为原型开发底座。
 - 每次运行命令前先确认 `pwd` 输出。
 - 发现当前目录不匹配时，立即停止并切换目录。
 - 禁止两个 agent 同时编辑同一个文件夹。
