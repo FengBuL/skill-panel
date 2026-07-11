@@ -61,18 +61,15 @@ git status --short --branch
 不同 agent 使用不同文件夹。
 
 - Codex 工作目录：`/Users/shovy/Documents/skill-panel-codex-v3.8`
-- WorkBuddy UI 开发目录：`/Users/shovy/Documents/skill-panel-workbuddy-ui-v3.8.2`
-- WorkBuddy 原型归档目录：`/Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype`
+- WorkBuddy 工作目录：`/Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype`
 - 管理目录：`/Users/shovy/Documents/skill-panel`
 
 硬规则：
 
 - Codex 只能在 Codex 工作目录改稳定线代码。
-- WorkBuddy 只能在 WorkBuddy UI 开发目录完成前端 UI 设计与代码实现。
-- WorkBuddy 原型归档目录仅用于读取已确认的 HTML、PNG 和设计说明。
+- WorkBuddy 只能在 WorkBuddy 工作目录做原型。
 - 管理目录只用于查看 worktree 和历史状态。
-- WorkBuddy UI 开发目录必须通过 Git worktree 从指定的 Codex 稳定提交创建。
-- 每个 UI 批次开始前记录基准提交哈希，交付前禁止擅自变更基准。
+- WorkBuddy 原型目录必须从 Codex 当前稳定线复制或克隆生成。
 - 废弃的 WorkBuddy 3.9 基座只可作为历史参考，禁止继续作为原型开发底座。
 - 每次运行命令前先确认 `pwd` 输出。
 - 发现当前目录不匹配时，立即停止并切换目录。
@@ -190,64 +187,42 @@ Codex 负责：
 - Tauri 后端命令
 - 文件系统、Keychain、设置、扫描器、日志、版本历史
 - `src/types/**` 类型契约
-- 跨模块业务连接、数据安全审查、测试、构建和发布回归
-- 审查并集成 WorkBuddy 已验收的 UI 提交
-- 通过 cherry-pick 或明确的 merge 提交接收 UI 代码
+- 测试、构建、回归修复
+- 将成熟的 WorkBuddy 功能迁移进 v3.8.x
 
 WorkBuddy 负责：
 
-- 前端 UI 设计与代码实现
-- 页面布局、组件、样式、交互流程和响应式适配
-- 页面级前端测试与可访问性检查
-- 动效方案和用户可见文案
+- UI 探索
+- 交互流程
+- 动效方案
+- 功能原型
 - 视觉 QA 截图
+- 用户可见文案
 - 体验评审记录
 
-WorkBuddy 主要代码区域：
+以下共享区域需要 Codex 评审后进入稳定线：
 
 - `src/components/**`
+- `src/hooks/**`
 - `src/pages/**`
-- `src/layout/**`
 - `src/styles/**`
-- 页面对应的 CSS 和前端测试
 
-以下共享区域需要 WorkBuddy 与 Codex 同时确认：
+## WorkBuddy 到 Codex 的迁移标准
 
-- `src/App.tsx`、`src/AppShell.tsx`、`src/router.tsx`
-- `src/hooks/**`、`src/store/**`
-- `src/types/**`、`src/lib/**`
-- Tauri invoke 参数、持久化行为、文件读写和 API Key 流程
-
-Codex 集成已验收 UI 时保留 WorkBuddy 的提交历史和文件结构。发现接口冲突后，先列出冲突和所需契约调整；页面视觉与交互问题回到 WorkBuddy 分支修正，数据与后端问题由 Codex 修正。
-
-## WorkBuddy 到 Codex 的交付与集成标准
-
-WorkBuddy UI 提交满足以下条件后，Codex 才能集成：
+WorkBuddy 原型满足以下条件后，Codex 才能迁移：
 
 - 有清晰功能名称。
 - 有用户流程说明。
-- 写明基准提交、交付分支和交付提交哈希。
 - 有修改文件清单。
 - 有至少一张关键界面截图。
 - 有已知缺口和风险说明。
 - 有建议进入的稳定版本。
 - 说明是否涉及数据写入、文件删除、批量操作、AI 写回。
-- 写明 `npm run typecheck`、相关前端测试和截图验收结果。
-- 标注共享区域、类型契约、Tauri 命令和数据结构影响。
-- 页面顶部导航有主导航项、当前激活项、右侧唯一入口的对照表。
+- 说明需要迁移的代码片段或文件。
 
-缺少以上信息时，Codex 先要求补齐交接材料。材料齐全后进入 v3.8 稳定线集成。
+缺少以上信息时，Codex 先要求补齐交接材料。未经补齐，禁止迁移到 v3.8 稳定线。
 
-Codex 集成顺序：
-
-1. 核对 WorkBuddy 基准提交与 Codex 集成基准。
-2. 读取交付说明和导航对照表。
-3. 使用 cherry-pick 接收单一功能提交；多提交批次保留原始顺序。
-4. 仅在共享契约冲突时进行集成调整，并单独提交调整内容。
-5. 运行完整稳定验证和视觉回归。
-6. 验证失败时停止发布，将失败项分配给对应责任方修正。
-
-禁止复制粘贴后重新实现已通过验收的 WorkBuddy 页面。确需重构时先写明原因、影响范围和视觉回归方案。
+Codex 迁移时只迁移成熟部分，保留 v3.8 架构和稳定入口。
 
 ## 原型查看规则
 
@@ -293,26 +268,13 @@ WorkBuddy 不能只交付代码说明。
 
 ## 开发流程
 
-1. 每个任务只处理一个页面、一个交互流程或一个修复。
-2. Codex 指定稳定基准提交并创建 WorkBuddy UI 分支与 worktree。
-3. WorkBuddy 在 UI worktree 完成设计、前端代码、页面测试和视觉截图。
-4. WorkBuddy 提交代码并按交付格式提供提交哈希。
-5. Codex 检查交接材料，通过 cherry-pick 或明确 merge 集成提交。
-6. Codex 处理后端连接、共享契约、完整回归和发布质量。
-7. 每次稳定交付使用补丁版本号，例如 v3.8.2。
-8. 每次稳定交付需要完整测试、截图和提交。
-
-单批 UI 开发流程：
-
-```text
-Codex 稳定提交
-→ WorkBuddy UI 分支实现
-→ WorkBuddy 截图与页面测试
-→ 用户验收
-→ WorkBuddy 交付提交
-→ Codex 集成与完整回归
-→ Codex 稳定发布提交
-```
+1. 每个任务只处理一个功能或一个修复。
+2. WorkBuddy 在 `skill-panel-workbuddy-v3.8.1-prototype` 文件夹制作原型。
+3. Codex 检查交接材料。
+4. Codex 将成熟部分迁移进 v3.8 文件夹。
+5. Codex 保持 v3.8 架构稳定，架构迁移需要先批准。
+6. 每次稳定交付使用补丁版本号，例如 v3.8.2。
+7. 每次稳定交付需要测试和提交。
 
 ## UI 标准
 
@@ -354,14 +316,6 @@ WorkBuddy 原型验证：
 - 涉及交互流程时写清手动验收步骤。
 - 原型阶段可以暂不跑完整测试，但交接材料要写明验证范围。
 
-WorkBuddy UI 代码交付：
-
-- 必须运行 `npm run typecheck`。
-- 必须运行受影响页面的前端测试。
-- 必须运行 `npm run build`。
-- 必须提供受影响页面截图和手动验收步骤。
-- 共享契约变化需要附带对应测试。
-
 Codex 稳定验证：
 
 前端稳定改动必须运行：
@@ -391,9 +345,6 @@ npm run cargo:test
 - 修改前运行 `pwd` 和 `git status --short --branch`。
 - 未经明确批准，不得丢弃用户或其他 agent 的工作。
 - Codex 稳定交付需要在验证后提交。
-- WorkBuddy UI 交付必须使用独立分支和可追溯提交。
-- Codex 通过提交哈希集成 UI，禁止把未提交工作区作为交付物。
-- 一个交付提交只覆盖一个页面、一个交互流程或一个紧密相关批次。
 - 提交信息要具体，例如 `feat: release v3.8.2 ai settings`。
 
 未经明确批准，禁止执行：
@@ -430,14 +381,12 @@ WorkBuddy 交给 Codex 时，需要包含：
 
 - 功能名称
 - 用户流程
-- 基准提交、分支、交付提交哈希
 - 修改文件
 - 截图
 - 已知缺口
 - 建议进入的稳定版本
 - 数据安全影响
 - 验证范围
-- 主导航、激活项、右侧唯一入口对照表
 
 Codex 完成稳定集成时，需要包含：
 
