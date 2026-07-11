@@ -2,7 +2,7 @@
 
 ## 基线目的
 
-本记录把 `1bd6f31908f05bbd14c057a2048730be6e0db6e7` 之后工作区内累计的 Notion 风格 UI 迁移结果收口为可测试、可回退的集成基线。该基线用于启动 WorkBuddy UI 代码开发线，不代表 v3.8.2 已发布。
+本记录把 `1bd6f31908f05bbd14c057a2048730be6e0db6e7` 之后工作区内累计的 Notion 风格 UI 迁移结果收口为可测试、可回退的集成基线。该基线用于 Codex 稳定迁移与回归，不代表 v3.8.2 已发布。
 
 ## 改动来源
 
@@ -39,8 +39,10 @@
 
 ## 回退和后续开发规则
 
-- 本次收口提交是 WorkBuddy UI 分支的唯一创建基准。
-- WorkBuddy 在独立 worktree 完成 UI 代码和页面测试，交付可追溯提交。
-- Codex 通过 cherry-pick 或明确 merge 集成，不进行页面手工复刻。
-- 每批交付必须附主导航、激活项、右侧唯一入口对照表。
+- 本次收口提交继续作为 Codex 稳定线的 UI 回退点。
+- WorkBuddy 在原型目录完成可查看的 UI、交互、截图和验收说明。
+- 用户确认原型后，Codex 按稳定线架构迁移成熟内容并连接真实命令。
+- 每批迁移前对照原型 HTML、PNG、UI 规范和顶部导航结构。
 - 发布前执行 `npm test`、`npm run typecheck`、`npm run build`、`npm run packaging:check`、`npm run cargo:test` 和三档视口视觉回归。
+
+2026-07-12，独立 WorkBuddy UI 代码线方案已撤销，相关 worktree 和分支已删除。当前工作方式以 `AGENTS.md` 为准。
