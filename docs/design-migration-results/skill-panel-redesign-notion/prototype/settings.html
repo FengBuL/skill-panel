@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+  <style>
+    .settings-grid { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+    .settings-nav { position: sticky; top: 88px; }
+    .settings-nav-item { display: block; padding: 10px 14px; border-radius: 8px; font-size: 14px; color: rgba(0,0,0,0.6); text-decoration: none; margin-bottom: 2px; }
+    .settings-nav-item:hover { background: rgba(0,0,0,0.02); color: rgba(0,0,0,0.9); }
+    .settings-nav-item.active { background: var(--color-sky-tint); color: var(--color-notion-blue); font-weight: 600; }
+    .form-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .form-row label { width: 120px; font-size: 13px; color: rgba(0,0,0,0.7); font-weight: 500; }
+    .form-row .input { flex: 1; }
+    .toggle { width: 42px; height: 24px; background: var(--color-notion-blue); border-radius: 999px; position: relative; cursor: pointer; }
+    .toggle::after { content:''; position:absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top:2px; right:2px; }
+    @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } .settings-nav { position: static; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+        <nav class="nav-links">
+          <a class="nav-link" href="dashboard.html">Dashboard</a>
+          <a class="nav-link" href="library.html">Library</a>
+          <a class="nav-link" href="logs.html">Logs</a>
+          <a class="nav-link" href="dependencies.html">Dependencies</a>
+          <a class="nav-link active" href="settings.html">Settings</a>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <button class="btn btn-ghost">New Skill</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">设置</h1>
+        <p class="page-subtitle">管理 Skill 根目录、扫描行为、AI 厂商与数据安全偏好</p>
+      </div>
+
+      <div class="settings-grid">
+        <aside class="card settings-nav">
+          <a class="settings-nav-item active" href="#">目录与扫描</a>
+          <a class="settings-nav-item" href="#">AI 厂商</a>
+          <a class="settings-nav-item" href="#">预算与安全</a>
+          <a class="settings-nav-item" href="#">外观</a>
+        </aside>
+
+        <div class="flex flex-col gap-4">
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">目录与扫描</h2></div>
+            <div class="card-body">
+              <div class="form-row"><label>Skill 根目录</label><input class="input" value="~/.workbuddy/skills"></div>
+              <div class="form-row"><label>扫描间隔</label><input class="input" value="启动时 + 每 30 分钟"></div>
+              <div class="form-row" style="align-items:flex-start"><label style="margin-top:4px">自动扫描</label><div class="flex items-center gap-3"><div class="toggle"></div><span class="text-sm text-secondary">在后台检测新增、修改和删除</span></div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">AI 厂商</h2></div>
+            <div class="card-body">
+              <div class="form-row"><label>默认模型</label><input class="input" value="OpenAI GPT-4o"></div>
+              <div class="form-row"><label>API Key</label><input class="input" value="sk-••••••••••••••4f2a" type="password"></div>
+              <p class="text-sm text-secondary" style="margin-left:136px">API Key 仅通过系统 Keychain 保存，前端不保留原始密钥。</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">预算与安全</h2></div>
+            <div class="card-body">
+              <div class="form-row"><label>月度预算</label><input class="input" value="¥ 200"></div>
+              <div class="form-row"><label>已使用</label><input class="input" value="¥ 47.3 (23.7%)" disabled style="background:var(--color-paper-warmth)"></div>
+              <div class="form-row" style="align-items:flex-start"><label style="margin-top:4px">日志脱敏</label><div class="flex items-center gap-3"><div class="toggle"></div><span class="text-sm text-secondary">在日志中自动隐藏路径、邮箱与密钥</span></div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">外观</h2></div>
+            <div class="card-body">
+              <div class="form-row" style="align-items:flex-start"><label style="margin-top:4px">主题</label><div class="flex gap-2"><span class="pill pill-active">浅色</span><span class="pill pill-default">深色</span><span class="pill pill-default">跟随系统</span></div></div>
+            </div>
+          </div>
+
+          <div class="card" style="border-color:rgba(246,73,50,0.25)">
+            <div class="card-header"><h2 class="card-title">数据安全说明</h2></div>
+            <div class="card-body">
+              <ul class="text-sm text-secondary" style="padding-left:18px;line-height:1.8;margin:0">
+                <li>扫描只读取文件信息，不会修改用户文件。</li>
+                <li>删除 Skill 仅移除应用内管理记录，本地文件需手动清理。</li>
+                <li>AI 写回前必须经 diff 确认，并自动生成版本快照。</li>
+                <li>所有敏感信息在前端展示时已脱敏处理。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

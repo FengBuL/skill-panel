@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { AppShell } from "./AppShell";
+import { AppShell } from "./layout/AppShell";
 import { ErrorBoundary } from "./common/ErrorBoundary";
 import "./styles.css";
 

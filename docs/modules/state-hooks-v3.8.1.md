@@ -11,13 +11,13 @@
 ## 代码规模
 
 - 源码文件数：7
-- 代码总行数：689
+- 代码总行数：688
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/store/uiStore.ts` | 78 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
+| `src/store/uiStore.ts` | 77 | 负责 UI 状态、Detail 子视图、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/stores/SkillPanelProvider.tsx` | 130 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useDebouncedValue.ts` | 16 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/usePreferencePersistence.ts` | 48 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |

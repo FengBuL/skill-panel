@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+        <nav class="nav-links">
+          <a class="nav-link active" href="dashboard.html">Dashboard</a>
+          <a class="nav-link" href="library.html">Library</a>
+          <a class="nav-link" href="logs.html">Logs</a>
+          <a class="nav-link" href="dependencies.html">Dependencies</a>
+          <a class="nav-link" href="settings.html">Settings</a>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <button class="btn btn-ghost">New Skill</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Skill 仓库概览与待处理事项</p>
+      </div>
+
+      <div class="grid-4 mb-4">
+        <div class="card card-body">
+          <div class="section-title">Skill 总数</div>
+          <div style="font-size:36px;font-weight:700;letter-spacing:-1px">42</div>
+          <div class="text-sm text-secondary mt-2">上次扫描：2 分钟前</div>
+        </div>
+        <div class="card card-body">
+          <div class="section-title">健康状态</div>
+          <div style="font-size:36px;font-weight:700;letter-spacing:-1px;color:#1a7a2c">38</div>
+          <div class="text-sm text-secondary mt-2">4 个需要关注</div>
+        </div>
+        <div class="card card-body">
+          <div class="section-title">今日调用</div>
+          <div style="font-size:36px;font-weight:700;letter-spacing:-1px">156</div>
+          <div class="text-sm text-secondary mt-2">较昨日 +12%</div>
+        </div>
+        <div class="card card-body">
+          <div class="section-title">未归档</div>
+          <div style="font-size:36px;font-weight:700;letter-spacing:-1px">39</div>
+          <div class="text-sm text-secondary mt-2">3 个已归档</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">最近修改</h2>
+            <a class="btn btn-text btn-sm" href="library.html">查看全部</a>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="table">
+              <tbody>
+                <tr><td><strong>aihot-query</strong><div class="text-xs text-muted">AI · Builtin</div></td><td class="text-sm">今天 09:41</td><td><span class="status-pill status-healthy">健康</span></td></tr>
+                <tr><td><strong>meeting-notes</strong><div class="text-xs text-muted">生产力 · User</div></td><td class="text-sm">昨天</td><td><span class="status-pill status-healthy">健康</span></td></tr>
+                <tr><td><strong>deploy-preview</strong><div class="text-xs text-muted">开发者 · User</div></td><td class="text-sm">7月5日</td><td><span class="status-pill status-review">待审</span></td></tr>
+                <tr><td><strong>git-sync</strong><div class="text-xs text-muted">开发者 · Builtin</div></td><td class="text-sm">7月4日</td><td><span class="status-pill status-healthy">健康</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">需要关注</h2>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="table">
+              <tbody>
+                <tr><td><strong>deploy-preview</strong><div class="text-xs text-muted">SKILL.md 缺少 required 字段</div></td><td><span class="status-pill status-review">待审</span></td></tr>
+                <tr><td><strong>finance-lookup</strong><div class="text-xs text-muted">引用文件缺失</div></td><td><span class="status-pill status-review">待审</span></td></tr>
+                <tr><td><strong>image-caption</strong><div class="text-xs text-muted">已归档，可清理</div></td><td><span class="status-pill status-archived">已归档</span></td></tr>
+                <tr><td><strong>old-connector</strong><div class="text-xs text-muted">90 天未使用</div></td><td><span class="status-pill status-archived">低频</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header">
+          <h2 class="card-title">依赖提醒</h2>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-3" style="padding:12px;background:var(--color-paper-warmth);border-radius:8px;border:1px solid var(--border-color)">
+            <span class="status-pill status-info">提示</span>
+            <span class="text-sm">westock-data 与 wb-finance-skill 存在共享依赖，建议统一引用版本。</span>
+          </div>
+          <div class="flex items-center gap-3 mt-3" style="padding:12px;background:var(--color-paper-warmth);border-radius:8px;border:1px solid var(--border-color)">
+            <span class="status-pill status-review">待处理</span>
+            <span class="text-sm">3 个 Skill 引用了本地不存在的 references，请检查路径。</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

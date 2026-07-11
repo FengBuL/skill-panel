@@ -20,6 +20,7 @@
 - [共享 UI 与通用组件](./shared-ui-v3.8.1.md)
 - [Skill Library](./library-v3.8.1.md)
 - [Dashboard 仪表盘](./dashboard-v3.8.1.md)
+- [Skill Detail](./skill-detail-v3.8.1.md)
 - [编辑器工作区](./editor-v3.8.1.md)
 - [AI 助手与 Diff 写回](./ai-assistant-v3.8.1.md)
 - [设置与偏好](./settings-v3.8.1.md)

@@ -1,24 +1,22 @@
-// DiffHunk — 单个 diff hunk，支持勾选采纳
 import { useState } from 'react';
 import type { ParsedHunk } from '../../lib/ai';
 
 export function DiffHunk({
   hunk,
-  selected,
+  selected = false,
   onToggle,
 }: {
   hunk: ParsedHunk;
-  selected: boolean;
-  onToggle: () => void;
+  selected?: boolean;
+  onToggle?: () => void;
+  onAccept?: () => void;
+  onReject?: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
   return (
     <div className={`ai-hunk ${selected ? 'selected' : ''}`}>
-      <div className="ai-hunk-header" onClick={() => onToggle()}>
-        <label className="ai-hunk-check" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={selected} onChange={onToggle} />
-        </label>
+      <div className="ai-hunk-header" onClick={() => onToggle?.()}>
         <span className="ai-hunk-meta">
           行 {hunk.oldStart}–{hunk.oldStart + hunk.oldLines - 1}
         </span>
@@ -28,14 +26,13 @@ export function DiffHunk({
         </span>
         <button
           className="ai-hunk-expand"
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             setExpanded(!expanded);
           }}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            {expanded ? 'expand_less' : 'expand_more'}
-          </span>
+          <span aria-hidden="true">{expanded ? '⌃' : '⌄'}</span>
         </button>
       </div>
       {expanded && (
@@ -47,6 +44,7 @@ export function DiffHunk({
                 line.startsWith('+') ? 'add' : line.startsWith('-') ? 'del' : 'ctx'
               }`}
             >
+              <span className="ai-diff-line-number">{line.startsWith('+') ? hunk.newStart + i : hunk.oldStart + i}</span>
               <span className="ai-diff-prefix">{line[0]}</span>
               <span className="ai-diff-text">{line.slice(1)}</span>
             </div>

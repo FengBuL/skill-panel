@@ -19,11 +19,26 @@ import EditorPage from './pages/Editor';
 import CreatePage from './pages/Create';
 import PreviewPage from './pages/Preview';
 import LogsPage from './pages/Logs';
+import DependenciesPage from './pages/Dependencies';
 import SettingsPage from './pages/Settings';
+import EmptyStatesPage from './pages/EmptyStates';
+import { DetailView } from './detail/DetailView';
+import { AIAssistantView } from './components/ai/AIAssistantView';
 
 export function AppShell() {
-  const { mainView, subView, exitSub, undo, redo } = useUIStore();
+  const { mainView, subView, subParam, enterSub, exitSub, undo, redo } = useUIStore();
   const skillStore = useSkillStore();
+
+  useEffect(() => {
+    const openHashView = () => {
+      if (window.location.hash === '#empty-states') {
+        enterSub('empty-states');
+      }
+    };
+    openHashView();
+    window.addEventListener('hashchange', openHashView);
+    return () => window.removeEventListener('hashchange', openHashView);
+  }, [enterSub]);
 
   // 全局快捷键
   useEffect(() => {
@@ -53,18 +68,29 @@ export function AppShell() {
   let topbarContext;
   if (subView === 'editor') {
     page = <EditorPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回 Library</Button>;
+    topbarContext = <></>;
   } else if (subView === 'create') {
     page = <CreatePage />;
     topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回 Library</Button>;
   } else if (subView === 'preview') {
     page = <PreviewPage />;
     topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回 Library</Button>;
+  } else if (subView === 'detail') {
+    page = <DetailView />;
+  } else if (subView === 'ai') {
+    page = <AIAssistantView />;
+    topbarContext = <Button variant="secondary" onClick={() => enterSub('editor', subParam ?? undefined)}>返回编辑器</Button>;
   } else if (subView === 'logs') {
     page = <LogsPage />;
     topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
+  } else if (subView === 'dependencies') {
+    page = <DependenciesPage />;
+    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (subView === 'settings') {
     page = <SettingsPage />;
+    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
+  } else if (subView === 'empty-states') {
+    page = <EmptyStatesPage />;
     topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (mainView === 'dashboard') {
     page = <DashboardPage />;
@@ -73,9 +99,9 @@ export function AppShell() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
+    <div className="app">
       <TopBar context={topbarContext} />
-      <div style={{ flex: 1, overflow: 'hidden' }}>{page}</div>
+      <main className="main">{page}</main>
       <ToastHost />
     </div>
   );

@@ -6,16 +6,14 @@ import type { Skill } from '../store/skillStore';
 
 // mock 数据（Tauri 不可用时 fallback，如纯浏览器开发）
 const MOCK_SKILLS: Skill[] = [
-  { name: 'Browser Control', description: 'Open, navigate, inspect, test web targets.', source: 'plugin', category: '浏览器', path: '', modifiedAt: '5天前', size: 12400, starred: true, disabled: false, protected: true },
-  { name: 'A-Share Daily Update', description: 'Standardizes daily stock updates for MarketData.', source: 'mine', category: '金融', path: '', modifiedAt: '3天前', size: 8900, starred: false, disabled: false, protected: false },
-  { name: 'Claude-to-IM Bridge', description: 'Bridge Claude responses to IM platforms.', source: 'mine', category: '常用', path: '', modifiedAt: '昨天', size: 5600, starred: false, disabled: false, protected: false },
-  { name: 'PDF Analysis Core', description: 'Financial PDF processing pipeline.', source: 'mine', category: '数据', path: '', modifiedAt: '1周前', size: 15200, starred: false, disabled: false, protected: false },
-  { name: 'Document Illustrator', description: 'Auto-generate illustrations for documents.', source: 'mine', category: '文案', path: '', modifiedAt: '2天前', size: 7800, starred: true, disabled: false, protected: false },
-  { name: 'Youtube Clipper', description: 'Download and clip YouTube videos for research.', source: 'mine', category: '常用', path: '', modifiedAt: '3天前', size: 6700, starred: false, disabled: false, protected: false },
-  { name: 'Email Composer', description: 'Compose professional emails with templates.', source: 'mine', category: '文案', path: '', modifiedAt: '4天前', size: 4500, starred: false, disabled: false, protected: false },
-  { name: 'Serenity Stock', description: 'Stock screening engine with technical filters.', source: 'mine', category: '金融', path: '', modifiedAt: '2个月前', size: 21000, starred: false, disabled: false, protected: false },
-  { name: 'Data Validator', description: 'Validate and clean datasets before processing.', source: 'mine', category: '数据', path: '', modifiedAt: '6天前', size: 9100, starred: false, disabled: false, protected: false },
-  { name: 'Lark Bot Bridge', description: 'Integrate Lark messaging with skill execution.', source: 'plugin', category: '常用', path: '', modifiedAt: '1个月前', size: 11200, starred: false, disabled: false, protected: true },
+  { name: 'aihot-query', description: '从 aihot.virxact.com 获取每日 AI 热点资讯和动态。', source: 'plugin', category: 'AI', path: '~/.workbuddy/skills/aihot/SKILL.md', modifiedAt: '今天', size: 12400, starred: false, disabled: false, protected: true },
+  { name: 'meeting-notes', description: '总结会议纪要并提取待办事项。', source: 'mine', category: '生产力', path: '~/.workbuddy/skills/meeting-notes/SKILL.md', modifiedAt: '昨天', size: 8900, starred: false, disabled: false, protected: false },
+  { name: 'deploy-preview', description: '将静态构建产物部署到 CloudStudio 沙箱工作区。', source: 'mine', category: '开发者', path: '~/.workbuddy/skills/deploy-preview/SKILL.md', modifiedAt: '7月5日', size: 5600, starred: false, disabled: true, protected: false },
+  { name: 'git-sync', description: '同步本地仓库状态与最近提交记录。', source: 'plugin', category: '开发者', path: '~/.workbuddy/skills/git-sync/SKILL.md', modifiedAt: '7月4日', size: 20300, starred: false, disabled: false, protected: true },
+  { name: 'finance-lookup', description: '通过 NeoData 查询股票、基金与市场数据。', source: 'plugin', category: '金融', path: '~/.workbuddy/skills/finance-lookup/SKILL.md', modifiedAt: '7月2日', size: 3100, starred: false, disabled: false, protected: true },
+  { name: 'image-caption', description: '为上传的图片生成替代文本与说明。', source: 'mine', category: 'AI', path: '~/.workbuddy/skills/image-caption/SKILL.md', modifiedAt: '6月28日', size: 1200, starred: false, disabled: false, protected: false },
+  { name: 'design-review', description: '检查界面布局、颜色和信息层级。', source: 'mine', category: '设计', path: '~/.workbuddy/skills/design-review/SKILL.md', modifiedAt: '6月25日', size: 5100, starred: false, disabled: false, protected: false },
+  { name: 'daily-brief', description: '整理每日工作简报和待处理事项。', source: 'mine', category: '生产力', path: '~/.workbuddy/skills/daily-brief/SKILL.md', modifiedAt: '6月21日', size: 4300, starred: false, disabled: false, protected: false },
 ];
 
 const CATEGORY_ALIASES: Record<string, string> = {

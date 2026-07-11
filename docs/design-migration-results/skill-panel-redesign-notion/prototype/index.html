@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — Prototype Index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+  <style>
+    .index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .index-card {
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s ease;
+    }
+    .index-card:hover { border-color: var(--border-color-strong); }
+    .index-card-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .index-card-desc {
+      font-size: 13px;
+      color: var(--color-graphite);
+      margin: 0;
+    }
+    .index-status {
+      display: inline-flex;
+      margin-top: 12px;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      align-items: center;
+      background: rgba(27, 163, 46, 0.1);
+      color: #1a7a2c;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+      </div>
+      <div class="nav-right">
+        <span class="text-sm text-muted">Notion 风格全页面原型</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">Skill Panel UI 原型</h1>
+        <p class="page-subtitle">基于 Notion 风格的静态高保真页面集合，用于确认全站视觉方向</p>
+      </div>
+
+      <div class="index-grid">
+        <a class="card index-card" href="dashboard.html">
+          <h2 class="index-card-title">Dashboard</h2>
+          <p class="index-card-desc">扫描概览、Skill 总数、质量状态与快速入口</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="library.html">
+          <h2 class="index-card-title">Library</h2>
+          <p class="index-card-desc">Skill 管理主入口，搜索、筛选、卡片网格、右侧详情预览</p>
+          <span class="index-status">已确认</span>
+        </a>
+        <a class="card index-card" href="detail.html">
+          <h2 class="index-card-title">Skill Detail</h2>
+          <p class="index-card-desc">Skill 基础信息、质量检查、依赖关系与操作区</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="editor.html">
+          <h2 class="index-card-title">Editor</h2>
+          <p class="index-card-desc">Markdown 编辑、Frontmatter、Preview、校验结果</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="ai-assistant.html">
+          <h2 class="index-card-title">AI Assistant / Diff</h2>
+          <p class="index-card-desc">AI 润色、结构优化、安全审查、diff 对比与采纳</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="logs.html">
+          <h2 class="index-card-title">Logs</h2>
+          <p class="index-card-desc">最近调用记录、token 使用、成功/失败状态</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="dependencies.html">
+          <h2 class="index-card-title">Dependencies</h2>
+          <p class="index-card-desc">Skill 间依赖关系、缺失依赖提醒与风险状态</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="settings.html">
+          <h2 class="index-card-title">Settings</h2>
+          <p class="index-card-desc">Skill 根目录、扫描、AI 厂商、预算、主题与数据安全说明</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="new-skill.html">
+          <h2 class="index-card-title">New Skill</h2>
+          <p class="index-card-desc">次级创建流程，基础信息、模板选择、创建确认</p>
+          <span class="index-status">已完成</span>
+        </a>
+        <a class="card index-card" href="empty.html">
+          <h2 class="index-card-title">Empty / Error</h2>
+          <p class="index-card-desc">Library 空状态、扫描中、加载、错误、权限不可访问</p>
+          <span class="index-status">已完成</span>
+        </a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

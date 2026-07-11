@@ -1,7 +1,7 @@
 // Router — 状态机式视图路由（不用 react-router）
 // wt-0-foundation 产出
 // 主视图：dashboard | library（Segment 切换）
-// 次级视图（面包屑进入）：editor | create | preview | logs | settings
+// 次级视图（面包屑进入）：editor | create | preview | logs | dependencies | settings | empty-states
 import { useUIStore } from './store/uiStore';
 
 export function AppRouter() {
@@ -13,7 +13,9 @@ export function AppRouter() {
     case 'create': return { view: 'create', lazy: () => import('./pages/Create') };
     case 'preview': return { view: 'preview', lazy: () => import('./pages/Preview') };
     case 'logs': return { view: 'logs', lazy: () => import('./pages/Logs') };
+    case 'dependencies': return { view: 'dependencies', lazy: () => import('./pages/Dependencies') };
     case 'settings': return { view: 'settings', lazy: () => import('./pages/Settings') };
+    case 'empty-states': return { view: 'empty-states', lazy: () => import('./pages/EmptyStates') };
     default: break;
   }
 
@@ -34,5 +36,7 @@ export const VIEW_TITLES: Record<string, string> = {
   create: '新建 Skill',
   preview: '预览',
   logs: '调用日志',
+  dependencies: '依赖分析',
   settings: '设置',
+  'empty-states': '空状态',
 };

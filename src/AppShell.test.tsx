@@ -42,8 +42,8 @@ describe('AppShell Tauri event fallback', () => {
   it('renders in a browser preview when Tauri event listeners are unavailable', async () => {
     render(<AppShell />);
 
-    expect(await screen.findByText('全部 Skill')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('搜索名称/描述...')).toBeInTheDocument();
+    expect(await screen.findByText('Manage your Skills')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索 Skill 名称、标签或描述...')).toBeInTheDocument();
     await waitFor(() => expect(listenMock).toHaveBeenCalledWith('scan-changed', expect.any(Function)));
   });
 
@@ -65,8 +65,8 @@ describe('AppShell Tauri event fallback', () => {
 
     render(<AppShell />);
 
-    expect(await screen.findByText('9 个 Skill · 来自当前扫描结果')).toBeInTheDocument();
-    expect(screen.getByText('全部 Skill')).toBeInTheDocument();
+    expect(await screen.findByText('Skill 仓库概览与待处理事项')).toBeInTheDocument();
+    expect(screen.getByText('Skill 总数')).toBeInTheDocument();
     expect(screen.getAllByText('9').length).toBeGreaterThan(0);
   });
 
@@ -111,9 +111,9 @@ describe('AppShell Tauri event fallback', () => {
 
     render(<AppShell />);
 
-    await user.click(await screen.findByRole('button', { name: /\+ 新建/ }));
+    await user.click(await screen.findByRole('button', { name: 'New Skill' }));
     await user.type(screen.getByPlaceholderText('简要描述功能'), 'Created from test');
-    await user.click(screen.getByRole('button', { name: '创建 Skill' }));
+    await user.click(screen.getByRole('button', { name: '创建并编辑' }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('create_skill', {
       input: expect.objectContaining({
@@ -136,6 +136,7 @@ describe('AppShell Tauri event fallback', () => {
 
     render(<AppShell />);
 
+    await user.click(await screen.findByRole('button', { name: '配置' }));
     await user.type(await screen.findByPlaceholderText('输入 API Key'), 'sk-test-secret');
     await user.click(screen.getByRole('button', { name: '保存' }));
 

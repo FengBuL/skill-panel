@@ -10,15 +10,17 @@
 
 ## 代码规模
 
-- 源码文件数：4
-- 代码总行数：194
+- 源码文件数：6
+- 代码总行数：447
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/pages/Settings/index.tsx` | 81 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
-| `src/pages/Settings/Settings.css` | 18 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
+| `src/components/SettingCard.tsx` | 14 | 提供 Settings 分组卡片结构。 |
+| `src/components/SettingsNav.tsx` | 13 | 提供 Settings 左侧分组导航。 |
+| `src/pages/Settings/index.tsx` | 170 | 负责主题、扫描、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
+| `src/pages/Settings/Settings.css` | 155 | 负责 Settings 左侧导航、设置表单、卡片和安全说明样式。 |
 | `src/settings/Settings.tsx` | 15 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
 | `src/store/settingsStore.ts` | 80 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
 

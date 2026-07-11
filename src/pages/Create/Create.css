@@ -1,0 +1,28 @@
+.create-page {
+  min-height: calc(100vh - 64px);
+  background: var(--color-paper-warmth);
+  padding: 40px 24px;
+}
+
+.create-section-title {
+  margin-top: 20px;
+}
+
+.create-ai-note {
+  margin: 0 0 12px;
+}
+
+.create-ai-button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.create-error {
+  margin-top: 12px;
+  border: 1px solid rgba(246, 73, 50, 0.25);
+  border-radius: var(--radius-card);
+  background: rgba(246, 73, 50, 0.06);
+  color: var(--color-coral);
+  padding: 10px 12px;
+  font-size: 12px;
+}

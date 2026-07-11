@@ -1,5 +1,194 @@
 /* AI Rail — 编辑器右栏 AI 面板 */
 
+.card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-cards);
+  overflow: hidden;
+}
+
+.card-header {
+  min-height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-title {
+  margin: 0;
+  color: var(--color-ink-black);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.section-title {
+  color: var(--color-secondary-text);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.text-sm {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.text-secondary {
+  color: var(--color-secondary-text);
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-3 {
+  margin-top: 12px;
+}
+
+.mt-4 {
+  margin-top: 24px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.grid-2,
+.ai-page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.ai-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.ai-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-mode-option {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-buttons);
+  background: var(--color-pure-white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+}
+
+.ai-mode-option.active {
+  border-color: var(--color-notion-blue);
+  background: #fafcff;
+}
+
+.ai-mode-title {
+  color: var(--color-ink-black);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ai-mode-option.active .ai-mode-title {
+  color: var(--color-notion-blue);
+}
+
+.ai-mode-desc {
+  color: var(--color-secondary-text);
+  font-size: 14px;
+}
+
+.ai-note-input {
+  width: 100%;
+  min-height: 112px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.ai-page-full-button {
+  width: 100%;
+}
+
+.ai-diff-card-header {
+  justify-content: flex-start;
+}
+
+.ai-page-diff-summary {
+  min-height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-buttons);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-secondary-text);
+  font-size: 12px;
+}
+
+.ai-page-diff-summary .added {
+  color: var(--success);
+}
+
+.ai-page-diff-summary .removed {
+  color: var(--danger);
+}
+
+.ai-page-hunks {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-page-diff .ai-hunk.selected {
+  border-color: rgba(0, 117, 222, 0.24);
+  background: var(--color-pure-white);
+}
+
+.ai-page-diff .ai-hunk.selected .ai-hunk-header {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.ai-page-diff-footer {
+  margin-top: 14px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.key-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.key-status-mask {
+  margin-left: auto;
+  color: var(--color-ink-black);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .ai-rail {
   display: flex;
   flex-direction: column;
@@ -249,7 +438,7 @@
   height: 80vh;
   background: var(--surface);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -383,10 +572,6 @@
   background: var(--accent-soft);
 }
 
-.ai-hunk-check input {
-  cursor: pointer;
-}
-
 .ai-hunk-meta {
   font-size: 11px;
   color: var(--text-muted);
@@ -414,6 +599,14 @@
 
 .ai-hunk-expand .material-symbols-outlined { font-size: 16px; }
 
+.ai-hunk-expand span {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
 .ai-hunk-body {
   font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
   font-size: 12px;
@@ -422,16 +615,31 @@
 
 .ai-diff-line {
   display: flex;
+  align-items: center;
   padding: 0 10px;
   min-height: 20px;
+  border-left: 2px solid transparent;
+}
+
+.ai-diff-line-number {
+  width: 38px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-right: 10px;
 }
 
 .ai-diff-line.add {
   background: var(--success-soft);
+  border-left-color: var(--success);
+  color: var(--success);
 }
 
 .ai-diff-line.del {
   background: var(--danger-soft);
+  border-left-color: var(--danger);
+  color: var(--danger);
 }
 
 .ai-diff-line.ctx {
@@ -441,7 +649,7 @@
 .ai-diff-prefix {
   width: 16px;
   flex-shrink: 0;
-  color: var(--text-faint);
+  color: currentColor;
   text-align: center;
 }
 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — AI Assistant / Diff</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+        <nav class="nav-links">
+          <a class="nav-link" href="dashboard.html">Dashboard</a>
+          <a class="nav-link active" href="library.html">Library</a>
+          <a class="nav-link" href="logs.html">Logs</a>
+          <a class="nav-link" href="dependencies.html">Dependencies</a>
+          <a class="nav-link" href="settings.html">Settings</a>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <a class="btn btn-text" href="editor.html">返回编辑器</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">AI 助手</h1>
+        <p class="page-subtitle">为 aihot-query 提供润色、结构优化与安全审查，所有写回需经 diff 确认</p>
+      </div>
+
+      <div class="grid-2" style="align-items:start">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">选择优化方向</h2></div>
+          <div class="card-body">
+            <div class="flex flex-col gap-3">
+              <button class="btn btn-text" style="justify-content:flex-start;height:auto;padding:12px;text-align:left;border-color:var(--color-notion-blue);background:#fafcff">
+                <span style="font-weight:600;color:var(--color-notion-blue)">润色表达</span>
+                <span style="margin-left:auto" class="text-sm">让描述更简洁自然</span>
+              </button>
+              <button class="btn btn-text" style="justify-content:flex-start;height:auto;padding:12px;text-align:left">
+                <span style="font-weight:600">结构优化</span>
+                <span style="margin-left:auto" class="text-sm">重组章节与触发条件</span>
+              </button>
+              <button class="btn btn-text" style="justify-content:flex-start;height:auto;padding:12px;text-align:left">
+                <span style="font-weight:600">安全审查</span>
+                <span style="margin-left:auto" class="text-sm">检查敏感路径与权限描述</span>
+              </button>
+            </div>
+            <div class="mt-4">
+              <label class="section-title">补充说明（可选）</label>
+              <textarea class="textarea mt-2" placeholder="例如：增加对中文口语化查询的支持"></textarea>
+            </div>
+            <button class="btn btn-primary mt-3" style="width:100%">生成优化建议</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;gap:10px">
+            <h2 class="card-title">Diff 对比</h2>
+            <span class="status-pill status-review">待确认</span>
+          </div>
+          <div class="card-body">
+            <p class="text-sm text-secondary mb-3">请检查 AI 建议的每一处改动，确认后才可写回 SKILL.md。</p>
+            <div class="diff-block">
+              <div class="diff-line diff-remove"><span class="diff-line-num">3</span><span>- 从 aihot.virxact.com 获取每日 AI 热点资讯和动态。</span></div>
+              <div class="diff-line diff-add"><span class="diff-line-num">3</span><span>+ 从 aihot.virxact.com 获取每日 AI 热点资讯、行业动态与关键产品发布。</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">4</span><span>&nbsp;</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">5</span><span>## 触发条件</span></div>
+              <div class="diff-line diff-add"><span class="diff-line-num">6</span><span>+ - 用户询问“今天 AI 有什么新闻”</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">7</span><span>&nbsp;&nbsp;- 用户提到“AI 日报”</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">8</span><span>&nbsp;&nbsp;- 用户查询 OpenAI / Anthropic / Google 最新发布</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">9</span><span>&nbsp;</span></div>
+              <div class="diff-line diff-neutral"><span class="diff-line-num">10</span><span>## 工作流</span></div>
+              <div class="diff-line diff-remove"><span class="diff-line-num">14</span><span>- 4. 生成中文摘要并返回</span></div>
+              <div class="diff-line diff-add"><span class="diff-line-num">14</span><span>+ 4. 生成中文摘要，标注信息来源后返回</span></div>
+            </div>
+          </div>
+          <div class="card-body" style="border-top:1px solid var(--border-color);display:flex;gap:10px">
+            <button class="btn btn-primary" style="flex:1">采纳并写回</button>
+            <button class="btn btn-text" style="flex:1">拒绝</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><h2 class="card-title">API Key 状态</h2></div>
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <span class="status-pill status-healthy">已配置</span>
+            <span class="text-sm text-secondary">密钥通过系统 Keychain 保存，前端不保存原始 Key</span>
+            <span class="text-sm font-medium" style="margin-left:auto">sk-••••••••4f2a</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — Dependencies</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+  <style>
+    .dep-graph { padding: 24px; background: var(--color-paper-warmth); border-radius: 8px; border: 1px solid var(--border-color); min-height: 200px; display: flex; align-items: center; justify-content: center; gap: 40px; }
+    .dep-node { background: var(--color-pure-white); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 500; }
+    .dep-node.missing { border-color: rgba(246,73,50,0.4); color: var(--color-coral); }
+    .dep-arrow { color: rgba(0,0,0,0.25); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+        <nav class="nav-links">
+          <a class="nav-link" href="dashboard.html">Dashboard</a>
+          <a class="nav-link" href="library.html">Library</a>
+          <a class="nav-link" href="logs.html">Logs</a>
+          <a class="nav-link active" href="dependencies.html">Dependencies</a>
+          <a class="nav-link" href="settings.html">Settings</a>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <button class="btn btn-ghost">New Skill</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">依赖分析</h1>
+        <p class="page-subtitle">梳理 Skill 之间的调用关系，发现缺失依赖与潜在风险</p>
+      </div>
+
+      <div class="grid-2 mb-4" style="align-items:start">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">依赖拓扑</h2></div>
+          <div class="card-body">
+            <div class="dep-graph">
+              <div class="dep-node">aihot-query</div>
+              <span class="dep-arrow">→</span>
+              <div class="dep-node">humanizer</div>
+              <span class="dep-arrow">→</span>
+              <div class="dep-node missing">old-feed-parser</div>
+            </div>
+            <p class="text-sm text-secondary mt-3">虚线框表示缺失或未找到的依赖 Skill。</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">风险摘要</h2></div>
+          <div class="card-body">
+            <div class="flex items-center gap-3 mb-3" style="padding:12px;background:rgba(246,73,50,0.06);border-radius:8px;border:1px solid var(--border-color)">
+              <span class="status-pill status-error">高风险</span>
+              <span class="text-sm">1 个 Skill 缺少关键依赖</span>
+            </div>
+            <div class="flex items-center gap-3 mb-3" style="padding:12px;background:rgba(255,177,16,0.1);border-radius:8px;border:1px solid var(--border-color)">
+              <span class="status-pill status-review">中风险</span>
+              <span class="text-sm">2 个 Skill 引用了已归档依赖</span>
+            </div>
+            <div class="flex items-center gap-3" style="padding:12px;background:rgba(27,163,46,0.06);border-radius:8px;border:1px solid var(--border-color)">
+              <span class="status-pill status-healthy">正常</span>
+              <span class="text-sm">39 个 Skill 依赖关系完整</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">依赖详情</h2></div>
+        <div class="card-body" style="padding:0">
+          <table class="table">
+            <thead>
+              <tr><th>Skill</th><th>依赖项</th><th>关系类型</th><th>状态</th><th>建议</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>aihot-query</strong></td>
+                <td>old-feed-parser</td>
+                <td>历史依赖</td>
+                <td><span class="status-pill status-error">缺失</span></td>
+                <td class="text-sm">移除引用或迁移到 web-search</td>
+              </tr>
+              <tr>
+                <td><strong>deploy-preview</strong></td>
+                <td>cloudstudio-deploy</td>
+                <td>直接调用</td>
+                <td><span class="status-pill status-healthy">正常</span></td>
+                <td class="text-sm">—</td>
+              </tr>
+              <tr>
+                <td><strong>finance-lookup</strong></td>
+                <td>westock-data</td>
+                <td>共享依赖</td>
+                <td><span class="status-pill status-review">版本不一致</span></td>
+                <td class="text-sm">统一引用版本</td>
+              </tr>
+              <tr>
+                <td><strong>meeting-notes</strong></td>
+                <td>humanizer</td>
+                <td>可选调用</td>
+                <td><span class="status-pill status-healthy">正常</span></td>
+                <td class="text-sm">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

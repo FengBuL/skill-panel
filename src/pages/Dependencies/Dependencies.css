@@ -1,0 +1,123 @@
+.dependencies-page {
+  min-height: calc(100vh - 64px);
+  background: var(--color-paper-warmth);
+  padding: 40px 24px;
+}
+
+.dependencies-top-grid {
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.aux-card-body-flush {
+  padding: 0;
+}
+
+.aux-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.aux-table th {
+  height: 40px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--color-soft-gray);
+  color: rgba(0, 0, 0, 0.5);
+  padding: 0 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.aux-table td {
+  height: 44px;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+  color: rgba(0, 0, 0, 0.82);
+}
+
+.aux-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.aux-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dep-graph {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--color-paper-warmth);
+  padding: 24px;
+}
+
+.dep-graph-step {
+  display: contents;
+}
+
+.dep-node {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--color-pure-white);
+  color: var(--color-ink-black);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dep-node.missing {
+  border-color: rgba(246, 73, 50, 0.4);
+  color: var(--color-coral);
+}
+
+.dep-arrow {
+  color: rgba(0, 0, 0, 0.25);
+  font-size: 16px;
+}
+
+.dep-note {
+  margin: 12px 0 0;
+}
+
+.dep-risk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  padding: 12px;
+}
+
+.dep-risk-row + .dep-risk-row {
+  margin-top: 12px;
+}
+
+.dep-risk-high {
+  background: rgba(246, 73, 50, 0.06);
+}
+
+.dep-risk-medium {
+  background: rgba(255, 177, 16, 0.1);
+}
+
+.dep-risk-low {
+  background: rgba(27, 163, 46, 0.06);
+}
+
+@media (max-width: 900px) {
+  .dependencies-page {
+    padding: 32px 16px;
+  }
+
+  .dep-graph {
+    flex-direction: column;
+    gap: 12px;
+  }
+}

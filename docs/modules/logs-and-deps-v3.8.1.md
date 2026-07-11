@@ -10,15 +10,20 @@
 
 ## 代码规模
 
-- 源码文件数：5
-- 代码总行数：322
+- 源码文件数：9
+- 代码总行数：663
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/pages/Logs/index.tsx` | 60 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
-| `src/pages/Logs/Logs.css` | 112 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
+| `src/components/DependencyGraph.tsx` | 17 | 提供依赖拓扑展示组件。 |
+| `src/components/DependencyTable.tsx` | 45 | 提供依赖详情表格组件。 |
+| `src/components/LogTable.tsx` | 49 | 提供调用日志表格组件。 |
+| `src/pages/Dependencies/index.tsx` | 65 | 负责依赖分析页面、拓扑图、风险摘要和依赖详情。 |
+| `src/pages/Dependencies/Dependencies.css` | 123 | 负责依赖分析页面、拓扑图、风险摘要和表格样式。 |
+| `src/pages/Logs/index.tsx` | 116 | 负责调用日志页面、筛选入口、日志表格和详情展示。 |
+| `src/pages/Logs/Logs.css` | 98 | 负责调用日志页面、表格、筛选和详情样式。 |
 | `src/lib/logs.ts` | 26 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
 | `src-tauri/src/call_logger.rs` | 58 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
 | `src-tauri/src/dep_analyzer.rs` | 66 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |

@@ -2,7 +2,7 @@
 
 ## 模块简介
 
-负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。
+负责应用启动入口、Notion 风格应用壳、顶栏、主视图切换、次级视图进入和全局监听。
 
 ## 检索关键词
 
@@ -10,33 +10,35 @@
 
 ## 代码规模
 
-- 源码文件数：9
-- 代码总行数：333
+- 源码文件数：11
+- 代码总行数：400
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/main.tsx` | 14 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/AppShell.tsx` | 83 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/router.tsx` | 39 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
+| `src/main.tsx` | 13 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
+| `src/AppShell.tsx` | 109 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
+| `src/layout/AppShell.tsx` | 1 | 提供 AppShell 的稳定布局目录导出入口。 |
+| `src/layout/TopBar.tsx` | 1 | 提供 TopBar 的稳定布局目录导出入口。 |
+| `src/router.tsx` | 42 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/App.tsx` | 11 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/components/TopBar.tsx` | 83 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/components/TopBar.css` | 47 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
+| `src/components/TopBar.tsx` | 68 | 负责原型单层顶部导航、主入口切换、Library 子视图高亮、Logs/Dependencies 入口和 New Skill 次级入口。 |
+| `src/components/TopBar.css` | 100 | 负责顶部导航的白底、细边框、品牌、导航链接和 New Skill 按钮布局。 |
 | `src/components/Toast.tsx` | 32 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/components/Toast.css` | 9 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
+| `src/components/Toast.css` | 8 | 负责应用 Toast 容器的无阴影样式。 |
 | `src/lib/tauriEvents.ts` | 15 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 
 ## 对外契约
 
-- 主入口渲染 AppShell
+- 主入口通过 `src/layout/AppShell.tsx` 渲染 AppShell
 - useUIStore 管理 mainView 和 subView
 - safeListen 保护 Tauri 事件监听
 
 ## 修改规则
 
 - 新增页面入口先扩展 useUIStore 视图状态
-- 顶栏交互保持 44px 左右的紧凑高度
+- 顶栏使用 64px 单层导航，符合 Library 1:1 原型结构
 - 全局监听需要在卸载时释放
 
 ## 解耦要求

@@ -10,17 +10,21 @@
 
 ## 代码规模
 
-- 源码文件数：4
-- 代码总行数：242
+- 源码文件数：8
+- 代码总行数：608
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/pages/Editor/index.tsx` | 148 | 负责 Frontmatter 表单、Markdown 编辑、预览、质量校验和保存状态。 |
-| `src/pages/Editor/Editor.css` | 49 | 负责 Frontmatter 表单、Markdown 编辑、预览、质量校验和保存状态。 |
-| `src/editor/EditorWorkspace.tsx` | 15 | 负责 Frontmatter 表单、Markdown 编辑、预览、质量校验和保存状态。 |
-| `src/detail/DetailDrawer.tsx` | 30 | 负责 Frontmatter 表单、Markdown 编辑、预览、质量校验和保存状态。 |
+| `src/pages/Editor/index.tsx` | 5 | 负责 Editor 页面入口并挂载 EditorView。 |
+| `src/pages/Editor/Editor.css` | 207 | 负责 Editor 原型三栏、Frontmatter、Markdown、Preview、校验和 AI 入口样式。 |
+| `src/editor/EditorView.tsx` | 236 | 负责 Editor 原型 DOM 编排、草稿状态、读取、校验、AI diff 入口和保存提示。 |
+| `src/editor/FrontmatterForm.tsx` | 40 | 提供 Frontmatter 表单结构。 |
+| `src/editor/MarkdownEditor.tsx` | 18 | 提供 Markdown textarea 编辑区。 |
+| `src/editor/PreviewPane.tsx` | 47 | 提供 Markdown 预览区。 |
+| `src/editor/EditorWorkspace.tsx` | 14 | 提供 Editor 工作区外壳。 |
+| `src/components/ValidationResult.tsx` | 41 | 提供 Editor 校验结果列表。 |
 
 ## 对外契约
 
@@ -32,7 +36,7 @@
 
 - 编辑器三列布局保持稳定
 - 保存逻辑和后端 update_skill 对齐
-- AI 写回通过 diff 后更新 md
+- AI 写回通过 diff 确认后更新 Markdown
 
 ## 解耦要求
 

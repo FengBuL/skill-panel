@@ -2,38 +2,40 @@
 
 ## 模块简介
 
-负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。
+负责 Skill Library 主页面、顶部搜索筛选、Notion 风格卡片网格、右侧详情面板和进入详情页。
 
 ## 检索关键词
 
-`Library`、`SkillCard`、`筛选`、`分页`、`抽屉`、`批量`
+`Library`、`SkillCard`、`DetailPanel`、`筛选`、`Notion`、`卡片网格`
 
 ## 代码规模
 
-- 源码文件数：7
-- 代码总行数：1094
+- 源码文件数：9
+- 代码总行数：961
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/pages/Library/index.tsx` | 173 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
-| `src/pages/Library/Library.css` | 523 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
-| `src/library/SkillCard.tsx` | 89 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
+| `src/pages/Library/index.tsx` | 90 | 负责 Library 1:1 原型 DOM 编排、搜索、分类 pill、卡片网格、右侧详情面板和详情页入口。 |
+| `src/pages/Library/Library.css` | 335 | 负责 Library 1:1 原型布局、搜索、分类 pill、卡片网格、详情面板和响应式样式。 |
+| `src/components/SkillCard.tsx` | 61 | 提供 Library Notion 风格 Skill 卡片，使用统一浅蓝图标和状态 pill。 |
+| `src/detail/DetailPanel.tsx` | 80 | 提供 Library 右侧 340px 详情面板。 |
+| `src/library/SkillCard.tsx` | 89 | 旧版卡片组件，保留给兼容代码，Library 新页面不再复用。 |
 | `src/store/skillStore.ts` | 143 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
-| `src/lib/invoke.ts` | 128 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
+| `src/lib/invoke.ts` | 125 | 负责 Skill 扫描调用、前端数据映射和浏览器预览 fallback 数据。 |
 | `src/lib/invoke.test.ts` | 31 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/lib/skills.ts` | 7 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 
 ## 对外契约
 
 - scanSkills 返回前端 Skill 列表
-- useSkillStore 保存筛选、分页、抽屉状态
-- Drawer 只读预览并进入 Editor
+- useSkillStore 保存搜索、筛选、分页和选中详情状态
+- Library 右侧 DetailPanel 只展示概览，卡片点击进入 Skill Detail
 
 ## 修改规则
 
-- 筛选规则集中放在 skillStore
+- 第 1 批顶部分类 pill 使用页面局部状态，避免污染持久筛选状态
 - 扫描数据映射集中放在 lib/invoke.ts
 - 卡片布局需要通过视觉 QA 检查
 

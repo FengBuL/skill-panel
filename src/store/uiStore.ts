@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 
 export type MainView = 'dashboard' | 'library';
-export type SubView = 'editor' | 'create' | 'preview' | 'logs' | 'settings' | null;
+export type SubView = 'editor' | 'create' | 'preview' | 'detail' | 'ai' | 'logs' | 'dependencies' | 'settings' | 'empty-states' | null;
 
 interface UndoEntry { label: string; undo?: () => void; redo?: () => void; ts: number }
 

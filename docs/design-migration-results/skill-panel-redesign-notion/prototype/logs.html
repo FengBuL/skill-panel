@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Panel — Logs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="prototype-shell.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top-nav">
+      <div class="nav-left">
+        <a class="brand" href="index.html">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          Skill Panel
+        </a>
+        <nav class="nav-links">
+          <a class="nav-link" href="dashboard.html">Dashboard</a>
+          <a class="nav-link" href="library.html">Library</a>
+          <a class="nav-link active" href="logs.html">Logs</a>
+          <a class="nav-link" href="dependencies.html">Dependencies</a>
+          <a class="nav-link" href="settings.html">Settings</a>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <button class="btn btn-ghost">New Skill</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">调用日志</h1>
+        <p class="page-subtitle">查看 Skill 调用记录、token 消耗与执行状态</p>
+      </div>
+
+      <div class="flex justify-between items-center mb-4 gap-4">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="搜索 Skill 名称或调用关键词...">
+        </div>
+        <div class="flex gap-2">
+          <span class="pill pill-active">全部</span>
+          <span class="pill pill-default">成功</span>
+          <span class="pill pill-default">失败</span>
+          <button class="btn btn-text btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>筛选</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>Skill</th>
+                <th>输入摘要</th>
+                <th>Token</th>
+                <th>耗时</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="text-sm">今天 09:41:12</td>
+                <td><strong>aihot-query</strong></td>
+                <td class="text-sm">“今天 AI 圈有什么”</td>
+                <td class="text-sm">1,240</td>
+                <td class="text-sm">1.2s</td>
+                <td><span class="status-pill status-healthy">成功</span></td>
+              </tr>
+              <tr>
+                <td class="text-sm">今天 09:38:55</td>
+                <td><strong>meeting-notes</strong></td>
+                <td class="text-sm">“总结刚刚的会议”</td>
+                <td class="text-sm">2,860</td>
+                <td class="text-sm">3.4s</td>
+                <td><span class="status-pill status-healthy">成功</span></td>
+              </tr>
+              <tr>
+                <td class="text-sm">今天 09:15:02</td>
+                <td><strong>deploy-preview</strong></td>
+                <td class="text-sm">“部署当前目录”</td>
+                <td class="text-sm">—</td>
+                <td class="text-sm">8.1s</td>
+                <td><span class="status-pill status-review">警告</span></td>
+              </tr>
+              <tr>
+                <td class="text-sm">昨天 18:22:41</td>
+                <td><strong>git-sync</strong></td>
+                <td class="text-sm">“查看仓库状态”</td>
+                <td class="text-sm">—</td>
+                <td class="text-sm">0.4s</td>
+                <td><span class="status-pill status-healthy">成功</span></td>
+              </tr>
+              <tr>
+                <td class="text-sm">昨天 16:05:33</td>
+                <td><strong>finance-lookup</strong></td>
+                <td class="text-sm">“查一下 NVDA”</td>
+                <td class="text-sm">420</td>
+                <td class="text-sm">0.9s</td>
+                <td><span class="status-pill status-error">失败</span></td>
+              </tr>
+              <tr>
+                <td class="text-sm">7月5日 11:30:18</td>
+                <td><strong>image-caption</strong></td>
+                <td class="text-sm">“给这张图写说明”</td>
+                <td class="text-sm">3,120</td>
+                <td class="text-sm">4.7s</td>
+                <td><span class="status-pill status-archived">已归档</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><h2 class="card-title">日志详情</h2></div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div>
+              <div class="detail-row"><span class="detail-label">调用 ID</span><span class="detail-value">log_20260707_094112</span></div>
+              <div class="detail-row"><span class="detail-label">Skill</span><span class="detail-value">aihot-query</span></div>
+              <div class="detail-row"><span class="detail-label">用户输入</span><span class="detail-value">今天 AI 圈有什么</span></div>
+            </div>
+            <div>
+              <div class="detail-row"><span class="detail-label">输出 token</span><span class="detail-value">1,240</span></div>
+              <div class="detail-row"><span class="detail-label">执行耗时</span><span class="detail-value">1.2s</span></div>
+              <div class="detail-row"><span class="detail-label">状态</span><span class="detail-value" style="color:#1a7a2c">成功</span></div>
+            </div>
+          </div>
+          <p class="text-sm text-secondary mt-3">完整请求与响应内容仅保存在本地日志文件，已脱敏处理。</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
