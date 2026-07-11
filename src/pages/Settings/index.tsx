@@ -6,6 +6,7 @@ import { SettingsNav } from '../../components/SettingsNav';
 import { Toggle } from '../../components/ui';
 import { setAIKey } from '../../lib/ai';
 import { useSettingsStore, type AIVendor, type Theme } from '../../store/settingsStore';
+import { useUIStore } from '../../store/uiStore';
 import './Settings.css';
 
 const vendors: { value: AIVendor; label: string }[] = [
@@ -23,6 +24,7 @@ const themes: { value: Theme; label: string }[] = [
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
+  const ui = useUIStore();
   const [configuringKey, setConfiguringKey] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [keyError, setKeyError] = useState('');
@@ -48,7 +50,11 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <PageHeader title="设置" subtitle="管理 Skill 根目录、扫描行为、AI 厂商与数据安全偏好" />
+      <PageHeader
+        title="设置"
+        subtitle="管理 Skill 根目录、扫描行为、AI 厂商与数据安全偏好"
+        actions={<ActionButton variant="text" size="small" className="settings-return-button" onClick={() => ui.setMainView('library')}>返回</ActionButton>}
+      />
 
       <div className="settings-grid">
         <SettingsNav />

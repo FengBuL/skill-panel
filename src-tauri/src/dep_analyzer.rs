@@ -13,11 +13,13 @@ pub fn analyze(path: &str) -> Result<serde_json::Value, String> {
         let l = line.to_lowercase();
         if l.contains("depends on") || l.contains("requires") {
             // 提取后面的 skill 名（简单：取该行剩余部分清理）
-            let parts: Vec<&str> = line.splitn(2, |c: char| {
-                c == ':' || c == '-' || c == '—'
-            }).collect();
+            let parts: Vec<&str> = line
+                .splitn(2, |c: char| c == ':' || c == '-' || c == '—')
+                .collect();
             if parts.len() > 1 {
-                let name = parts[1].trim().trim_matches(|c: char| !c.is_alphanumeric() && c != '-' && c != '_');
+                let name = parts[1]
+                    .trim()
+                    .trim_matches(|c: char| !c.is_alphanumeric() && c != '-' && c != '_');
                 if !name.is_empty() && name.len() < 60 {
                     depends_on.push(name.to_string());
                 }
@@ -25,7 +27,11 @@ pub fn analyze(path: &str) -> Result<serde_json::Value, String> {
         }
         // @skill/ 引用
         if line.contains("@skill/") {
-            if let Some(name) = line.split("@skill/").nth(1).and_then(|s| s.split(|c: char| c.is_whitespace() || c == ')').next()) {
+            if let Some(name) = line
+                .split("@skill/")
+                .nth(1)
+                .and_then(|s| s.split(|c: char| c.is_whitespace() || c == ')').next())
+            {
                 depends_on.push(name.trim().to_string());
             }
         }
@@ -39,13 +45,18 @@ pub fn analyze(path: &str) -> Result<serde_json::Value, String> {
 pub fn analyze_all(skills: &[(String, String)]) -> Result<serde_json::Value, String> {
     // skills: Vec<(name, content)>
     let mut deps: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
-    let mut reverse: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut reverse: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
 
     for (name, content) in skills {
         let mut found = Vec::new();
         for line in content.lines() {
             if line.to_lowercase().contains("depends on") || line.contains("@skill/") {
-                if let Some(dep) = line.split("@skill/").nth(1).and_then(|s| s.split_whitespace().next()) {
+                if let Some(dep) = line
+                    .split("@skill/")
+                    .nth(1)
+                    .and_then(|s| s.split_whitespace().next())
+                {
                     found.push(dep.trim().to_string());
                 }
             }
@@ -56,10 +67,10 @@ pub fn analyze_all(skills: &[(String, String)]) -> Result<serde_json::Value, Str
         deps.insert(name.clone(), found);
     }
 
-    let deps_json: serde_json::Map<String, serde_json::Value> = deps.into_iter()
-        .map(|(k, v)| (k, json!(v))).collect();
-    let reverse_json: serde_json::Map<String, serde_json::Value> = reverse.into_iter()
-        .map(|(k, v)| (k, json!(v))).collect();
+    let deps_json: serde_json::Map<String, serde_json::Value> =
+        deps.into_iter().map(|(k, v)| (k, json!(v))).collect();
+    let reverse_json: serde_json::Map<String, serde_json::Value> =
+        reverse.into_iter().map(|(k, v)| (k, json!(v))).collect();
 
     Ok(json!({ "deps": deps_json, "reverse": reverse_json }))
 }

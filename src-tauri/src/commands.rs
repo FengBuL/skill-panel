@@ -87,7 +87,7 @@ pub fn append_audit_log(entry: AuditLogEntry) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{append_audit_log, app_version, default_scan_path_groups, scan_skills};
+    use super::{app_version, append_audit_log, default_scan_path_groups, scan_skills};
     use crate::models::{AppSettings, Language};
 
     #[test]

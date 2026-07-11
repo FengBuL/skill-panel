@@ -63,7 +63,10 @@ fn write_locked(path: &Path, contents: &[u8]) -> std::io::Result<()> {
 
 fn default_settings_path() -> Result<PathBuf, String> {
     let home = home_dir().ok_or_else(|| "Unable to resolve user home directory".to_string())?;
-    Ok(home.join(".codex").join("skill-panel").join(SETTINGS_FILE_NAME))
+    Ok(home
+        .join(".codex")
+        .join("skill-panel")
+        .join(SETTINGS_FILE_NAME))
 }
 
 fn home_dir() -> Option<PathBuf> {
@@ -85,16 +88,23 @@ mod tests {
     use std::{
         fs,
         path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    static TEMP_SETTINGS_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     fn temp_settings_path(test_name: &str) -> PathBuf {
         let suffix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock should be after unix epoch")
             .as_nanos();
+        let counter = TEMP_SETTINGS_COUNTER.fetch_add(1, Ordering::Relaxed);
         std::env::temp_dir()
-            .join(format!("skill-panel-settings-{test_name}-{suffix}"))
+            .join(format!(
+                "skill-panel-settings-{test_name}-{}-{counter}-{suffix}",
+                std::process::id()
+            ))
             .join("settings.json")
     }
 
@@ -214,7 +224,9 @@ mod tests {
 
     #[test]
     fn saving_settings_creates_parent_directories() {
-        let path = temp_settings_path("creates-parent").join("nested").join("settings.json");
+        let path = temp_settings_path("creates-parent")
+            .join("nested")
+            .join("settings.json");
         let settings = AppSettings {
             language: Language::ZhCn,
             custom_scan_directories: vec!["/team/skills".to_string()],

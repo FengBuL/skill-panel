@@ -1,8 +1,8 @@
 // 调用日志 — 从日志文件读取
 // 日志存于 ~/.codex/skill-panel/call_logs.jsonl (每行一条 JSON)
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CallLog {
@@ -17,7 +17,9 @@ pub struct CallLog {
 }
 
 fn log_path() -> PathBuf {
-    let home = std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("."));
+    let home = std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."));
     home.join(".codex/skill-panel/call_logs.jsonl")
 }
 
@@ -34,8 +36,11 @@ pub fn get_logs(range: &str) -> Result<Vec<CallLog>, String> {
         .collect();
     // range 简单处理：7d/30d/all
     logs.reverse(); // 最新在前
-    if range == "7d" { logs.truncate(50); }
-    else if range == "30d" { logs.truncate(200); }
+    if range == "7d" {
+        logs.truncate(50);
+    } else if range == "30d" {
+        logs.truncate(200);
+    }
     Ok(logs)
 }
 

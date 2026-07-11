@@ -182,8 +182,12 @@ pub struct AppSettings {
     pub ai_monthly_used: f64,
 }
 
-fn default_true() -> bool { true }
-fn default_budget() -> f64 { 50.0 }
+fn default_true() -> bool {
+    true
+}
+fn default_budget() -> f64 {
+    50.0
+}
 
 impl Default for AppSettings {
     fn default() -> Self {

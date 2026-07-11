@@ -1,4 +1,5 @@
 import { MetricCard } from '../components/MetricCard';
+import { PageHeader } from '../components/PageHeader';
 import { RiskSummary } from '../components/RiskSummary';
 import { SkillRowMini } from '../components/SkillRowMini';
 import { useSkillStore, type Skill } from '../store/skillStore';
@@ -102,10 +103,11 @@ export function DashboardView() {
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">Skill 仓库概览与待处理事项</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Skill 仓库概览与待处理事项"
+        actions={<button className="btn btn-ghost" type="button" onClick={() => ui.enterSub('create')}>New Skill</button>}
+      />
 
       <div className="grid-4 mb-4">
         <MetricCard label="Skill 总数" value={total} helper="上次扫描：2 分钟前" onClick={openLibrary} />

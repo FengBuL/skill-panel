@@ -34,7 +34,10 @@ pub fn scan_configured_skill_roots(settings: &AppSettings) -> Result<Vec<SkillSu
     Ok(scan_configured_skill_roots_for_home(settings, &home))
 }
 
-pub fn scan_configured_skill_roots_for_home(settings: &AppSettings, home: &Path) -> Vec<SkillSummary> {
+pub fn scan_configured_skill_roots_for_home(
+    settings: &AppSettings,
+    home: &Path,
+) -> Vec<SkillSummary> {
     let mut roots = default_scan_roots_for_home(home);
     roots.extend(
         settings
@@ -195,7 +198,10 @@ fn discover_skill_files(root: &Path) -> Vec<PathBuf> {
         return skill_files;
     };
 
-    let mut entries = entries.flatten().map(|entry| entry.path()).collect::<Vec<_>>();
+    let mut entries = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
     entries.sort();
 
     for entry_path in entries {
@@ -321,8 +327,9 @@ mod tests {
     use crate::models::{ParseStatus, SkillSource};
 
     use super::{
-        default_scan_path_groups_for_home, default_scan_roots_for_home, discover_plugin_skill_roots,
-        scan_configured_skill_roots_for_home, scan_skill_roots, summarize_skill_file, ScanRoot,
+        default_scan_path_groups_for_home, default_scan_roots_for_home,
+        discover_plugin_skill_roots, scan_configured_skill_roots_for_home, scan_skill_roots,
+        summarize_skill_file, ScanRoot,
     };
     use crate::models::{AppSettings, Language};
 
@@ -583,10 +590,8 @@ mod tests {
         )
         .expect("invalid skill file should be written");
 
-        let valid_summary =
-            summarize_skill_file(&valid.join("SKILL.md"), SkillSource::Custom);
-        let invalid_summary =
-            summarize_skill_file(&invalid.join("SKILL.md"), SkillSource::Custom);
+        let valid_summary = summarize_skill_file(&valid.join("SKILL.md"), SkillSource::Custom);
+        let invalid_summary = summarize_skill_file(&invalid.join("SKILL.md"), SkillSource::Custom);
 
         assert_eq!(valid_summary.name, "Valid");
         assert_eq!(valid_summary.description, "Valid description");
@@ -669,8 +674,7 @@ mod tests {
         }
         #[cfg(windows)]
         {
-            std::os::windows::fs::symlink_dir(&real_skills, cache.join("linked-skills"))
-                .ok();
+            std::os::windows::fs::symlink_dir(&real_skills, cache.join("linked-skills")).ok();
         }
 
         let roots = discover_plugin_skill_roots(&cache);

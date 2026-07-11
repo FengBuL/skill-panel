@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CategoryPill } from '../../components/CategoryPill';
 import { FilterBar } from '../../components/FilterBar';
+import { PageHeader } from '../../components/PageHeader';
 import { SearchBar } from '../../components/SearchBar';
 import { SkillCard } from '../../components/SkillCard';
 import { DetailPanel } from '../../detail/DetailPanel';
@@ -47,10 +48,11 @@ export default function LibraryPage() {
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Manage your Skills</h1>
-        <p className="page-subtitle">整理、查看、维护本地 Skill，让常用工具触手可及</p>
-      </div>
+      <PageHeader
+        title="Manage your Skills"
+        subtitle="整理、查看、维护本地 Skill，让常用工具触手可及"
+        actions={<button className="btn btn-ghost" type="button" onClick={() => ui.enterSub('create')}>New Skill</button>}
+      />
 
       <div className="flex justify-between items-center mb-4 gap-4 library-toolbar">
         <SearchBar value={store.search} onChange={store.setSearch} />

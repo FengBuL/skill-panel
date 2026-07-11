@@ -79,12 +79,6 @@
   font-weight: 600;
 }
 
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 @media (max-width: 760px) {
   .top-nav {
     padding: 0 16px;

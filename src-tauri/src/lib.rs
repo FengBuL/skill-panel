@@ -1,20 +1,20 @@
+pub mod ai_proxy;
+pub mod call_logger;
 pub mod commands;
+pub mod dep_analyzer;
 pub mod models;
 pub mod settings_store;
 pub mod skill_scanner;
 pub mod skill_store;
-pub mod ai_proxy;
-pub mod call_logger;
-pub mod dep_analyzer;
 pub mod version_store;
 pub mod watcher;
 
 use commands::{
-    append_audit_log, app_version, create_skill, default_scan_path_groups, delete_skill, load_app_settings,
-    open_skill_folder, read_skill, save_app_settings, scan_skills, update_skill, ai_optimize,
-    analyze_deps, clone_skill, get_call_logs, get_version_history, read_skill_files, restore_version,
-    set_ai_key, toggle_skill_enabled, validate_skill, watch_scan_dirs, write_skill_file,
-    ai_cancel, get_ai_key,
+    ai_cancel, ai_optimize, analyze_deps, app_version, append_audit_log, clone_skill, create_skill,
+    default_scan_path_groups, delete_skill, get_ai_key, get_call_logs, get_version_history,
+    load_app_settings, open_skill_folder, read_skill, read_skill_files, restore_version,
+    save_app_settings, scan_skills, set_ai_key, toggle_skill_enabled, update_skill, validate_skill,
+    watch_scan_dirs, write_skill_file,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

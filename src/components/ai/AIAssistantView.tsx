@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { AiAction, ParsedHunk } from '../../lib/ai';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useUIStore } from '../../store/uiStore';
+import { PageHeader } from '../PageHeader';
 import { showToast } from '../Toast';
 import { KeyStatusBadge } from '../KeyStatusBadge';
 import { AIModeSelector } from './AIModeSelector';
@@ -42,6 +44,7 @@ const sampleHunks: ParsedHunk[] = [
 
 export function AIAssistantView() {
   const settings = useSettingsStore();
+  const ui = useUIStore();
   const [mode, setMode] = useState<AiAction>('polish');
   const [note, setNote] = useState('');
 
@@ -55,12 +58,11 @@ export function AIAssistantView() {
 
   return (
     <>
-      <div className="page-header ai-page-header">
-        <div>
-          <h1 className="page-title">AI 助手</h1>
-          <p className="page-subtitle">为 aihot-query 提供润色、结构优化与安全审查，所有写回需经 diff 确认</p>
-        </div>
-      </div>
+      <PageHeader
+        title="AI 助手"
+        subtitle="为 aihot-query 提供润色、结构优化与安全审查，所有写回需经 diff 确认"
+        actions={<button className="btn btn-text" type="button" onClick={() => ui.enterSub('editor', ui.subParam ?? undefined)}>返回编辑器</button>}
+      />
 
       <div className="grid-2 ai-page-grid">
         <section className="card">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActionButton } from '../../components/ActionButton';
 import { LogTable, type LogTableRow } from '../../components/LogTable';
 import { PageHeader } from '../../components/PageHeader';
@@ -31,30 +31,56 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let alive = true;
+  const loadLogs = useCallback(() => {
+    setLoading(true);
     getCallLogs('7d')
       .then(result => {
-        if (!alive) return;
         setLogs(result.logs);
         setError('');
       })
       .catch(err => {
-        if (!alive) return;
         setError(String(err));
       })
       .finally(() => {
-        if (alive) setLoading(false);
+        setLoading(false);
       });
-    return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   const rows = useMemo(() => (logs.length ? logs.map(toLogTableRow) : fallbackRows), [logs]);
   const selected = rows[0];
 
   return (
     <div className="logs-page">
-      <PageHeader title="调用日志" subtitle="查看 Skill 调用记录、token 消耗与执行状态" />
+      <PageHeader
+        title="调用日志"
+        subtitle="查看 Skill 调用记录、token 消耗与执行状态"
+        actions={(
+          <ActionButton
+            variant="ghost"
+            size="small"
+            className="logs-refresh-action"
+            disabled={loading}
+            onClick={loadLogs}
+            icon={(
+              <>
+                <span className="material-symbols-outlined logs-refresh-symbol" aria-hidden="true">refresh</span>
+                <svg className="logs-refresh-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+              </>
+            )}
+          >
+            刷新
+          </ActionButton>
+        )}
+      />
 
       <div className="logs-toolbar">
         <div className="search-box">

@@ -2,6 +2,7 @@ import { DependencyGraph } from '../../components/DependencyGraph';
 import { DependencyTable, type DependencyTableRow } from '../../components/DependencyTable';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusPill } from '../../components/StatusPill';
+import { useUIStore } from '../../store/uiStore';
 import './Dependencies.css';
 
 const dependencyRows: DependencyTableRow[] = [
@@ -12,9 +13,15 @@ const dependencyRows: DependencyTableRow[] = [
 ];
 
 export default function DependenciesPage() {
+  const ui = useUIStore();
+
   return (
     <div className="dependencies-page">
-      <PageHeader title="依赖分析" subtitle="梳理 Skill 之间的调用关系，发现缺失依赖与潜在风险" />
+      <PageHeader
+        title="依赖分析"
+        subtitle="梳理 Skill 之间的调用关系，发现缺失依赖与潜在风险"
+        actions={<button className="btn btn-text" type="button" onClick={ui.exitSub}>返回</button>}
+      />
 
       <div className="grid-2 dependencies-top-grid">
         <section className="card">

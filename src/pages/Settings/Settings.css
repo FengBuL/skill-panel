@@ -48,6 +48,18 @@
   gap: 16px;
 }
 
+.settings-return-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-notion-blue);
+}
+
+.settings-return-button:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-notion-blue-hover);
+}
+
 .setting-card-danger {
   border-color: rgba(246, 73, 50, 0.25);
 }

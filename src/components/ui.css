@@ -473,6 +473,26 @@
   margin-bottom: 28px;
 }
 
+.sp-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sp-page-header-copy {
+  min-width: 0;
+}
+
+.sp-page-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .sp-page-header h1,
 .page-title {
   margin: 0 0 8px;

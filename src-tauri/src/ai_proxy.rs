@@ -1,8 +1,8 @@
 // AI 代理 — reqwest 调用厂商 API + keyring 存 Key + 流式 emit + usage/cost 解析
 use keyring::Entry;
-use tauri::{AppHandle, Emitter};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
+use tauri::{AppHandle, Emitter};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct AiChunkEvent {
@@ -40,7 +40,9 @@ pub fn cancel() {
 /// 从 Keychain 读取 API Key
 pub fn get_api_key(vendor: &str) -> Result<String, String> {
     let entry = Entry::new(KEYRING_SERVICE, vendor).map_err(|e| e.to_string())?;
-    entry.get_password().map_err(|e| format!("未存储 {} 的 API Key: {}", vendor, e))
+    entry
+        .get_password()
+        .map_err(|e| format!("未存储 {} 的 API Key: {}", vendor, e))
 }
 
 /// 检查是否已存储 API Key（不返回 Key 本身）
@@ -60,12 +62,18 @@ pub fn set_api_key(vendor: &str, key: &str) -> Result<(), String> {
 pub fn desensitize(content: &str) -> String {
     let mut out = content.to_string();
     while let Some(pos) = out.find("sk-") {
-        let end = out[pos..].find(|c: char| c.is_whitespace()).map(|e| pos + e).unwrap_or(out.len());
+        let end = out[pos..]
+            .find(|c: char| c.is_whitespace())
+            .map(|e| pos + e)
+            .unwrap_or(out.len());
         out.replace_range(pos..end, "<API_KEY>");
     }
     for prefix in &["~/", "/Users/", "/home/", "C:\\", "D:\\"] {
         while let Some(pos) = out.find(prefix) {
-            let end = out[pos..].find(|c: char| c.is_whitespace() || c == '"' || c == ')' || c == ']').map(|e| pos + e).unwrap_or(out.len());
+            let end = out[pos..]
+                .find(|c: char| c.is_whitespace() || c == '"' || c == ')' || c == ']')
+                .map(|e| pos + e)
+                .unwrap_or(out.len());
             out.replace_range(pos..end, "<PATH>");
         }
     }
@@ -87,7 +95,8 @@ fn model_pricing(vendor: &str) -> (f64, f64) {
 /// 计算费用（CNY）
 fn calculate_cost(vendor: &str, usage: &AiUsage) -> f64 {
     let (in_price, out_price) = model_pricing(vendor);
-    (usage.prompt_tokens as f64 * in_price + usage.completion_tokens as f64 * out_price) / 1_000_000.0
+    (usage.prompt_tokens as f64 * in_price + usage.completion_tokens as f64 * out_price)
+        / 1_000_000.0
 }
 
 /// 从各厂商响应中解析 usage
@@ -96,17 +105,26 @@ fn parse_usage(vendor: &str, parsed: &serde_json::Value) -> AiUsage {
         "openai" | "glm" => {
             let prompt = parsed["usage"]["prompt_tokens"].as_u64().unwrap_or(0);
             let completion = parsed["usage"]["completion_tokens"].as_u64().unwrap_or(0);
-            AiUsage { prompt_tokens: prompt, completion_tokens: completion }
+            AiUsage {
+                prompt_tokens: prompt,
+                completion_tokens: completion,
+            }
         }
         "claude" => {
             let prompt = parsed["usage"]["input_tokens"].as_u64().unwrap_or(0);
             let completion = parsed["usage"]["output_tokens"].as_u64().unwrap_or(0);
-            AiUsage { prompt_tokens: prompt, completion_tokens: completion }
+            AiUsage {
+                prompt_tokens: prompt,
+                completion_tokens: completion,
+            }
         }
         "ollama" => {
             let prompt = parsed["prompt_eval_count"].as_u64().unwrap_or(0);
             let completion = parsed["eval_count"].as_u64().unwrap_or(0);
-            AiUsage { prompt_tokens: prompt, completion_tokens: completion }
+            AiUsage {
+                prompt_tokens: prompt,
+                completion_tokens: completion,
+            }
         }
         _ => AiUsage::default(),
     }
@@ -115,24 +133,18 @@ fn parse_usage(vendor: &str, parsed: &serde_json::Value) -> AiUsage {
 /// 从各厂商响应中提取 content
 fn extract_content(vendor: &str, parsed: &serde_json::Value, raw: &str) -> String {
     match vendor {
-        "openai" | "glm" => {
-            parsed["choices"][0]["message"]["content"]
-                .as_str()
-                .unwrap_or("")
-                .to_string()
-        }
-        "claude" => {
-            parsed["content"][0]["text"]
-                .as_str()
-                .unwrap_or("")
-                .to_string()
-        }
-        "ollama" => {
-            parsed["message"]["content"]
-                .as_str()
-                .unwrap_or("")
-                .to_string()
-        }
+        "openai" | "glm" => parsed["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
+        "claude" => parsed["content"][0]["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
+        "ollama" => parsed["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
         _ => raw.to_string(),
     }
 }
@@ -166,8 +178,14 @@ pub async fn optimize(
 
     let (endpoint, model) = match vendor.as_str() {
         "openai" => ("https://api.openai.com/v1/chat/completions", "gpt-4o"),
-        "claude" => ("https://api.anthropic.com/v1/messages", "claude-sonnet-4-20250514"),
-        "glm" => ("https://open.bigmodel.cn/api/paas/v4/chat/completions", "glm-4"),
+        "claude" => (
+            "https://api.anthropic.com/v1/messages",
+            "claude-sonnet-4-20250514",
+        ),
+        "glm" => (
+            "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+            "glm-4",
+        ),
         "ollama" => ("http://localhost:11434/api/chat", "llama3"),
         _ => return Err("不支持的厂商".into()),
     };
@@ -210,7 +228,12 @@ pub async fn optimize(
         Ok(r) => r,
         Err(e) => {
             let msg = format!("请求失败: {}", e);
-            let _ = app.emit("ai-error", AiErrorEvent { message: msg.clone() });
+            let _ = app.emit(
+                "ai-error",
+                AiErrorEvent {
+                    message: msg.clone(),
+                },
+            );
             return Err(msg);
         }
     };
@@ -220,7 +243,12 @@ pub async fn optimize(
 
     if !status.is_success() {
         let msg = format!("API 返回错误 {}: {}", status, &text[..text.len().min(200)]);
-        let _ = app.emit("ai-error", AiErrorEvent { message: msg.clone() });
+        let _ = app.emit(
+            "ai-error",
+            AiErrorEvent {
+                message: msg.clone(),
+            },
+        );
         return Err(msg);
     }
 
@@ -232,7 +260,12 @@ pub async fn optimize(
 
     if result.is_empty() {
         let msg = "AI 返回空内容".to_string();
-        let _ = app.emit("ai-error", AiErrorEvent { message: msg.clone() });
+        let _ = app.emit(
+            "ai-error",
+            AiErrorEvent {
+                message: msg.clone(),
+            },
+        );
         return Err(msg);
     }
 
@@ -241,29 +274,53 @@ pub async fn optimize(
     let chunk_size = 20;
     for chunk in chars.chunks(chunk_size) {
         if CANCEL_FLAG.load(Ordering::SeqCst) {
-            let _ = app.emit("ai-error", AiErrorEvent { message: "已取消".into() });
+            let _ = app.emit(
+                "ai-error",
+                AiErrorEvent {
+                    message: "已取消".into(),
+                },
+            );
             return Ok(());
         }
         let chunk_str: String = chunk.iter().collect();
-        let _ = app.emit("ai-chunk", AiChunkEvent { chunk: chunk_str, done: false });
+        let _ = app.emit(
+            "ai-chunk",
+            AiChunkEvent {
+                chunk: chunk_str,
+                done: false,
+            },
+        );
         tokio::time::sleep(std::time::Duration::from_millis(30)).await;
     }
 
     // 最终 ai-done 事件携带完整内容 + usage + cost
-    let _ = app.emit("ai-done", AiDoneEvent {
-        content: result.clone(),
-        usage: usage.clone(),
-        cost_cny,
-    });
+    let _ = app.emit(
+        "ai-done",
+        AiDoneEvent {
+            content: result.clone(),
+            usage: usage.clone(),
+            cost_cny,
+        },
+    );
 
     // 兼容旧 ai-chunk done:true
-    let _ = app.emit("ai-chunk", AiChunkEvent { chunk: String::new(), done: true });
+    let _ = app.emit(
+        "ai-chunk",
+        AiChunkEvent {
+            chunk: String::new(),
+            done: true,
+        },
+    );
 
     // 写调用日志
     let log = crate::call_logger::CallLog {
         time: chrono::Utc::now().to_rfc3339(),
         skill_name: action.clone(),
-        prompt: format!("{} ({} tokens)", vendor, usage.prompt_tokens + usage.completion_tokens),
+        prompt: format!(
+            "{} ({} tokens)",
+            vendor,
+            usage.prompt_tokens + usage.completion_tokens
+        ),
         status: "ok".to_string(),
         duration_ms: 0,
         tokens: usage.prompt_tokens + usage.completion_tokens,

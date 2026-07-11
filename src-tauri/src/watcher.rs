@@ -1,5 +1,5 @@
 // 文件监听 — notify crate 监听扫描目录变化
-use notify::{Watcher, RecursiveMode, EventKind};
+use notify::{EventKind, RecursiveMode, Watcher};
 use std::path::Path;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
@@ -29,7 +29,9 @@ pub fn start_watch(app: AppHandle, dirs: Vec<String>) -> Result<(), String> {
     for dir in &dirs {
         let p = Path::new(dir);
         if p.exists() {
-            watcher.watch(p, RecursiveMode::Recursive).map_err(|e| format!("监听 {} 失败: {}", dir, e))?;
+            watcher
+                .watch(p, RecursiveMode::Recursive)
+                .map_err(|e| format!("监听 {} 失败: {}", dir, e))?;
         }
     }
 

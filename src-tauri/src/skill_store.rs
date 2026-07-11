@@ -34,11 +34,7 @@ pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
     let roots = configured_allowed_roots()?;
     let skill_file = skill_file_from_input(&input.path)?;
     ensure_existing_path_allowed(&skill_file, &roots)?;
-    crate::version_store::create_snapshot(
-        &skill_file.to_string_lossy(),
-        "Before save",
-        "manual",
-    )?;
+    crate::version_store::create_snapshot(&skill_file.to_string_lossy(), "Before save", "manual")?;
     update_skill_in_roots(input, &roots)
 }
 
@@ -130,7 +126,10 @@ pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), Str
     ensure_existing_path_allowed(&skill_file, roots)?;
     ensure_skill_file_path(&skill_file)?;
     if !skill_file.exists() {
-        return Err(format!("Skill file does not exist: {}", skill_file.display()));
+        return Err(format!(
+            "Skill file does not exist: {}",
+            skill_file.display()
+        ));
     }
 
     let skill_dir = skill_file
@@ -224,7 +223,10 @@ fn read_skill_file(skill_file: &Path, source: SkillSource) -> Result<SkillDetail
 fn read_raw_skill(skill_file: &Path) -> Result<String, String> {
     ensure_skill_file_path(skill_file)?;
     if !skill_file.exists() {
-        return Err(format!("Skill file does not exist: {}", skill_file.display()));
+        return Err(format!(
+            "Skill file does not exist: {}",
+            skill_file.display()
+        ));
     }
     fs::read_to_string(skill_file).map_err(|error| format!("Unable to read skill file: {error}"))
 }
@@ -267,10 +269,8 @@ fn parse_skill_markdown(raw_content: &str) -> Result<ParsedSkillMarkdown, String
     };
 
     let after_open = &without_bom[body_start..];
-    let (frontmatter_text, body_markdown) =
-        split_frontmatter_and_body(after_open).ok_or_else(|| {
-            "Skill file frontmatter must end with a closing marker".to_string()
-        })?;
+    let (frontmatter_text, body_markdown) = split_frontmatter_and_body(after_open)
+        .ok_or_else(|| "Skill file frontmatter must end with a closing marker".to_string())?;
 
     Ok(ParsedSkillMarkdown {
         frontmatter: parse_frontmatter_map(frontmatter_text)?,
@@ -280,10 +280,16 @@ fn parse_skill_markdown(raw_content: &str) -> Result<ParsedSkillMarkdown, String
 
 fn split_frontmatter_and_body(markdown_after_open: &str) -> Option<(&str, &str)> {
     if let Some(index) = markdown_after_open.find("\n---\r\n") {
-        return Some((&markdown_after_open[..index], &markdown_after_open[index + 6..]));
+        return Some((
+            &markdown_after_open[..index],
+            &markdown_after_open[index + 6..],
+        ));
     }
     if let Some(index) = markdown_after_open.find("\n---\n") {
-        return Some((&markdown_after_open[..index], &markdown_after_open[index + 5..]));
+        return Some((
+            &markdown_after_open[..index],
+            &markdown_after_open[index + 5..],
+        ));
     }
     if let Some(frontmatter_text) = markdown_after_open.strip_suffix("\n---") {
         return Some((frontmatter_text, ""));
@@ -710,7 +716,8 @@ fn normalize_absolute(path: &Path) -> PathBuf {
 }
 
 fn source_for_path(path: &Path, roots: &[ScanRoot]) -> SkillSource {
-    roots.iter()
+    roots
+        .iter()
         .find_map(|root| {
             let root_path = root.path.canonicalize().ok()?;
             let skill_path = path.canonicalize().ok()?;
@@ -723,7 +730,8 @@ fn backup_skill_directory(skill_dir: &Path, roots: &[ScanRoot]) -> Result<PathBu
     let canonical_skill_dir = skill_dir
         .canonicalize()
         .map_err(|error| format!("Unable to resolve skill directory for backup: {error}"))?;
-    let backup_parent = containing_scan_root(&canonical_skill_dir, roots)?.join(".skill-panel-backups");
+    let backup_parent =
+        containing_scan_root(&canonical_skill_dir, roots)?.join(".skill-panel-backups");
     fs::create_dir_all(&backup_parent)
         .map_err(|error| format!("Unable to create backup directory: {error}"))?;
 
@@ -735,7 +743,11 @@ fn backup_skill_directory(skill_dir: &Path, roots: &[ScanRoot]) -> Result<PathBu
         .duration_since(UNIX_EPOCH)
         .map_err(|error| format!("Unable to timestamp backup: {error}"))?
         .as_millis();
-    let backup_dir = backup_parent.join(format!("{}-{}", skill_directory_name(skill_name), timestamp));
+    let backup_dir = backup_parent.join(format!(
+        "{}-{}",
+        skill_directory_name(skill_name),
+        timestamp
+    ));
     copy_directory_recursive(&canonical_skill_dir, &backup_dir)?;
     Ok(backup_dir)
 }
@@ -784,12 +796,12 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), Str
 mod tests {
     use super::{
         create_skill, create_skill_in_roots, delete_skill, delete_skill_in_roots,
-        format_frontmatter, parse_skill_markdown, read_skill, read_skill_in_roots, write_locked,
+        format_frontmatter, parse_skill_markdown, read_skill, read_skill_in_roots,
         resolve_skill_folder_to_open, skill_directory_name, update_skill, update_skill_in_roots,
+        write_locked,
     };
     use crate::models::{
-        AppSettings, CreateSkillInput, Language, SkillSource, UpdateSkillInput,
-        WritableSkillSource,
+        AppSettings, CreateSkillInput, Language, SkillSource, UpdateSkillInput, WritableSkillSource,
     };
     use crate::settings_store::save_app_settings_to_path;
     use crate::skill_scanner::ScanRoot;
@@ -1262,7 +1274,10 @@ mod tests {
         .expect("skill should update");
 
         assert_eq!(updated.frontmatter["version"], "1.2.3");
-        assert_eq!(updated.frontmatter["platforms"], json!(["windows", "macos"]));
+        assert_eq!(
+            updated.frontmatter["platforms"],
+            json!(["windows", "macos"])
+        );
         assert_eq!(updated.frontmatter["tags"], json!(["files"]));
         assert_eq!(updated.frontmatter["enabled"], true);
         assert_eq!(updated.frontmatter["disabled"], false);
@@ -1346,11 +1361,9 @@ mod tests {
         )
         .expect("outside skill should be written");
 
-        let read_error = read_skill_in_roots(
-            outside_skill.to_string_lossy().to_string(),
-            &roots(&root),
-        )
-        .expect_err("outside read should fail");
+        let read_error =
+            read_skill_in_roots(outside_skill.to_string_lossy().to_string(), &roots(&root))
+                .expect_err("outside read should fail");
         assert!(read_error.contains("outside the allowed skill roots"));
 
         let update_error = update_skill_in_roots(
@@ -1365,11 +1378,9 @@ mod tests {
         .expect_err("outside update should fail");
         assert!(update_error.contains("outside the allowed skill roots"));
 
-        let delete_error = delete_skill_in_roots(
-            outside_skill.to_string_lossy().to_string(),
-            &roots(&root),
-        )
-        .expect_err("outside delete should fail");
+        let delete_error =
+            delete_skill_in_roots(outside_skill.to_string_lossy().to_string(), &roots(&root))
+                .expect_err("outside delete should fail");
         assert!(delete_error.contains("outside the allowed skill roots"));
 
         let create_error = create_skill_in_roots(

@@ -1,9 +1,9 @@
 // 版本历史 — 本地快照实现
 // 保存时复制到 ~/.codex/skill-panel/versions/{skill_name}/{timestamp}/
-use std::fs;
-use std::path::{Path, PathBuf};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VersionEntry {
@@ -20,7 +20,9 @@ fn versions_base() -> PathBuf {
 }
 
 fn dirs_home() -> PathBuf {
-    std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("."))
+    std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
 }
 
 fn skill_name_from_path(path: &str) -> String {
@@ -39,7 +41,11 @@ pub fn create_snapshot(path: &str, note: &str, source: &str) -> Result<VersionEn
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
     fs::write(dir.join("SKILL.md"), &content).map_err(|e| e.to_string())?;
-    fs::write(dir.join("meta.json"), serde_json::json!({"note": note, "source": source, "time": ts}).to_string()).map_err(|e| e.to_string())?;
+    fs::write(
+        dir.join("meta.json"),
+        serde_json::json!({"note": note, "source": source, "time": ts}).to_string(),
+    )
+    .map_err(|e| e.to_string())?;
     Ok(VersionEntry {
         id: ts,
         time: Utc::now().format("%Y-%m-%d %H:%M").to_string(),
@@ -63,8 +69,13 @@ pub fn list_versions(path: &str) -> Result<Vec<VersionEntry>, String> {
         let meta_path = entry.path().join("meta.json");
         let (note, source) = if let Ok(meta) = fs::read_to_string(&meta_path) {
             let v: serde_json::Value = serde_json::from_str(&meta).unwrap_or_default();
-            (v["note"].as_str().unwrap_or("").to_string(), v["source"].as_str().unwrap_or("manual").to_string())
-        } else { (String::new(), "manual".into()) };
+            (
+                v["note"].as_str().unwrap_or("").to_string(),
+                v["source"].as_str().unwrap_or("manual").to_string(),
+            )
+        } else {
+            (String::new(), "manual".into())
+        };
         entries.push(VersionEntry {
             time: id.replace('_', " "),
             id,
@@ -80,7 +91,10 @@ pub fn list_versions(path: &str) -> Result<Vec<VersionEntry>, String> {
 /// 从快照恢复
 pub fn restore(path: &str, version_id: &str) -> Result<(), String> {
     let name = skill_name_from_path(path);
-    let snapshot = versions_base().join(&name).join(version_id).join("SKILL.md");
+    let snapshot = versions_base()
+        .join(&name)
+        .join(version_id)
+        .join("SKILL.md");
     let content = fs::read_to_string(&snapshot).map_err(|e| format!("快照不存在: {}", e))?;
     fs::write(path, content).map_err(|e| e.to_string())
 }

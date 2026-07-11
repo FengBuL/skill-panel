@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react';
 import { useUIStore } from '../store/uiStore';
 import './TopBar.css';
 
-export function TopBar({ context }: { context?: ReactNode }) {
+export function TopBar() {
   const { mainView, subView, setMainView, enterSub } = useUIStore();
   const librarySubViews = ['detail', 'editor', 'preview', 'create', 'ai'];
   const libraryActive = mainView === 'library' && (!subView || librarySubViews.includes(subView));
@@ -57,13 +56,6 @@ export function TopBar({ context }: { context?: ReactNode }) {
             Settings
           </button>
         </nav>
-      </div>
-      <div className="nav-right">
-        {context ?? (
-          <button className="btn btn-ghost" type="button" onClick={() => enterSub('create')}>
-            New Skill
-          </button>
-        )}
       </div>
     </header>
   );

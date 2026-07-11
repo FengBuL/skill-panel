@@ -8,7 +8,6 @@ import { useUIStore } from './store/uiStore';
 import { useSkillStore } from './store/skillStore';
 import { TopBar } from './components/TopBar';
 import { ToastHost, showToast } from './components/Toast';
-import { Button } from './components/ui';
 import { scanSkills } from './lib/invoke';
 import { safeListen } from './lib/tauriEvents';
 
@@ -26,7 +25,7 @@ import { DetailView } from './detail/DetailView';
 import { AIAssistantView } from './components/ai/AIAssistantView';
 
 export function AppShell() {
-  const { mainView, subView, subParam, enterSub, exitSub, undo, redo } = useUIStore();
+  const { mainView, subView, enterSub, undo, redo } = useUIStore();
   const skillStore = useSkillStore();
 
   useEffect(() => {
@@ -65,33 +64,24 @@ export function AppShell() {
 
   // 次级视图优先
   let page;
-  let topbarContext;
   if (subView === 'editor') {
     page = <EditorPage />;
-    topbarContext = <></>;
   } else if (subView === 'create') {
     page = <CreatePage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回 Library</Button>;
   } else if (subView === 'preview') {
     page = <PreviewPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回 Library</Button>;
   } else if (subView === 'detail') {
     page = <DetailView />;
   } else if (subView === 'ai') {
     page = <AIAssistantView />;
-    topbarContext = <Button variant="secondary" onClick={() => enterSub('editor', subParam ?? undefined)}>返回编辑器</Button>;
   } else if (subView === 'logs') {
     page = <LogsPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (subView === 'dependencies') {
     page = <DependenciesPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (subView === 'settings') {
     page = <SettingsPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (subView === 'empty-states') {
     page = <EmptyStatesPage />;
-    topbarContext = <Button variant="ghost" size="sm" onClick={exitSub}>← 返回</Button>;
   } else if (mainView === 'dashboard') {
     page = <DashboardPage />;
   } else {
@@ -100,7 +90,7 @@ export function AppShell() {
 
   return (
     <div className="app">
-      <TopBar context={topbarContext} />
+      <TopBar />
       <main className="main">{page}</main>
       <ToastHost />
     </div>

@@ -18,6 +18,32 @@
   gap: 8px;
 }
 
+.logs-refresh-action {
+  min-height: 34px;
+  height: auto;
+  border-color: transparent;
+  border-radius: var(--radius-buttons);
+  background: var(--color-sky-tint);
+  color: var(--color-notion-blue);
+  padding: 8px 14px;
+  gap: 4px;
+}
+
+.logs-refresh-action:hover {
+  background: var(--color-sky-tint-hover);
+  color: var(--color-notion-blue);
+}
+
+.logs-refresh-action .logs-refresh-symbol {
+  display: none;
+}
+
+.logs-refresh-action .logs-refresh-fallback {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 .aux-card-body-flush {
   padding: 0;
 }
