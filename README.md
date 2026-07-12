@@ -2,6 +2,14 @@
 
 Skill Panel is a cross-platform desktop app shell for managing local AI skills. This repository starts with a Tauri + React + TypeScript + Rust foundation that supports Windows and macOS.
 
+## Current Release
+
+- Version: `3.8.2`
+- Release commit: `65140b081962a0177b56c1cf14c572515f320e4e`
+- Release scope: Notion-style UI migration across Library, Dashboard, Detail, Editor, AI Assistant, Logs, Dependencies, Settings, New Skill, and empty/error states.
+- Verification on 2026-07-12: frontend tests 40/40, packaging checks 6/6, Rust tests 44/44, typecheck and production build passed. The current visual QA rerun passed 11/11 scenarios, including Dashboard visibility.
+- Local evidence does not include a `v3.8.2` tag or archived installer checksum. See the release records in the Obsidian project notes for the current follow-up status.
+
 ## Stack
 
 - Tauri 2 desktop runtime
