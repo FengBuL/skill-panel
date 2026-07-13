@@ -57,6 +57,21 @@ hdiutil detach /tmp/skill-panel-v3.8.2-dmg -quiet
 - `CFBundleIdentifier` 为 `com.fengbul.skillpanel`。
 - app 主执行文件存在并可执行。
 
+## 启动烟测
+
+为避免读写真实用户 Skill 和真实设置目录，本轮使用临时 `HOME` 运行 app 主执行文件：
+
+```bash
+HOME=/tmp/skill-panel-v3.8.2-smoke-home "src-tauri/target/release/bundle/macos/Skill Panel.app/Contents/MacOS/skill-panel"
+```
+
+结果：
+
+- 进程启动后 5 秒仍存活。
+- 标准输出和错误日志为空。
+- 测试结束后手动终止该进程。
+- 未访问真实用户 HOME 下的 Skill 或设置目录。
+
 ## 签名与 Gatekeeper
 
 验证命令：

@@ -24,6 +24,7 @@
     "macosDmgMount": "passed",
     "macosBundleVersion": "3.8.2",
     "macosBundleIdentifier": "com.fengbul.skillpanel",
+    "macosLaunchSmoke": "passed: app process stayed alive for 5 seconds with temporary HOME",
     "macosCodesign": "failed: code has no resources but signature indicates they must be present",
     "windowsInstaller": "not generated on this macOS host"
   },

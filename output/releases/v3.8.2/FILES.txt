@@ -1,8 +1,8 @@
-./INSTALL-VERIFY.md 2942
+./INSTALL-VERIFY.md 3400
 ./ROLLBACK.md 1646
 ./SHA256SUMS.txt 643
 ./Skill Panel_3.8.2_aarch64.app.zip 4307570
 ./Skill Panel_3.8.2_aarch64.dmg 4320791
-./release-manifest.json 1409
+./release-manifest.json 1503
 ./skill-panel-v3.8.2-rollback.bundle 17770399
 ./skill-panel-v3.8.2-source.zip 6766459
