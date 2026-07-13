@@ -1,0 +1,35 @@
+{
+  "product": "Skill Panel",
+  "version": "3.8.2",
+  "branch": "codex/agent-codex-v3.8",
+  "tag": "v3.8.2",
+  "tagTarget": "2b53d5487bf5c54acf4cfb13ad7fd517bfc60ac4",
+  "releaseCommit": "65140b081962a0177b56c1cf14c572515f320e4e",
+  "dashboardQaCommit": "421cafc9b51cb1245beb06a4a59d736b9b432d50",
+  "docsSyncCommit": "43996ef40aabb1491ea068991d7e3751bb074851",
+  "testCleanupCommit": "2b53d5487bf5c54acf4cfb13ad7fd517bfc60ac4",
+  "artifacts": [
+    "Skill Panel_3.8.2_aarch64.dmg",
+    "Skill Panel_3.8.2_aarch64.app.zip",
+    "skill-panel-v3.8.2-source.zip",
+    "skill-panel-v3.8.2-rollback.bundle"
+  ],
+  "verification": {
+    "npmTest": "9 files / 40 tests passed",
+    "typecheck": "passed",
+    "build": "passed",
+    "packagingCheck": "1 file / 6 tests passed",
+    "cargoTest": "41 lib tests + 3 contract tests passed",
+    "visualQa": "11/11 passed",
+    "macosDmgMount": "passed",
+    "macosBundleVersion": "3.8.2",
+    "macosBundleIdentifier": "com.fengbul.skillpanel",
+    "macosCodesign": "failed: code has no resources but signature indicates they must be present",
+    "windowsInstaller": "not generated on this macOS host"
+  },
+  "knownGaps": [
+    "macOS signing and notarization still require a real certificate environment",
+    "Windows NSIS/MSI installer still requires Windows or CI artifact verification",
+    "Previous-version installer rollback package is not present locally"
+  ]
+}

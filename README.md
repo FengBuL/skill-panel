@@ -6,9 +6,10 @@ Skill Panel is a cross-platform desktop app shell for managing local AI skills. 
 
 - Version: `3.8.2`
 - Release commit: `65140b081962a0177b56c1cf14c572515f320e4e`
+- Release tag: `v3.8.2` -> `2b53d5487bf5c54acf4cfb13ad7fd517bfc60ac4`
 - Release scope: Notion-style UI migration across Library, Dashboard, Detail, Editor, AI Assistant, Logs, Dependencies, Settings, New Skill, and empty/error states.
-- Verification on 2026-07-12: frontend tests 40/40, packaging checks 6/6, Rust tests 44/44, typecheck and production build passed. The current visual QA rerun passed 11/11 scenarios, including Dashboard visibility.
-- Local evidence does not include a `v3.8.2` tag or archived installer checksum. See the release records in the Obsidian project notes for the current follow-up status.
+- Verification on 2026-07-13: frontend tests 40/40, packaging checks 6/6, Rust tests 44/44, typecheck and production build passed. The current visual QA rerun passed 11/11 scenarios, including Dashboard visibility.
+- Release archive: `output/releases/v3.8.2/` contains the macOS DMG, app zip, source archive, rollback bundle, SHA256SUMS, install verification record, and rollback notes. macOS signing/notarization and Windows installer verification remain separate release tasks.
 
 ## Stack
 
