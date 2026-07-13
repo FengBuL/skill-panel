@@ -78,7 +78,7 @@ git status --short --branch
 ## 当前稳定线
 
 - 稳定产品线：v3.8.x
-- 当前稳定版本：v3.8.1
+- 当前稳定版本：v3.8.2
 - 稳定分支目录：`/Users/shovy/Documents/skill-panel-codex-v3.8`
 
 Codex 负责稳定集成和发布质量。
