@@ -108,6 +108,18 @@ mod tests {
             .join("settings.json")
     }
 
+    fn cleanup_temp_settings_path(path: &std::path::Path) {
+        let Some(root) = path.ancestors().find(|ancestor| {
+            ancestor
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("skill-panel-settings-"))
+        }) else {
+            return;
+        };
+        fs::remove_dir_all(root).ok();
+    }
+
     #[test]
     fn missing_settings_file_loads_defaults() {
         let path = temp_settings_path("missing");
@@ -168,10 +180,7 @@ mod tests {
         assert_eq!(saved, settings);
         assert_eq!(loaded, settings);
 
-        let root = path.parent().and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 
     #[test]
@@ -189,10 +198,7 @@ mod tests {
 
         assert_eq!(settings.language, Language::ZhCn);
 
-        let root = path.parent().and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 
     #[test]
@@ -216,10 +222,7 @@ mod tests {
         assert!(settings.skill_health.is_empty());
         assert!(settings.skill_drafts.is_empty());
 
-        let root = path.parent().and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 
     #[test]
@@ -242,13 +245,7 @@ mod tests {
             settings
         );
 
-        let root = path
-            .parent()
-            .and_then(|parent| parent.parent())
-            .and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 
     #[test]
@@ -265,10 +262,7 @@ mod tests {
             r#"{"language":"system"}"#
         );
 
-        let root = path.parent().and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 
     #[test]
@@ -282,9 +276,6 @@ mod tests {
 
         assert!(error.contains("Unable to parse settings"));
 
-        let root = path.parent().and_then(|parent| parent.parent());
-        if let Some(root) = root {
-            fs::remove_dir_all(root).ok();
-        }
+        cleanup_temp_settings_path(&path);
     }
 }
