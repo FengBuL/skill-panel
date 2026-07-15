@@ -71,6 +71,16 @@ pub struct SkillDetail {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DeleteSkillResult {
+    pub skill_name: String,
+    pub original_path: String,
+    pub backup_path: String,
+    pub trash_result: String,
+    pub restore_instructions: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CustomSkillTagSetting {
     pub color: String,
     pub label: String,

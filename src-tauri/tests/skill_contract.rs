@@ -1,7 +1,7 @@
 use serde_json::json;
 use skill_panel_lib::models::{
-    AppSettings, CreateSkillInput, Language, ParseStatus, SkillDetail, SkillSource, SkillSummary,
-    UpdateSkillInput, WritableSkillSource,
+    AppSettings, CreateSkillInput, DeleteSkillResult, Language, ParseStatus, SkillDetail,
+    SkillSource, SkillSummary, UpdateSkillInput, WritableSkillSource,
 };
 
 #[test]
@@ -70,6 +70,28 @@ fn skill_detail_and_inputs_round_trip_through_json() {
     }))
     .unwrap();
     assert_eq!(update.path, "D:/demo/SKILL.md");
+}
+
+#[test]
+fn delete_skill_result_reports_backup_trash_and_restore_fields() {
+    let result = DeleteSkillResult {
+        skill_name: "Demo".to_string(),
+        original_path: "/tmp/demo".to_string(),
+        backup_path: "/tmp/.skill-panel-backups/demo-1".to_string(),
+        trash_result: "moved-to-trash".to_string(),
+        restore_instructions: "可从系统废纸篓或应用内备份恢复。".to_string(),
+    };
+
+    assert_eq!(
+        serde_json::to_value(result).unwrap(),
+        json!({
+            "skillName": "Demo",
+            "originalPath": "/tmp/demo",
+            "backupPath": "/tmp/.skill-panel-backups/demo-1",
+            "trashResult": "moved-to-trash",
+            "restoreInstructions": "可从系统废纸篓或应用内备份恢复。"
+        })
+    );
 }
 
 #[test]

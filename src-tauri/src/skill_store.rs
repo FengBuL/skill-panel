@@ -1,5 +1,6 @@
 use crate::models::{
-    CreateSkillInput, ParseStatus, SkillDetail, SkillSource, SkillSummary, UpdateSkillInput,
+    CreateSkillInput, DeleteSkillResult, ParseStatus, SkillDetail, SkillSource, SkillSummary,
+    UpdateSkillInput,
 };
 use crate::skill_path_guard;
 use crate::skill_scanner::{self, ScanRoot};
@@ -41,7 +42,7 @@ pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
     update_skill_in_roots(input, &roots)
 }
 
-pub fn delete_skill(path: String) -> Result<(), String> {
+pub fn delete_skill(path: String) -> Result<DeleteSkillResult, String> {
     delete_skill_in_roots(path, &skill_path_guard::configured_allowed_roots()?)
 }
 
@@ -123,7 +124,7 @@ pub fn update_skill_in_roots(
     read_skill_file(&skill_file, resolved.source)
 }
 
-pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), String> {
+pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<DeleteSkillResult, String> {
     let resolved = skill_path_guard::resolve_writable_skill_path(&path, roots)?;
     let canonical_dir = resolved.skill_dir;
     let canonical_skill_file = resolved.skill_file;
@@ -139,9 +140,20 @@ pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), Str
         return Err("Refusing to delete an allowed skill root".to_string());
     }
 
-    backup_skill_directory(&canonical_dir, roots)?;
-    fs::remove_dir_all(&canonical_dir)
-        .map_err(|error| format!("Unable to delete skill directory: {error}"))
+    let raw_content = read_raw_skill(&canonical_skill_file)?;
+    let parsed = parse_skill_markdown(&raw_content)?;
+    let skill_name = required_string(&parsed.frontmatter, "name")?.to_string();
+    let original_path = canonical_dir.to_string_lossy().to_string();
+    let backup_path = backup_skill_directory(&canonical_dir, roots)?;
+    move_skill_directory_to_trash(&canonical_dir)?;
+
+    Ok(DeleteSkillResult {
+        skill_name,
+        original_path,
+        backup_path: backup_path.to_string_lossy().to_string(),
+        trash_result: "moved-to-trash".to_string(),
+        restore_instructions: "可从系统废纸篓恢复原目录，或使用应用内备份路径手动恢复。".to_string(),
+    })
 }
 
 pub fn open_skill_folder_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), String> {
@@ -604,6 +616,13 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<(), Str
     }
 
     Ok(())
+}
+
+fn move_skill_directory_to_trash(skill_dir: &Path) -> Result<(), String> {
+    trash::delete(skill_dir).map_err(|_| {
+        "Unable to move skill directory to system trash. Original directory and backup were kept."
+            .to_string()
+    })
 }
 
 #[cfg(test)]
@@ -1142,7 +1161,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_skill_creates_a_recoverable_backup_before_removing_directory() {
+    fn delete_skill_creates_a_recoverable_backup_before_moving_directory_to_trash() {
         let root = temp_root("delete-backup");
         let skill_dir = root.join("delete-target");
         fs::create_dir_all(&skill_dir).expect("skill dir should be created");
@@ -1152,11 +1171,21 @@ mod tests {
             "---\nname: Delete Target\ndescription: Original description\n---\n# Delete me\n",
         )
         .expect("skill should be written");
+        let canonical_skill_dir = skill_dir
+            .canonicalize()
+            .expect("skill dir should resolve before delete");
 
-        delete_skill_in_roots(skill_path.to_string_lossy().to_string(), &roots(&root))
+        let result = delete_skill_in_roots(skill_path.to_string_lossy().to_string(), &roots(&root))
             .expect("skill should delete");
 
         assert!(!skill_dir.exists());
+        assert_eq!(result.skill_name, "Delete Target");
+        assert_eq!(result.original_path, canonical_skill_dir.to_string_lossy());
+        assert_eq!(result.trash_result, "moved-to-trash");
+        assert!(result.restore_instructions.contains("系统废纸篓"));
+        let backup_path = PathBuf::from(&result.backup_path);
+        assert!(!backup_path.starts_with(&skill_dir));
+        assert!(backup_path.exists());
         let backup_files = find_backup_skill_files(&root.join(".skill-panel-backups"));
         assert_eq!(backup_files.len(), 1);
         let backup = fs::read_to_string(&backup_files[0]).expect("backup should read");

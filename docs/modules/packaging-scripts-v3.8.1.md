@@ -11,7 +11,7 @@
 ## 代码规模
 
 - 源码文件数：7
-- 代码总行数：280
+- 代码总行数：281
 
 ## 代码文件清单
 
@@ -19,7 +19,7 @@
 | --- | ---: | --- |
 | `package.json` | 51 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `vite.config.ts` | 20 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `src-tauri/Cargo.toml` | 31 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `src-tauri/Cargo.toml` | 32 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/tauri.conf.json` | 67 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/build.rs` | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/update-local-macos-app.sh` | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
@@ -30,6 +30,7 @@
 - 版本号在 package、Cargo、tauri.conf 保持一致
 - 迁移包读取 package.json 版本
 - 本地更新脚本复制构建产物
+- Rust 使用 `trash` 依赖承接系统废纸篓行为
 
 ## 修改规则
 

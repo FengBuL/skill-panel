@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
@@ -166,11 +166,180 @@ describe('AppShell Tauri event fallback', () => {
     expect(await screen.findByText('受保护来源')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '复制到可编辑目录' }));
+    await user.click(await screen.findByRole('button', { name: '复制并编辑' }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('clone_skill', {
       destName: 'plugin skill',
       srcPath: protectedSkill.path,
     }));
+  });
+
+  it('archives and restores a detail skill through persisted app settings', async () => {
+    const user = userEvent.setup();
+    const skill: Skill = {
+      name: 'local skill',
+      description: 'Editable local source',
+      source: 'mine',
+      category: 'AI',
+      path: '/tmp/local-skill/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: false,
+    };
+    useSkillStore.setState({ skills: [skill], filtered: [skill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: skill.path });
+    invokeMock.mockImplementation((command: string, payload?: unknown) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'load_app_settings') {
+        return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+      }
+      if (command === 'save_app_settings') return Promise.resolve((payload as { settings: unknown }).settings);
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '归档' }));
+    expect(await screen.findByRole('dialog', { name: '应用内归档' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '确认归档' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+      settings: expect.objectContaining({ skillArchives: { [skill.path]: true } }),
+    }));
+    expect(await screen.findByText('归档成功')).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: '取消归档' })[0]);
+    await user.click(await screen.findByRole('button', { name: '确认取消归档' }));
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('save_app_settings', {
+      settings: expect.objectContaining({ skillArchives: {} }),
+    }));
+    expect(await screen.findByText('已取消归档')).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalledWith('toggle_skill_enabled', expect.anything());
+  });
+
+  it('confirms the editable copy name and reports the new user path', async () => {
+    const user = userEvent.setup();
+    const protectedSkill: Skill = {
+      name: 'plugin skill',
+      description: 'Protected source',
+      source: 'plugin',
+      category: 'AI',
+      path: '/tmp/plugin-skill/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: true,
+    };
+    useSkillStore.setState({ skills: [protectedSkill], filtered: [protectedSkill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: protectedSkill.path });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'load_app_settings') {
+        return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+      }
+      if (command === 'clone_skill') return Promise.resolve({ newPath: '/tmp/editable-copy/SKILL.md' });
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '复制到可编辑目录' }));
+    const dialog = await screen.findByRole('dialog', { name: '复制到可编辑目录' });
+    expect(dialog).toBeInTheDocument();
+    const nameInput = screen.getByLabelText('新 Skill 名称');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'plugin skill editable');
+    await user.click(screen.getByRole('button', { name: '复制并编辑' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('clone_skill', {
+      destName: 'plugin skill editable',
+      srcPath: protectedSkill.path,
+    }));
+    expect(await screen.findByText(/新路径：\/tmp\/editable-copy\/SKILL\.md/)).toBeInTheDocument();
+    expect(await screen.findByText(/来源：User/)).toBeInTheDocument();
+  });
+
+  it('requires an explicit checkbox before deleting local files and removes the skill from the library after backend trash succeeds', async () => {
+    const user = userEvent.setup();
+    const skill: Skill = {
+      name: 'delete me',
+      description: 'Editable local source',
+      source: 'mine',
+      category: 'AI',
+      path: '/tmp/delete-me/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: false,
+    };
+    useSkillStore.setState({ skills: [skill], filtered: [skill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: skill.path });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'load_app_settings') {
+        return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+      }
+      if (command === 'delete_skill') {
+        return Promise.resolve({
+          skillName: 'delete me',
+          originalPath: '/tmp/delete-me',
+          backupPath: '/tmp/.skill-panel-backups/delete-me-1',
+          trashResult: 'moved-to-trash',
+          restoreInstructions: '可从系统废纸篓或应用内备份恢复。',
+        });
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '删除本地文件' }));
+    const dialog = await screen.findByRole('dialog', { name: '删除本地文件' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('文件将进入系统废纸篓，同时创建应用内备份')).toBeInTheDocument();
+    const deleteButton = within(dialog).getByRole('button', { name: '删除本地文件' });
+    expect(deleteButton).toBeDisabled();
+    await user.click(within(dialog).getByLabelText('我已了解删除影响，并确认要删除本地文件'));
+    await user.click(deleteButton);
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('delete_skill', { path: skill.path }));
+    expect(await screen.findByText('删除成功')).toBeInTheDocument();
+    expect(screen.getByText(/备份：\/tmp\/\.skill-panel-backups\/delete-me-1/)).toBeInTheDocument();
+    expect(useSkillStore.getState().skills).toEqual([]);
+  });
+
+  it('keeps protected detail sources from deleting local files', async () => {
+    const protectedSkill: Skill = {
+      name: 'plugin skill',
+      description: 'Protected source',
+      source: 'plugin',
+      category: 'AI',
+      path: '/tmp/plugin-skill/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: true,
+    };
+    useSkillStore.setState({ skills: [protectedSkill], filtered: [protectedSkill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: protectedSkill.path });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'load_app_settings') {
+        return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('受保护来源')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '删除本地文件' })).toBeDisabled();
+    expect(invokeMock).not.toHaveBeenCalledWith('delete_skill', expect.anything());
   });
 
   it('saves AI keys through set_ai_key without keeping the raw key in settings state', async () => {

@@ -8,10 +8,18 @@ export interface ScanSkillsCmd { name: 'scan_skills'; args: {}; returns: SkillSc
 export interface ReadSkillCmd { name: 'read_skill'; args: { path: string }; returns: SkillContent }
 export interface CreateSkillCmd { name: 'create_skill'; args: { path: string; content: string }; returns: void }
 export interface UpdateSkillCmd { name: 'update_skill'; args: { path: string; content: string }; returns: void }
-export interface DeleteSkillCmd { name: 'delete_skill'; args: { path: string }; returns: void }
+export interface DeleteSkillCmd { name: 'delete_skill'; args: { path: string }; returns: DeleteSkillResult }
 export interface OpenSkillFolderCmd { name: 'open_skill_folder'; args: { path: string }; returns: void }
 export interface LoadSettingsCmd { name: 'load_app_settings'; args: {}; returns: Record<string, unknown> }
 export interface SaveSettingsCmd { name: 'save_app_settings'; args: { settings: Record<string, unknown> }; returns: void }
+
+export interface DeleteSkillResult {
+  skillName: string;
+  originalPath: string;
+  backupPath: string;
+  trashResult: string;
+  restoreInstructions: string;
+}
 
 // ============ v3.8 命令（wt-6 实现） ============
 

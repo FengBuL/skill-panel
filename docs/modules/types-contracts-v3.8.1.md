@@ -11,23 +11,24 @@
 ## 代码规模
 
 - 源码文件数：5
-- 代码总行数：616
+- 代码总行数：659
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/types/skill.ts` | 191 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src/types/skill.test.ts` | 140 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src/types/commands.ts` | 175 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/skill.ts` | 198 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/skill.test.ts` | 148 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/commands.ts` | 182 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
 | `src/node-fs.d.ts` | 4 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src-tauri/tests/skill_contract.rs` | 106 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src-tauri/tests/skill_contract.rs` | 127 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
 
 ## 对外契约
 
 - skillCommandNames 覆盖 Tauri 命令边界
 - AppSettings 使用 camelCase 序列化
 - Rust 契约测试验证 JSON 形状
+- DeleteSkillResult 使用 camelCase，包含 `skillName`、`originalPath`、`backupPath`、`trashResult` 和 `restoreInstructions`
 
 ## 修改规则
 

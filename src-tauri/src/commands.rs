@@ -1,6 +1,6 @@
 use crate::models::{
-    AppSettings, AuditLogEntry, CreateSkillInput, SkillDetail, SkillPathGroup, SkillSummary,
-    UpdateSkillInput,
+    AppSettings, AuditLogEntry, CreateSkillInput, DeleteSkillResult, SkillDetail, SkillPathGroup,
+    SkillSummary, UpdateSkillInput,
 };
 use crate::settings_store;
 use crate::skill_path_guard;
@@ -44,7 +44,7 @@ pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
 }
 
 #[tauri::command]
-pub fn delete_skill(path: String) -> Result<(), String> {
+pub fn delete_skill(path: String) -> Result<DeleteSkillResult, String> {
     skill_store::delete_skill(path)
 }
 

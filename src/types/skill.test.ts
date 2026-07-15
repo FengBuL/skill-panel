@@ -6,6 +6,7 @@ import {
   writableSkillSources,
   type AppSettings,
   type CreateSkillInput,
+  type DeleteSkillResult,
   type SkillCommandMap,
   type SkillDetail,
   type SkillPathGroup,
@@ -62,6 +63,7 @@ describe('skill type contracts', () => {
     expectTypeOf<SkillCommandMap['read_skill']>().returns.resolves.toEqualTypeOf<SkillDetail>();
     expectTypeOf<SkillCommandMap['create_skill']>().parameter(0).toEqualTypeOf<{ input: CreateSkillInput }>();
     expectTypeOf<SkillCommandMap['update_skill']>().parameter(0).toEqualTypeOf<{ input: UpdateSkillInput }>();
+    expectTypeOf<SkillCommandMap['delete_skill']>().returns.resolves.toEqualTypeOf<DeleteSkillResult>();
     expectTypeOf<SkillCommandMap['append_audit_log']>().parameter(0).toEqualTypeOf<{
       entry: { action: string; detail: Record<string, unknown>; timestamp: string };
     }>();
@@ -91,6 +93,13 @@ describe('skill type contracts', () => {
         frontmatter: Record<string, unknown>;
       }
     >();
+    expectTypeOf<DeleteSkillResult>().toEqualTypeOf<{
+      skillName: string;
+      originalPath: string;
+      backupPath: string;
+      trashResult: string;
+      restoreInstructions: string;
+    }>();
     expectTypeOf<AppSettings>().toEqualTypeOf<{
       language: 'system' | 'zh-CN' | 'en-US';
       customScanDirectories: string[];

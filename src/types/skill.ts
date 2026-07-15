@@ -42,6 +42,14 @@ export interface SkillDetail extends SkillSummary {
   frontmatter: Record<string, unknown>;
 }
 
+export interface DeleteSkillResult {
+  skillName: string;
+  originalPath: string;
+  backupPath: string;
+  trashResult: string;
+  restoreInstructions: string;
+}
+
 export interface CustomSkillTagSetting {
   color: string;
   label: string;
@@ -159,7 +167,7 @@ export interface SkillCommandMap {
   read_skill: (input: { path: string }) => Promise<SkillDetail>;
   create_skill: (input: { input: CreateSkillInput }) => Promise<SkillDetail>;
   update_skill: (input: { input: UpdateSkillInput }) => Promise<SkillDetail>;
-  delete_skill: (input: { path: string }) => Promise<void>;
+  delete_skill: (input: { path: string }) => Promise<DeleteSkillResult>;
   open_skill_folder: (input: { path: string }) => Promise<void>;
   append_audit_log: (input: { entry: { action: string; detail: Record<string, unknown>; timestamp: string } }) => Promise<void>;
   load_app_settings: () => Promise<AppSettings>;
