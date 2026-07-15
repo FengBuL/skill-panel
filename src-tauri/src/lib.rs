@@ -4,6 +4,7 @@ pub mod commands;
 pub mod dep_analyzer;
 pub mod models;
 pub mod settings_store;
+pub mod skill_path_guard;
 pub mod skill_scanner;
 pub mod skill_store;
 pub mod version_store;

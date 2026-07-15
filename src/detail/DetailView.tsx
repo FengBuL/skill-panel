@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { DangerZone } from '../components/DangerZone';
 import { DependencyList } from '../components/DependencyList';
 import { QualityCheck } from '../components/QualityCheck';
+import { getSkillPermission } from '../lib/skillPermissions';
 import { useSkillStore, type Skill } from '../store/skillStore';
 import { useUIStore } from '../store/uiStore';
 import './detail.css';
@@ -41,6 +43,7 @@ export function DetailView() {
   const ui = useUIStore();
   const store = useSkillStore();
   const [archiveConfirm, setArchiveConfirm] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const current = useMemo(() => {
     const param = ui.subParam;
     return store.skills.find((skill) => skill.path === param || skill.name === param) ||
@@ -53,6 +56,29 @@ export function DetailView() {
   const statusText = current.disabled ? '已归档' : '健康';
   const usageCount = Math.max(12, Math.round((current.size || 12400) / 100));
   const displayPath = shortPath(current.path);
+  const permission = getSkillPermission(current);
+
+  const openCurrentFolder = async () => {
+    setActionError(null);
+    try {
+      await invoke('open_skill_folder', { path: current.path });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const copyCurrentToEditable = async () => {
+    setActionError(null);
+    try {
+      const result = await invoke<{ newPath: string }>('clone_skill', {
+        destName: current.name,
+        srcPath: current.path,
+      });
+      ui.enterSub('editor', result.newPath);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   return (
     <>
@@ -62,12 +88,23 @@ export function DetailView() {
           <p className="page-subtitle">{displayPath}</p>
         </div>
         <div className="flex gap-2 detail-actions-row">
-          <button className="btn btn-primary" type="button" onClick={() => ui.enterSub('editor', current.name)}>编辑</button>
-          <button className="btn btn-text" type="button">打开目录</button>
+          {permission.canEdit ? (
+            <button className="btn btn-primary" type="button" onClick={() => ui.enterSub('editor', current.path)}>编辑</button>
+          ) : (
+            <button className="btn btn-primary" type="button" onClick={() => void copyCurrentToEditable()}>复制到可编辑目录</button>
+          )}
+          <button className="btn btn-text" type="button" onClick={() => void openCurrentFolder()}>打开目录</button>
           <button className="btn btn-text" type="button">备份</button>
           <button className="btn btn-danger-text" type="button" onClick={() => setArchiveConfirm(true)}>归档</button>
         </div>
       </div>
+
+      {actionError ? (
+        <div className="detail-confirm-banner detail-error-banner">
+          <span className="text-sm">{actionError}</span>
+          <button className="btn btn-text btn-sm" type="button" onClick={() => setActionError(null)}>关闭</button>
+        </div>
+      ) : null}
 
       {archiveConfirm ? (
         <div className="detail-confirm-banner">
@@ -97,6 +134,13 @@ export function DetailView() {
           <div className="text-sm text-secondary">最近使用：今天 09:41</div>
         </div>
       </div>
+
+      {permission.readOnly ? (
+        <section className="detail-protected-banner" aria-label="受保护来源">
+          <strong>受保护来源</strong>
+          <span>直接编辑和删除本地文件已禁用，可应用内归档或复制到可编辑目录。</span>
+        </section>
+      ) : null}
 
       <div className="grid-2">
         <section className="card">

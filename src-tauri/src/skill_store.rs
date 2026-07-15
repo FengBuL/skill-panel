@@ -1,15 +1,15 @@
 use crate::models::{
     CreateSkillInput, ParseStatus, SkillDetail, SkillSource, SkillSummary, UpdateSkillInput,
 };
-use crate::settings_store;
+use crate::skill_path_guard;
 use crate::skill_scanner::{self, ScanRoot};
 
 use fs2::FileExt;
 use serde_json::{Map, Number, Value};
 use std::{
-    env, fs,
+    fs,
     io::{Seek, SeekFrom, Write},
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -23,23 +23,26 @@ struct ParsedSkillMarkdown {
 }
 
 pub fn read_skill(path: String) -> Result<SkillDetail, String> {
-    read_skill_in_roots(path, &configured_allowed_roots()?)
+    read_skill_in_roots(path, &skill_path_guard::configured_allowed_roots()?)
 }
 
 pub fn create_skill(input: CreateSkillInput) -> Result<SkillDetail, String> {
-    create_skill_in_roots(input, &configured_allowed_roots()?)
+    create_skill_in_roots(input, &skill_path_guard::configured_allowed_roots()?)
 }
 
 pub fn update_skill(input: UpdateSkillInput) -> Result<SkillDetail, String> {
-    let roots = configured_allowed_roots()?;
-    let skill_file = skill_file_from_input(&input.path)?;
-    ensure_existing_path_allowed(&skill_file, &roots)?;
-    crate::version_store::create_snapshot(&skill_file.to_string_lossy(), "Before save", "manual")?;
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let resolved = skill_path_guard::resolve_writable_skill_path(&input.path, &roots)?;
+    crate::version_store::create_snapshot(
+        &resolved.skill_file.to_string_lossy(),
+        "Before save",
+        "manual",
+    )?;
     update_skill_in_roots(input, &roots)
 }
 
 pub fn delete_skill(path: String) -> Result<(), String> {
-    delete_skill_in_roots(path, &configured_allowed_roots()?)
+    delete_skill_in_roots(path, &skill_path_guard::configured_allowed_roots()?)
 }
 
 pub fn open_skill_folder(path: String) -> Result<(), String> {
@@ -47,9 +50,8 @@ pub fn open_skill_folder(path: String) -> Result<(), String> {
 }
 
 pub fn read_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<SkillDetail, String> {
-    let skill_file = skill_file_from_input(&path)?;
-    ensure_existing_path_allowed(&skill_file, roots)?;
-    read_skill_file(&skill_file, source_for_path(&skill_file, roots))
+    let resolved = skill_path_guard::resolve_skill_path(&path, roots)?;
+    read_skill_file(&resolved.skill_file, resolved.source)
 }
 
 pub fn create_skill_in_roots(
@@ -58,19 +60,19 @@ pub fn create_skill_in_roots(
 ) -> Result<SkillDetail, String> {
     let name = require_non_empty("name", &input.name)?;
     let description = require_non_empty("description", &input.description)?;
-    let target_root = PathBuf::from(require_non_empty(
+    let target_root_input = require_non_empty(
         "targetDirectory",
         &input.target_directory,
-    )?);
-    ensure_target_directory_allowed(&target_root, roots)?;
+    )?;
+    let target = skill_path_guard::resolve_target_directory(target_root_input, roots)?;
+    let target_root = target.path;
     fs::create_dir_all(&target_root)
         .map_err(|error| format!("Unable to create target directory: {error}"))?;
 
     let skill_dir = target_root.join(skill_directory_name(name));
     if skill_dir.exists() {
         return Err(format!(
-            "Skill directory already exists: {}",
-            skill_dir.display()
+            "Skill directory already exists"
         ));
     }
     fs::create_dir_all(&skill_dir)
@@ -85,15 +87,15 @@ pub fn create_skill_in_roots(
 
     let skill_file = skill_dir.join(SKILL_FILE_NAME);
     write_skill_file(&skill_file, &frontmatter, &input.markdown)?;
-    read_skill_file(&skill_file, source_for_path(&skill_file, roots))
+    read_skill_file(&skill_file, target.source)
 }
 
 pub fn update_skill_in_roots(
     input: UpdateSkillInput,
     roots: &[ScanRoot],
 ) -> Result<SkillDetail, String> {
-    let skill_file = skill_file_from_input(&input.path)?;
-    ensure_existing_path_allowed(&skill_file, roots)?;
+    let resolved = skill_path_guard::resolve_writable_skill_path(&input.path, roots)?;
+    let skill_file = resolved.skill_file;
     let existing = read_raw_skill(&skill_file)?;
     let parsed = parse_skill_markdown(&existing)?;
     let mut frontmatter = parsed.frontmatter;
@@ -118,29 +120,13 @@ pub fn update_skill_in_roots(
         .ok_or_else(|| "Skill file must have a parent directory".to_string())?;
     backup_skill_directory(skill_dir, roots)?;
     write_skill_file(&skill_file, &frontmatter, &body_markdown)?;
-    read_skill_file(&skill_file, source_for_path(&skill_file, roots))
+    read_skill_file(&skill_file, resolved.source)
 }
 
 pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), String> {
-    let skill_file = skill_file_from_input(&path)?;
-    ensure_existing_path_allowed(&skill_file, roots)?;
-    ensure_skill_file_path(&skill_file)?;
-    if !skill_file.exists() {
-        return Err(format!(
-            "Skill file does not exist: {}",
-            skill_file.display()
-        ));
-    }
-
-    let skill_dir = skill_file
-        .parent()
-        .ok_or_else(|| "Skill file must have a parent directory".to_string())?;
-    let canonical_dir = skill_dir
-        .canonicalize()
-        .map_err(|error| format!("Unable to resolve skill directory: {error}"))?;
-    let canonical_skill_file = skill_file
-        .canonicalize()
-        .map_err(|error| format!("Unable to resolve skill file: {error}"))?;
+    let resolved = skill_path_guard::resolve_writable_skill_path(&path, roots)?;
+    let canonical_dir = resolved.skill_dir;
+    let canonical_skill_file = resolved.skill_file;
     let canonical_expected_skill_file = canonical_dir.join(SKILL_FILE_NAME);
 
     if canonical_skill_file != canonical_expected_skill_file {
@@ -149,12 +135,7 @@ pub fn delete_skill_in_roots(path: String, roots: &[ScanRoot]) -> Result<(), Str
     if canonical_dir.parent().is_none() {
         return Err("Refusing to delete a filesystem root".to_string());
     }
-    if roots.iter().any(|root| {
-        root.path
-            .canonicalize()
-            .map(|root_path| root_path == canonical_dir)
-            .unwrap_or(false)
-    }) {
+    if resolved.root == canonical_dir {
         return Err("Refusing to delete an allowed skill root".to_string());
     }
 
@@ -168,20 +149,14 @@ pub fn open_skill_folder_in_roots(path: String, roots: &[ScanRoot]) -> Result<()
 }
 
 fn resolve_skill_folder_to_open(path: String) -> Result<PathBuf, String> {
-    resolve_skill_folder_to_open_in_roots(path, &configured_allowed_roots()?)
+    resolve_skill_folder_to_open_in_roots(path, &skill_path_guard::configured_allowed_roots()?)
 }
 
 fn resolve_skill_folder_to_open_in_roots(
     path: String,
     roots: &[ScanRoot],
 ) -> Result<PathBuf, String> {
-    let folder = skill_folder_from_input(&path)?;
-    ensure_existing_path_allowed(&folder.join(SKILL_FILE_NAME), roots)?;
-    if !folder.exists() {
-        return Err(format!("Skill folder does not exist: {}", folder.display()));
-    }
-
-    Ok(folder)
+    Ok(skill_path_guard::resolve_skill_path(&path, roots)?.skill_dir)
 }
 
 fn spawn_skill_folder(folder: PathBuf) -> Result<(), String> {
@@ -221,12 +196,11 @@ fn read_skill_file(skill_file: &Path, source: SkillSource) -> Result<SkillDetail
 }
 
 fn read_raw_skill(skill_file: &Path) -> Result<String, String> {
-    ensure_skill_file_path(skill_file)?;
+    if skill_file.file_name().and_then(|name| name.to_str()) != Some(SKILL_FILE_NAME) {
+        return Err("Path must point to SKILL.md or a skill folder".to_string());
+    }
     if !skill_file.exists() {
-        return Err(format!(
-            "Skill file does not exist: {}",
-            skill_file.display()
-        ));
+        return Err("Skill file does not exist".to_string());
     }
     fs::read_to_string(skill_file).map_err(|error| format!("Unable to read skill file: {error}"))
 }
@@ -542,34 +516,6 @@ fn require_non_empty<'a>(field: &str, value: &'a str) -> Result<&'a str, String>
     }
 }
 
-fn skill_file_from_input(path: &str) -> Result<PathBuf, String> {
-    let path = PathBuf::from(require_non_empty("path", path)?);
-    if path.file_name().and_then(|name| name.to_str()) == Some(SKILL_FILE_NAME) {
-        Ok(path)
-    } else if path.is_dir() {
-        Ok(path.join(SKILL_FILE_NAME))
-    } else {
-        Err("Path must point to SKILL.md or a skill folder".to_string())
-    }
-}
-
-fn skill_folder_from_input(path: &str) -> Result<PathBuf, String> {
-    let skill_file = skill_file_from_input(path)?;
-    ensure_skill_file_path(&skill_file)?;
-    skill_file
-        .parent()
-        .map(Path::to_path_buf)
-        .ok_or_else(|| "Skill file must have a parent directory".to_string())
-}
-
-fn ensure_skill_file_path(path: &Path) -> Result<(), String> {
-    if path.file_name().and_then(|name| name.to_str()) == Some(SKILL_FILE_NAME) {
-        Ok(())
-    } else {
-        Err("Path must point to SKILL.md or a skill folder".to_string())
-    }
-}
-
 fn skill_directory_name(name: &str) -> String {
     let mut directory = String::new();
     let mut last_was_separator = false;
@@ -592,138 +538,6 @@ fn skill_directory_name(name: &str) -> String {
     } else {
         directory.to_string()
     }
-}
-
-fn default_allowed_roots() -> Result<Vec<ScanRoot>, String> {
-    let home = home_dir().ok_or_else(|| "Unable to resolve user home directory".to_string())?;
-    Ok(skill_scanner::default_scan_roots_for_home(&home))
-}
-
-fn configured_allowed_roots() -> Result<Vec<ScanRoot>, String> {
-    let mut roots = default_allowed_roots()?;
-    let settings = settings_store::load_app_settings()?;
-    roots.extend(
-        settings
-            .custom_scan_directories
-            .iter()
-            .filter(|path| !path.trim().is_empty())
-            .map(|path| ScanRoot::new(path, SkillSource::Custom)),
-    );
-    Ok(roots)
-}
-
-fn home_dir() -> Option<PathBuf> {
-    if cfg!(windows) {
-        env::var_os("USERPROFILE")
-            .map(PathBuf::from)
-            .or_else(|| env::var_os("HOME").map(PathBuf::from))
-    } else {
-        env::var_os("HOME")
-            .map(PathBuf::from)
-            .or_else(|| env::var_os("USERPROFILE").map(PathBuf::from))
-    }
-}
-
-fn ensure_existing_path_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), String> {
-    let canonical_path = path
-        .canonicalize()
-        .map_err(|error| format!("Unable to resolve skill path: {error}"))?;
-
-    if roots.iter().any(|root| {
-        root.path
-            .canonicalize()
-            .map(|root_path| canonical_path.starts_with(root_path))
-            .unwrap_or(false)
-    }) {
-        Ok(())
-    } else {
-        Err(format!(
-            "Path is outside the allowed skill roots: {}",
-            path.display()
-        ))
-    }
-}
-
-fn ensure_target_directory_allowed(path: &Path, roots: &[ScanRoot]) -> Result<(), String> {
-    let normalized_target = normalize_target_directory(path);
-    if roots.iter().any(|root| {
-        let root_path = root
-            .path
-            .canonicalize()
-            .unwrap_or_else(|_| normalize_absolute(&root.path));
-        normalized_target.starts_with(root_path)
-    }) {
-        Ok(())
-    } else {
-        Err(format!(
-            "Target directory is outside the allowed skill roots: {}",
-            path.display()
-        ))
-    }
-}
-
-fn normalize_target_directory(path: &Path) -> PathBuf {
-    if path.exists() {
-        return path
-            .canonicalize()
-            .unwrap_or_else(|_| normalize_absolute(path));
-    }
-
-    let absolute = normalize_absolute(path);
-    let mut existing_parent = absolute.as_path();
-    let mut missing_components = Vec::new();
-
-    while !existing_parent.exists() {
-        if let Some(name) = existing_parent.file_name() {
-            missing_components.push(name.to_os_string());
-        }
-        let Some(parent) = existing_parent.parent() else {
-            return absolute;
-        };
-        existing_parent = parent;
-    }
-
-    let mut normalized = existing_parent
-        .canonicalize()
-        .unwrap_or_else(|_| normalize_absolute(existing_parent));
-    for component in missing_components.iter().rev() {
-        normalized.push(component);
-    }
-    normalized
-}
-
-fn normalize_absolute(path: &Path) -> PathBuf {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join(path)
-    };
-    let mut normalized = PathBuf::new();
-
-    for component in absolute.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                normalized.pop();
-            }
-            _ => normalized.push(component.as_os_str()),
-        }
-    }
-
-    normalized
-}
-
-fn source_for_path(path: &Path, roots: &[ScanRoot]) -> SkillSource {
-    roots
-        .iter()
-        .find_map(|root| {
-            let root_path = root.path.canonicalize().ok()?;
-            let skill_path = path.canonicalize().ok()?;
-            skill_path.starts_with(root_path).then_some(root.source)
-        })
-        .unwrap_or(SkillSource::Unknown)
 }
 
 fn backup_skill_directory(skill_dir: &Path, roots: &[ScanRoot]) -> Result<PathBuf, String> {
@@ -1159,7 +973,13 @@ mod tests {
         let detail = read_skill(skill_path.to_string_lossy().to_string())
             .expect("agents user skill should read from default allowed roots");
 
-        assert_eq!(detail.summary.path, skill_path.to_string_lossy());
+        assert_eq!(
+            detail.summary.path,
+            skill_path
+                .canonicalize()
+                .expect("skill path should canonicalize")
+                .to_string_lossy()
+        );
         assert_eq!(detail.summary.name, "Daily Agent");
         assert_eq!(detail.summary.description, "Agents user skill");
         assert_eq!(detail.summary.source, SkillSource::AgentsUser);
@@ -1204,7 +1024,12 @@ mod tests {
 
         let folder = resolve_skill_folder_to_open(skill_dir.to_string_lossy().to_string())
             .expect("custom settings skill folder should validate for opening");
-        assert_eq!(folder, skill_dir);
+        assert_eq!(
+            folder,
+            skill_dir
+                .canonicalize()
+                .expect("skill dir should canonicalize")
+        );
 
         let outside_dir = outside_root.join("outside-open");
         fs::create_dir_all(&outside_dir).expect("outside skill dir should be created");

@@ -2,7 +2,7 @@
 
 ## 模块简介
 
-负责 Skill 独立详情页、基础信息、文件结构、质量检查、依赖关系和危险操作确认提示。
+负责 Skill 独立详情页、基础信息、文件结构、质量检查、依赖关系、来源权限提示和危险操作确认提示。
 
 ## 检索关键词
 
@@ -11,13 +11,13 @@
 ## 代码规模
 
 - 源码文件数：7
-- 代码总行数：520
+- 代码总行数：564
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/detail/DetailView.tsx` | 141 | 负责 Skill Detail 原型 DOM 编排、数据选择、操作区和只读确认提示。 |
+| `src/detail/DetailView.tsx` | 185 | 负责 Skill Detail 原型 DOM 编排、数据选择、操作区、打开目录、复制到可编辑目录和只读确认提示。 |
 | `src/detail/detail.css` | 224 | 负责 Skill Detail 原型网格、基础信息、质量检查、依赖表格和危险区样式。 |
 | `src/detail/DetailDrawer.tsx` | 29 | 提供详情抽屉外壳，保留给兼容代码和后续扩展。 |
 | `src/components/FileTree.tsx` | 31 | 提供文件结构展示组件。 |
@@ -29,7 +29,9 @@
 
 - 详情数据来自 useSkillStore 当前扫描结果和 useUIStore.subParam
 - Library 卡片点击进入 `subView: detail`
-- 危险操作区只展示确认提示，本批次不调用写入命令
+- 受保护来源显示只读提示，编辑入口切换为复制到可编辑目录
+- 打开目录调用 `open_skill_folder`，复制调用 `clone_skill`
+- 危险操作区只展示确认提示，本批次不接通本地删除
 
 ## 修改规则
 

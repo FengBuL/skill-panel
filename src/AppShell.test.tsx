@@ -125,6 +125,54 @@ describe('AppShell Tauri event fallback', () => {
     }));
   });
 
+  it('copies protected detail sources to an editable skill before opening the editor', async () => {
+    const user = userEvent.setup();
+    const protectedSkill: Skill = {
+      name: 'plugin skill',
+      description: 'Protected source',
+      source: 'plugin',
+      category: 'AI',
+      path: '/tmp/plugin-skill/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: true,
+    };
+    useSkillStore.setState({ skills: [protectedSkill], filtered: [protectedSkill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: protectedSkill.path });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'clone_skill') return Promise.resolve({ newPath: '/tmp/editable-copy/SKILL.md' });
+      if (command === 'read_skill') {
+        return Promise.resolve({
+          path: '/tmp/editable-copy/SKILL.md',
+          name: 'editable copy',
+          description: 'Editable copy',
+          source: 'codex-user',
+          parseStatus: 'parsed',
+          modifiedAt: '2026-07-15',
+          markdown: '# Copy',
+          bodyMarkdown: '# Copy',
+          rawContent: '# Copy',
+          frontmatter: {},
+        });
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('受保护来源')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '复制到可编辑目录' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('clone_skill', {
+      destName: 'plugin skill',
+      srcPath: protectedSkill.path,
+    }));
+  });
+
   it('saves AI keys through set_ai_key without keeping the raw key in settings state', async () => {
     const user = userEvent.setup();
     useUIStore.setState({ subView: 'settings' });

@@ -2,23 +2,24 @@
 
 ## 模块简介
 
-负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。
+负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、统一路径安全边界、备份、版本快照和恢复。
 
 ## 检索关键词
 
-`skill_scanner`、`skill_store`、`version_store`、`frontmatter`、`snapshot`
+`skill_scanner`、`skill_store`、`skill_path_guard`、`version_store`、`frontmatter`、`snapshot`
 
 ## 代码规模
 
-- 源码文件数：3
-- 代码总行数：2200
+- 源码文件数：4
+- 代码总行数：2342
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
 | `src-tauri/src/skill_scanner.rs` | 686 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
-| `src-tauri/src/skill_store.rs` | 1427 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
+| `src-tauri/src/skill_store.rs` | 1266 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
+| `src-tauri/src/skill_path_guard.rs` | 303 | 负责 Skill 文件命令的 canonicalization、允许根校验、符号链接逃逸拦截和来源权限矩阵。 |
 | `src-tauri/src/version_store.rs` | 87 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
 
 ## 对外契约
@@ -28,10 +29,13 @@
 - 保存前创建备份和版本快照
 - 版本历史按规范化完整路径 SHA256 隔离，单个 Skill 最多保留 20 份快照，最长保留 30 天
 - restore_version 恢复前先创建当前版本快照，恢复失败时保持原文件
+- CodexUser、AgentsUser、Custom 来源允许本地写入；PluginCache、System、Unknown 来源本地文件默认只读
+- 受保护来源允许读取、应用内归档和复制到默认 Codex 用户 Skill 根目录
 
 ## 修改规则
 
 - 文件写入必须保留路径安全校验
+- 新增文件命令必须复用 `skill_path_guard`
 - frontmatter 格式化保持常见字段顺序
 - 版本恢复只写回目标 SKILL.md
 

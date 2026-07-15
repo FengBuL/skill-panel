@@ -3,9 +3,14 @@ use crate::models::{
     UpdateSkillInput,
 };
 use crate::settings_store;
+use crate::skill_path_guard;
 use crate::skill_scanner;
 use crate::skill_store;
-use std::{env, fs, io::Write, path::PathBuf};
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 #[tauri::command]
 pub fn app_version() -> &'static str {
@@ -87,8 +92,119 @@ pub fn append_audit_log(entry: AuditLogEntry) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{app_version, append_audit_log, default_scan_path_groups, scan_skills};
+    use super::{
+        analyze_deps, app_version, append_audit_log, clone_skill, default_scan_path_groups,
+        delete_skill, read_skill_files, scan_skills, toggle_skill_enabled, validate_skill,
+        write_skill_file,
+    };
     use crate::models::{AppSettings, Language};
+    use crate::settings_store::save_app_settings_to_path;
+    use std::{
+        env,
+        ffi::OsString,
+        fs,
+        path::{Path, PathBuf},
+        sync::{Mutex, MutexGuard},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    struct HomeEnvGuard {
+        userprofile: Option<OsString>,
+        home: Option<OsString>,
+    }
+
+    impl HomeEnvGuard {
+        fn set(home: &Path) -> Self {
+            let guard = Self {
+                userprofile: env::var_os("USERPROFILE"),
+                home: env::var_os("HOME"),
+            };
+            env::set_var("USERPROFILE", home);
+            env::set_var("HOME", home);
+            guard
+        }
+    }
+
+    impl Drop for HomeEnvGuard {
+        fn drop(&mut self) {
+            restore_env_var("USERPROFILE", &self.userprofile);
+            restore_env_var("HOME", &self.home);
+        }
+    }
+
+    fn restore_env_var(name: &str, value: &Option<OsString>) {
+        if let Some(value) = value {
+            env::set_var(name, value);
+        } else {
+            env::remove_var(name);
+        }
+    }
+
+    fn home_env_lock() -> &'static Mutex<()> {
+        crate::version_store::version_test_lock()
+    }
+
+    fn lock_home_env() -> MutexGuard<'static, ()> {
+        home_env_lock()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn temp_root(test_name: &str) -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be after unix epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("skill-command-{test_name}-{suffix}"));
+        fs::create_dir_all(&path).expect("temp root should be created");
+        path
+    }
+
+    fn write_skill(dir: &Path, name: &str) -> PathBuf {
+        fs::create_dir_all(dir).expect("skill dir should be created");
+        let skill_path = dir.join("SKILL.md");
+        fs::write(
+            &skill_path,
+            format!(
+                "---\nname: {name}\ndescription: {name} description\n---\n## When To Use\nUse it.\n## Safety\nSafe.\n@skill/base\n"
+            ),
+        )
+        .expect("skill should be written");
+        skill_path
+    }
+
+    fn write_settings(home: &Path, custom_root: &Path) {
+        let settings_path = home
+            .join(".codex")
+            .join("skill-panel")
+            .join("settings.json");
+        save_app_settings_to_path(
+            &settings_path,
+            AppSettings {
+                language: Language::System,
+                custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+                show_default_scan_directories: true,
+                ..AppSettings::default()
+            },
+        )
+        .expect("settings should save");
+    }
+
+    fn plugin_skill_root(home: &Path) -> PathBuf {
+        home.join(".codex")
+            .join("plugins")
+            .join("cache")
+            .join("publisher")
+            .join("plugin")
+            .join("skills")
+    }
+
+    fn expect_command_error<T>(result: Result<T, String>, message: &str) -> String {
+        match result {
+            Ok(_) => panic!("{message}"),
+            Err(error) => error,
+        }
+    }
 
     #[test]
     fn app_version_matches_package_version() {
@@ -134,6 +250,164 @@ mod tests {
         };
 
         assert!(append_audit_log(entry).is_ok());
+    }
+
+    #[test]
+    fn file_commands_reject_paths_outside_configured_roots_without_leaking_input_path() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("outside-home");
+        let custom_root = temp_root("outside-custom");
+        let outside_root = temp_root("outside-root");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        write_settings(&home, &custom_root);
+        let outside_skill = write_skill(&outside_root.join("escape"), "Escape");
+
+        for error in [
+            expect_command_error(
+                validate_skill(outside_skill.to_string_lossy().to_string()),
+                "validate should reject outside root",
+            ),
+            expect_command_error(
+                analyze_deps(outside_skill.to_string_lossy().to_string()),
+                "deps should reject outside root",
+            ),
+        ] {
+            assert!(error.contains("Path is not allowed"));
+            assert!(!error.contains(&outside_root.to_string_lossy().to_string()));
+        }
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+        fs::remove_dir_all(outside_root).ok();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn file_commands_reject_symlinked_skill_directories_that_escape_allowed_roots() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("symlink-home");
+        let custom_root = temp_root("symlink-custom");
+        let outside_root = temp_root("symlink-outside");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        write_settings(&home, &custom_root);
+        let outside_skill_dir = outside_root.join("real-skill");
+        write_skill(&outside_skill_dir, "Linked Escape");
+        let symlink_dir = custom_root.join("linked-skill");
+        std::os::unix::fs::symlink(&outside_skill_dir, &symlink_dir)
+            .expect("symlink should be created");
+
+        let error = expect_command_error(
+            read_skill_files(symlink_dir.to_string_lossy().to_string()),
+            "symlink escape should be rejected",
+        );
+
+        assert!(error.contains("Path is not allowed"));
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+        fs::remove_dir_all(outside_root).ok();
+    }
+
+    #[test]
+    fn file_commands_allow_custom_roots_and_reject_root_or_traversal_targets() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("custom-home");
+        let custom_root = temp_root("custom-root");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        write_settings(&home, &custom_root);
+        let skill_dir = custom_root.join("managed");
+        write_skill(&skill_dir, "Managed");
+
+        let files = read_skill_files(skill_dir.to_string_lossy().to_string())
+            .expect("custom root skill files should read");
+        assert!(files.iter().any(|file| file.name == "SKILL.md"));
+
+        write_skill_file(
+            skill_dir.to_string_lossy().to_string(),
+            "notes.md".to_string(),
+            "safe note".to_string(),
+        )
+        .expect("custom root skill file should write");
+        assert_eq!(
+            fs::read_to_string(skill_dir.join("notes.md")).expect("note should read"),
+            "safe note"
+        );
+
+        let root_error = expect_command_error(
+            read_skill_files(custom_root.to_string_lossy().to_string()),
+            "scan root itself should be rejected",
+        );
+        assert!(root_error.contains("Skill directory is required"));
+
+        let traversal_error = expect_command_error(
+            write_skill_file(
+                skill_dir.to_string_lossy().to_string(),
+                "../escape.md".to_string(),
+                "escape".to_string(),
+            ),
+            "file traversal should be rejected",
+        );
+        assert!(traversal_error.contains("File name is not allowed"));
+        assert!(!custom_root.join("escape.md").exists());
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+    }
+
+    #[test]
+    fn protected_plugin_cache_sources_are_read_only_but_can_copy_to_codex_user_root() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("plugin-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let plugin_root = plugin_skill_root(&home);
+        let plugin_skill_dir = plugin_root.join("protected-skill");
+        let plugin_skill = write_skill(&plugin_skill_dir, "Protected");
+        let codex_skill_root = home.join(".codex").join("skills");
+        fs::create_dir_all(&codex_skill_root).expect("codex user root should be created");
+
+        let write_error = expect_command_error(
+            write_skill_file(
+                plugin_skill_dir.to_string_lossy().to_string(),
+                "notes.md".to_string(),
+                "blocked".to_string(),
+            ),
+            "protected source write should be rejected",
+        );
+        assert!(write_error.contains("read-only source"));
+        assert!(!plugin_skill_dir.join("notes.md").exists());
+
+        let toggle_error = expect_command_error(
+            toggle_skill_enabled(plugin_skill.to_string_lossy().to_string(), false),
+            "protected source toggle should be rejected",
+        );
+        assert!(toggle_error.contains("read-only source"));
+        assert!(!plugin_skill.with_extension("md.disabled").exists());
+
+        let delete_error = expect_command_error(
+            delete_skill(plugin_skill.to_string_lossy().to_string()),
+            "protected source delete should be rejected",
+        );
+        assert!(delete_error.contains("read-only source"));
+        assert!(plugin_skill_dir.exists());
+
+        let cloned = clone_skill(
+            plugin_skill.to_string_lossy().to_string(),
+            "editable-copy".to_string(),
+        )
+        .expect("protected source should copy to an editable root");
+        let cloned_path = PathBuf::from(cloned.new_path);
+        assert_eq!(cloned_path, codex_skill_root.join("editable-copy").join("SKILL.md"));
+        assert!(cloned_path.exists());
+
+        let conflict = expect_command_error(
+            clone_skill(
+                plugin_skill.to_string_lossy().to_string(),
+                "editable-copy".to_string(),
+            ),
+            "same destination skill should be rejected",
+        );
+        assert!(conflict.contains("already exists"));
+
+        fs::remove_dir_all(home).ok();
     }
 }
 
@@ -191,19 +465,26 @@ pub struct CallLog {
 
 #[tauri::command]
 pub fn clone_skill(src_path: String, dest_name: String) -> Result<CloneSkillResult, String> {
-    let parent = std::path::Path::new(&src_path)
-        .parent()
-        .map(|path| path.display().to_string())
-        .unwrap_or_else(|| ".".to_string());
-    let _dest = format!("{parent}/../{dest_name}");
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let source = skill_path_guard::resolve_skill_path(&src_path, &roots)?;
+    let editable_root = skill_path_guard::resolve_default_editable_root(&roots)?;
+    fs::create_dir_all(&editable_root)
+        .map_err(|error| format!("Unable to create editable skill root: {error}"))?;
+    let target_dir = editable_root.join(skill_directory_name(&dest_name));
+    if target_dir.exists() {
+        return Err("Skill directory already exists".to_string());
+    }
+    copy_skill_directory(&source.skill_dir, &target_dir)?;
     Ok(CloneSkillResult {
-        new_path: format!("~/.codex/skills/{dest_name}/"),
+        new_path: target_dir.join("SKILL.md").to_string_lossy().to_string(),
     })
 }
 
 #[tauri::command]
 pub fn toggle_skill_enabled(path: String, enabled: bool) -> Result<(), String> {
-    let marker = format!("{path}.disabled");
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let resolved = skill_path_guard::resolve_writable_skill_path(&path, &roots)?;
+    let marker = format!("{}.disabled", resolved.skill_file.to_string_lossy());
     if enabled {
         std::fs::remove_file(&marker).ok();
     } else {
@@ -214,7 +495,10 @@ pub fn toggle_skill_enabled(path: String, enabled: bool) -> Result<(), String> {
 
 #[tauri::command]
 pub fn validate_skill(path: String) -> Result<ValidationResult, String> {
-    let content = std::fs::read_to_string(&path).map_err(|error| error.to_string())?;
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let resolved = skill_path_guard::resolve_skill_path(&path, &roots)?;
+    let content = std::fs::read_to_string(&resolved.skill_file)
+        .map_err(|_| "Unable to read skill file".to_string())?;
     let mut checks = Vec::new();
     let mut score = 100;
 
@@ -274,20 +558,29 @@ pub fn validate_skill(path: String) -> Result<ValidationResult, String> {
 
 #[tauri::command]
 pub fn read_skill_files(dir: String) -> Result<Vec<SkillFile>, String> {
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let resolved = skill_path_guard::resolve_skill_directory(&dir, &roots)?;
     let mut files = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                let size = entry.metadata().map(|metadata| metadata.len()).unwrap_or(0);
-                let is_main = name == "SKILL.md";
-                files.push(SkillFile {
-                    name,
-                    content,
-                    size,
-                    is_main,
-                });
-            }
+    let entries = std::fs::read_dir(&resolved.skill_dir)
+        .map_err(|_| "Unable to read skill directory".to_string())?;
+    for entry in entries.flatten() {
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(_) => continue,
+        };
+        if !file_type.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        if let Ok(content) = std::fs::read_to_string(entry.path()) {
+            let size = entry.metadata().map(|metadata| metadata.len()).unwrap_or(0);
+            let is_main = name == "SKILL.md";
+            files.push(SkillFile {
+                name,
+                content,
+                size,
+                is_main,
+            });
         }
     }
     Ok(files)
@@ -295,7 +588,9 @@ pub fn read_skill_files(dir: String) -> Result<Vec<SkillFile>, String> {
 
 #[tauri::command]
 pub fn write_skill_file(dir: String, file_name: String, content: String) -> Result<(), String> {
-    let path = std::path::Path::new(&dir).join(&file_name);
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let (_resolved, path) =
+        skill_path_guard::resolve_file_in_skill_directory(&dir, &file_name, &roots, true)?;
     std::fs::write(&path, &content).map_err(|error| error.to_string())
 }
 
@@ -337,7 +632,9 @@ pub fn get_call_logs(range: String) -> Result<Vec<CallLog>, String> {
 
 #[tauri::command]
 pub fn analyze_deps(path: String) -> Result<serde_json::Value, String> {
-    crate::dep_analyzer::analyze(&path)
+    let roots = skill_path_guard::configured_allowed_roots()?;
+    let resolved = skill_path_guard::resolve_skill_path(&path, &roots)?;
+    crate::dep_analyzer::analyze(&resolved.skill_file.to_string_lossy())
 }
 
 #[tauri::command]
@@ -370,4 +667,54 @@ pub fn get_ai_key(vendor: String) -> bool {
 #[tauri::command]
 pub fn watch_scan_dirs(app: tauri::AppHandle, dirs: Vec<String>) -> Result<(), String> {
     crate::watcher::start_watch(app, dirs)
+}
+
+fn skill_directory_name(name: &str) -> String {
+    let mut directory = String::new();
+    let mut last_was_separator = false;
+
+    for character in name.trim().chars() {
+        if character.is_ascii_alphanumeric() || character == '_' || character == '-' {
+            directory.push(character);
+            last_was_separator = false;
+        } else if character.is_whitespace() {
+            if !last_was_separator && !directory.is_empty() {
+                directory.push('-');
+                last_was_separator = true;
+            }
+        }
+    }
+
+    let directory = directory.trim_matches('-');
+    if directory.is_empty() {
+        "skill".to_string()
+    } else {
+        directory.to_string()
+    }
+}
+
+fn copy_skill_directory(source: &Path, destination: &Path) -> Result<(), String> {
+    fs::create_dir_all(destination)
+        .map_err(|error| format!("Unable to create copied skill directory: {error}"))?;
+    let entries = fs::read_dir(source).map_err(|_| "Unable to read skill directory".to_string())?;
+
+    for entry in entries {
+        let entry = entry.map_err(|_| "Unable to read skill directory".to_string())?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let metadata = fs::symlink_metadata(entry.path())
+            .map_err(|_| "Unable to read skill file metadata".to_string())?;
+
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        if metadata.is_dir() {
+            copy_skill_directory(&source_path, &destination_path)?;
+        } else if metadata.is_file() {
+            fs::copy(&source_path, &destination_path)
+                .map_err(|error| format!("Unable to copy skill file: {error}"))?;
+        }
+    }
+
+    Ok(())
 }

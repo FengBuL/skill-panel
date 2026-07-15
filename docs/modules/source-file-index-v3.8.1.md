@@ -14,14 +14,15 @@
 | `src-tauri/Cargo.toml` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 31 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/src/ai_proxy.rs` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 276 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
 | `src-tauri/src/call_logger.rs` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 58 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
-| `src-tauri/src/commands.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 374 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/commands.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 720 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/dep_analyzer.rs` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 66 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
 | `src-tauri/src/lib.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 54 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/main.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 6 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/models.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 239 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/settings_store.rs` | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 279 | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 |
 | `src-tauri/src/skill_scanner.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 686 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
-| `src-tauri/src/skill_store.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 1427 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
+| `src-tauri/src/skill_path_guard.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 303 | 负责 Skill 文件命令的 canonicalization、允许根校验、符号链接逃逸拦截和来源权限矩阵。 |
+| `src-tauri/src/skill_store.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 1266 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
 | `src-tauri/src/version_store.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 87 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
 | `src-tauri/src/watcher.rs` | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 46 | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 |
 | `src-tauri/tauri.conf.json` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 67 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
@@ -29,7 +30,7 @@
 | `src/App.editor.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 1118 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/App.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 2008 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/App.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 11 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 215 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 266 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
 | `src/AppShell.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 109 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
 | `src/common/EmptyState.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 65 | 提供统一空状态、扫描中和无搜索结果展示。 |
 | `src/common/ErrorBoundary.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 59 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
@@ -78,7 +79,7 @@
 | `src/components/ui.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 79 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
 | `src/detail/DetailPanel.tsx` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 80 | 提供 Library 右侧 340px 详情面板。 |
 | `src/dashboard/DashboardView.tsx` | Dashboard 仪表盘 | [dashboard-v3.8.1.md](./dashboard-v3.8.1.md) | 165 | 负责 Dashboard 原型 DOM 编排、指标计算、最近修改、关注项和依赖提醒。 |
-| `src/detail/DetailView.tsx` | Skill Detail | [skill-detail-v3.8.1.md](./skill-detail-v3.8.1.md) | 141 | 负责 Skill Detail 原型 DOM 编排、数据选择、操作区和只读确认提示。 |
+| `src/detail/DetailView.tsx` | Skill Detail | [skill-detail-v3.8.1.md](./skill-detail-v3.8.1.md) | 185 | 负责 Skill Detail 原型 DOM 编排、数据选择、操作区、打开目录、复制到可编辑目录和只读确认提示。 |
 | `src/detail/detail.css` | Skill Detail | [skill-detail-v3.8.1.md](./skill-detail-v3.8.1.md) | 224 | 负责 Skill Detail 原型网格、基础信息、质量检查、依赖表格和危险区样式。 |
 | `src/detail/DetailDrawer.tsx` | Skill Detail | [skill-detail-v3.8.1.md](./skill-detail-v3.8.1.md) | 29 | 提供详情抽屉外壳，保留给兼容代码和后续扩展。 |
 | `src/editor/EditorView.tsx` | 编辑器工作区 | [editor-v3.8.1.md](./editor-v3.8.1.md) | 236 | 负责 Editor 原型 DOM 编排、草稿状态、读取、校验、AI diff 入口和保存提示。 |
@@ -103,6 +104,8 @@
 | `src/lib/invoke.test.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 31 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/lib/invoke.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 125 | 负责 Skill 扫描调用、前端数据映射和浏览器预览 fallback 数据。 |
 | `src/lib/logs.ts` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 26 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
+| `src/lib/skillPermissions.test.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 24 | 覆盖用户来源、受保护来源、归档和复制能力判断。 |
+| `src/lib/skillPermissions.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 38 | 提供前端统一来源权限矩阵，供按钮状态和操作入口复用。 |
 | `src/lib/skills.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 7 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/lib/tauriEvents.ts` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 15 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/library/SkillCard.tsx` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 89 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |

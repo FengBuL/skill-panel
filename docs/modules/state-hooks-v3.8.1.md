@@ -2,16 +2,16 @@
 
 ## 模块简介
 
-负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。
+负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航、Skill 查询和前端来源权限判断。
 
 ## 检索关键词
 
-`zustand`、`hooks`、`偏好`、`拖拽`、`键盘`、`查询`
+`zustand`、`hooks`、`偏好`、`拖拽`、`键盘`、`查询`、`skillPermissions`
 
 ## 代码规模
 
-- 源码文件数：7
-- 代码总行数：688
+- 源码文件数：9
+- 代码总行数：750
 
 ## 代码文件清单
 
@@ -24,12 +24,15 @@
 | `src/hooks/useDragDrop.ts` | 171 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useKeyboardNav.ts` | 97 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useSkillQuery.ts` | 149 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
+| `src/lib/skillPermissions.ts` | 38 | 提供前端统一来源权限矩阵，供按钮状态和操作入口复用。 |
+| `src/lib/skillPermissions.test.ts` | 24 | 覆盖用户来源、受保护来源、归档和复制能力判断。 |
 
 ## 对外契约
 
 - useUIStore 控制主视图和次级视图
 - Hook 只处理单一交互职责
 - 偏好持久化保持浏览器兼容
+- 受保护来源的前端按钮状态复用统一权限 helper
 
 ## 修改规则
 
