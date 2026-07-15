@@ -11,6 +11,13 @@ Skill Panel is a cross-platform desktop app shell for managing local AI skills. 
 - Verification on 2026-07-13: frontend tests 40/40, packaging checks 6/6, Rust tests 44/44, typecheck and production build passed. The current visual QA rerun passed 11/11 scenarios, including Dashboard visibility.
 - Release archive: `output/releases/v3.8.2/` contains the macOS DMG, app zip, source archive, rollback bundle, SHA256SUMS, install verification record, and rollback notes. macOS signing/notarization and Windows installer verification remain separate release tasks.
 
+## Navigation Model
+
+- The top navigation contains Dashboard, Library, Logs, Dependencies, and Settings.
+- Library is the default entry and remains active for Detail, Editor, Create, AI Assistant, and Preview task pages.
+- Editor requires a selected Skill context, is entered from Detail or after Create, and remains a contextual task page under Library.
+- Navigation ownership and product requirements are maintained in the Obsidian `PRD.md` and `UI-SPECIFICATION.md` documents.
+
 ## Stack
 
 - Tauri 2 desktop runtime

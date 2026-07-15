@@ -35,10 +35,19 @@
 - useUIStore 管理 mainView 和 subView
 - safeListen 保护 Tauri 事件监听
 
+## 导航层级
+
+- 顶部主导航固定展示 Dashboard、Library、Logs、Dependencies、Settings。
+- Detail、Editor、Create、AI Assistant、Preview 属于 Library 任务链路，不增加顶部入口。
+- 打开上述任务页面时，TopBar 继续高亮 Library。
+- Editor 需要已选中的 Skill 参数，标准路径为 `Library → Detail → Editor` 或 `Create → Editor`。
+- `useUIStore` 的 mainView/subView 是内部渲染状态；产品导航层级以上述主导航与任务页面划分为准。
+
 ## 修改规则
 
 - 新增页面入口先扩展 useUIStore 视图状态
 - 顶栏使用 64px 单层导航，符合 Library 1:1 原型结构
+- 新增任务页面先确定导航归属；Editor、Detail、Create、AI Assistant、Preview 保持 Library 归属
 - 全局监听需要在卸载时释放
 
 ## 解耦要求

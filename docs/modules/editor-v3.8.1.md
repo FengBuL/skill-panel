@@ -31,10 +31,13 @@
 - readSkill 读取 Markdown 和 frontmatter
 - validateSkill 返回质量检查结果
 - 编辑内容变更标记 dirty
+- Editor 接收已选中的 Skill 上下文，标准入口为 Detail 的编辑操作或 Create 完成流程
+- Editor 打开期间 Library 保持顶部导航高亮
 
 ## 修改规则
 
 - 编辑器三列布局保持稳定
+- Editor 不增加顶部导航入口；缺少 Skill 上下文时显示安全空状态和返回 Library 的操作
 - 保存逻辑和后端 update_skill 对齐
 - AI 写回通过 diff 确认后更新 Markdown
 
