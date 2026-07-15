@@ -167,6 +167,59 @@
   gap: 10px;
 }
 
+.editor-banner {
+  margin: 12px 18px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-buttons);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.editor-banner.success {
+  border-color: rgba(27, 163, 46, 0.28);
+  background: rgba(27, 163, 46, 0.08);
+  color: var(--color-green);
+}
+
+.editor-banner.info {
+  border-color: rgba(0, 117, 222, 0.24);
+  background: rgba(0, 117, 222, 0.08);
+  color: var(--color-notion-blue);
+}
+
+.editor-version-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.editor-version-row {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-buttons);
+  background: var(--color-pure-white);
+  color: var(--color-ink-black);
+  text-align: left;
+}
+
+.editor-version-row:hover,
+.editor-version-row:focus {
+  border-color: var(--color-notion-blue);
+  outline: 2px solid rgba(0, 117, 222, 0.16);
+  outline-offset: 1px;
+}
+
+.editor-version-row span,
+.editor-version-row small {
+  color: var(--color-graphite);
+  font-size: 12px;
+}
+
 .editor-dirty-pill {
   min-height: 24px;
   border-radius: var(--radius-pills);
@@ -180,6 +233,98 @@
 .editor-dirty-pill.is-dirty {
   background: rgba(255, 177, 16, 0.16);
   color: #8a6400;
+}
+
+.editor-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.editor-modal {
+  width: min(720px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-cards);
+  background: var(--color-pure-white);
+}
+
+.editor-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.editor-modal-header h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.editor-modal-header p {
+  margin: 0;
+  color: var(--color-graphite);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.editor-modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.editor-modal-body h3,
+.editor-modal-body p {
+  margin: 0;
+}
+
+.editor-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-graphite);
+}
+
+.editor-diff-preview {
+  display: grid;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-buttons);
+  background: #fbfbfa;
+}
+
+.editor-diff-line {
+  display: block;
+  padding: 4px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.editor-diff-line.added {
+  background: rgba(27, 163, 46, 0.08);
+  color: var(--color-green);
+}
+
+.editor-diff-line.removed {
+  background: rgba(246, 73, 50, 0.08);
+  color: #b42318;
 }
 
 .ai-rail {

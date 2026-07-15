@@ -26,6 +26,8 @@
 - scan_skills 返回 SkillSummary
 - read_skill 和 update_skill 限制在允许根目录内
 - 保存前创建备份和版本快照
+- 版本历史按规范化完整路径 SHA256 隔离，单个 Skill 最多保留 20 份快照，最长保留 30 天
+- restore_version 恢复前先创建当前版本快照，恢复失败时保持原文件
 
 ## 修改规则
 

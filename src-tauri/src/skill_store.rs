@@ -811,7 +811,7 @@ mod tests {
         ffi::OsString,
         fs,
         path::{Path, PathBuf},
-        sync::{Mutex, OnceLock},
+        sync::Mutex,
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -848,8 +848,7 @@ mod tests {
     }
 
     fn home_env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
+        crate::version_store::version_test_lock()
     }
 
     fn temp_root(test_name: &str) -> PathBuf {
@@ -1133,14 +1132,8 @@ mod tests {
             .expect("version history should load");
         assert!(!versions.is_empty());
         assert_eq!(versions[0].note, "Before save");
-        let snapshot_path = home
-            .join(".codex")
-            .join("skill-panel")
-            .join("versions")
-            .join("versioned")
-            .join(&versions[0].id)
-            .join("SKILL.md");
-        let snapshot = fs::read_to_string(snapshot_path).expect("snapshot should read");
+        let snapshot = find_version_snapshot_contents(&home.join(".codex").join("skill-panel").join("versions"), &versions[0].id)
+            .expect("snapshot should read");
         assert!(snapshot.contains("description: Original\n"));
 
         fs::remove_dir_all(home).ok();
@@ -1413,6 +1406,17 @@ mod tests {
         }
         files.sort();
         files
+    }
+
+    fn find_version_snapshot_contents(root: &Path, version_id: &str) -> Option<String> {
+        let entries = fs::read_dir(root).ok()?;
+        for entry in entries.flatten() {
+            let snapshot_path = entry.path().join(version_id).join("SKILL.md");
+            if snapshot_path.exists() {
+                return fs::read_to_string(snapshot_path).ok();
+            }
+        }
+        None
     }
 
     #[test]

@@ -206,6 +206,8 @@ describe('AppShell Tauri event fallback', () => {
     await user.click(screen.getByRole('button', { name: '全部接受' }));
 
     expect(await screen.findByDisplayValue(/# Improved Skill/)).toBeInTheDocument();
+    expect(screen.getByText('已采纳 1 条建议，点击保存后写回 SKILL.md')).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalledWith('update_skill', expect.anything());
     expect(invokeMock).toHaveBeenCalledWith('ai_optimize', {
       content: expect.stringContaining('# Browser Control'),
       action: 'polish',

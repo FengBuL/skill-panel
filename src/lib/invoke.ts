@@ -1,7 +1,7 @@
 // Tauri 命令调用封装 — 真实 invoke + mock fallback
 // wt-0-foundation 产出，前端各页面用此封装调用后端
 import { invoke } from '@tauri-apps/api/core';
-import type { SkillSummary } from '../types/skill';
+import type { SkillDetail, SkillSummary, UpdateSkillInput } from '../types/skill';
 import type { Skill } from '../store/skillStore';
 
 // mock 数据（Tauri 不可用时 fallback，如纯浏览器开发）
@@ -98,13 +98,24 @@ export async function scanSkills(): Promise<{ skills: Skill[]; isMock: boolean }
 }
 
 // 读取 Skill 详情
-export async function readSkill(path: string): Promise<{ markdown: string; frontmatter: Record<string, unknown> } | null> {
+export async function readSkill(path: string): Promise<SkillDetail | null> {
   try {
-    const detail = await invoke<{ markdown: string; frontmatter: Record<string, unknown>; rawContent: string }>('read_skill', { path });
-    return { markdown: detail.markdown || detail.rawContent || '', frontmatter: detail.frontmatter || {} };
+    return await invoke<SkillDetail>('read_skill', { path });
   } catch {
     return null;
   }
+}
+
+export async function updateSkill(input: UpdateSkillInput): Promise<SkillDetail> {
+  return await invoke<SkillDetail>('update_skill', { input });
+}
+
+export async function getVersionHistory(path: string): Promise<{ id: string; time: string; note: string; diffLines: number; source: string }[]> {
+  return await invoke('get_version_history', { path });
+}
+
+export async function restoreVersion(path: string, versionId: string): Promise<void> {
+  await invoke('restore_version', { path, versionId });
 }
 
 // 校验 Skill

@@ -66,11 +66,142 @@ describe('App current editor workflow', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    expect(await screen.findByRole('button', { name: '保存' })).toBeDisabled();
     const body = await screen.findByLabelText('Markdown body');
     await user.type(body, '\nNew line');
     expect(screen.getByText('未保存')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('update_skill', {
+      input: expect.objectContaining({
+        path: skill.path,
+        markdown: expect.stringContaining('New line'),
+      }),
+    }));
     expect(screen.getByText('已同步')).toBeInTheDocument();
+  });
+
+  it('keeps the draft and exposes retry actions when save fails', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'get_version_history') return Promise.resolve([]);
+      if (command === 'read_skill') {
+        return Promise.resolve({
+          markdown: '# Loaded skill\n\nLoaded from disk.',
+          rawContent: '# Loaded skill\n\nLoaded from disk.',
+          frontmatter: { display: 'AI 热点查询', version: '1.4.0', category: 'AI', tags: ['news'], author: 'User' },
+        });
+      }
+      if (command === 'update_skill') return Promise.reject(new Error('disk full'));
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    const body = await screen.findByLabelText('Markdown body');
+    await user.type(body, '\nDraft that must stay');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(await screen.findByRole('dialog', { name: '保存失败' })).toBeInTheDocument();
+    expect(screen.getByText('草稿已保留')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/Draft that must stay/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试保存' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '复制草稿' })).toBeInTheDocument();
+  });
+
+  it('detects an external SHA conflict, previews diff, and requires confirmation before overwrite', async () => {
+    const user = userEvent.setup();
+    let readCount = 0;
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'get_version_history') return Promise.resolve([]);
+      if (command === 'read_skill') {
+        readCount += 1;
+        const changed = readCount > 1;
+        return Promise.resolve({
+          markdown: changed ? '# External edit\n\nChanged outside.' : '# Loaded skill\n\nLoaded from disk.',
+          rawContent: changed ? '# External edit\n\nChanged outside.' : '# Loaded skill\n\nLoaded from disk.',
+          frontmatter: { display: 'AI 热点查询', version: '1.4.0', category: 'AI', tags: ['news'], author: 'User' },
+        });
+      }
+      if (command === 'update_skill') return Promise.resolve({
+        markdown: '# Loaded skill\n\nLoaded from disk.\nDraft overwrite',
+        rawContent: '# Loaded skill\n\nLoaded from disk.\nDraft overwrite',
+        frontmatter: { display: 'AI 热点查询', version: '1.4.0', category: 'AI', tags: ['news'], author: 'User' },
+      });
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    const body = await screen.findByLabelText('Markdown body');
+    await user.type(body, '\nDraft overwrite');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '文件冲突' });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText('外部版本 vs 当前草稿')).toBeInTheDocument();
+    expect(screen.getByText(/打开时 SHA256/)).toBeInTheDocument();
+    const overwrite = screen.getByRole('button', { name: '保留当前草稿并覆盖' });
+    expect(overwrite).toBeDisabled();
+
+    await user.click(screen.getByLabelText('我已确认：覆盖前会自动备份外部版本'));
+    await user.click(overwrite);
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('update_skill', {
+      input: expect.objectContaining({ path: skill.path, markdown: expect.stringContaining('Draft overwrite') }),
+    }));
+  });
+
+  it('confirms undo and restores the loaded draft with focus returning to the trigger', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const body = await screen.findByLabelText('Markdown body');
+    await user.type(body, '\nTemporary edit');
+    const undo = screen.getByRole('button', { name: '撤销更改' });
+    await user.click(undo);
+
+    const dialog = await screen.findByRole('dialog', { name: '撤销更改' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: '撤销更改' })).not.toBeInTheDocument();
+    expect(undo).toHaveFocus();
+
+    await user.click(undo);
+    await user.click(await screen.findByRole('button', { name: '确认撤销' }));
+    expect(screen.queryByDisplayValue(/Temporary edit/)).not.toBeInTheDocument();
+    expect(screen.getByText('已同步')).toBeInTheDocument();
+  });
+
+  it('loads isolated version history and restores through restore_version', async () => {
+    const user = userEvent.setup();
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'read_skill') {
+        return Promise.resolve({
+          markdown: '# Loaded skill\n\nLoaded from disk.',
+          rawContent: '# Loaded skill\n\nLoaded from disk.',
+          frontmatter: { display: 'AI 热点查询', version: '1.4.0', category: 'AI', tags: ['news'], author: 'User' },
+        });
+      }
+      if (command === 'get_version_history') {
+        return Promise.resolve([
+          { id: 'abc123', time: '2026-07-13 12:00', note: 'Before save', diffLines: 2, source: 'manual' },
+        ]);
+      }
+      if (command === 'restore_version') return Promise.resolve();
+      return Promise.resolve(null);
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('版本历史')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /恢复 abc123/ }));
+    expect(await screen.findByRole('dialog', { name: '恢复到旧版本？' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '确认恢复' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('restore_version', { path: skill.path, versionId: 'abc123' }));
   });
 
   it('uses the live validation command when a real skill path is selected', async () => {
