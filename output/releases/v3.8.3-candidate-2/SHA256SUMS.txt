@@ -1,0 +1,2 @@
+c2ad0df7cb7b165d533c3d2ebf85a316cfe9375774e44a4afa87c6cab360f426  Skill Panel_3.8.3_aarch64.app.zip
+a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688  Skill Panel_3.8.3_aarch64.dmg

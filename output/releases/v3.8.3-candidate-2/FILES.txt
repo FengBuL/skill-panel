@@ -1,0 +1,6 @@
+Skill Panel.app
+Skill Panel_3.8.3_aarch64.app.zip
+Skill Panel_3.8.3_aarch64.dmg
+SHA256SUMS.txt
+release-manifest.md
+STEP-8-PREP.md
