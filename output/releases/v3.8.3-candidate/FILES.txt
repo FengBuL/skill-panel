@@ -1,0 +1,3 @@
+Skill Panel.app 13803520 bytes bundle directory, du -sk 13480
+Skill Panel_3.8.3_aarch64.app.zip 4952711 bytes
+Skill Panel_3.8.3_aarch64.dmg 4964044 bytes
