@@ -5,9 +5,23 @@
   gap: 20px;
 }
 
+.detail-title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-title-block .page-subtitle {
+  overflow-wrap: anywhere;
+}
+
 .detail-actions-row {
+  flex-shrink: 0;
   flex-wrap: nowrap;
   justify-content: flex-end;
+}
+
+.detail-actions-row .btn {
+  white-space: nowrap;
 }
 
 .detail-confirm-banner {
@@ -355,9 +369,19 @@
   gap: 10px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1200px) {
   .detail-page-header {
     flex-direction: column;
+  }
+
+  .detail-actions-row {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 980px) {
+  .detail-actions-row {
+    flex-wrap: wrap;
   }
 
   .grid-3 {

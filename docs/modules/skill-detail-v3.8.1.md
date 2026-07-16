@@ -11,14 +11,14 @@
 ## 代码规模
 
 - 源码文件数：7
-- 代码总行数：977
+- 代码总行数：1010
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/detail/DetailView.tsx` | 439 | 负责 Skill Detail 数据选择、归档持久化、打开目录、复制确认、删除确认和操作反馈。 |
-| `src/detail/detail.css` | 375 | 负责 Skill Detail 网格、基础信息、质量检查、依赖表格、危险区和模态框样式。 |
+| `src/detail/DetailView.tsx` | 448 | 负责 Skill Detail 数据选择、归档持久化、打开目录、复制确认、删除确认、待实现备份状态和操作反馈。 |
+| `src/detail/detail.css` | 399 | 负责 Skill Detail 网格、页头长路径响应式布局、基础信息、质量检查、依赖表格、危险区和模态框样式。 |
 | `src/detail/DetailDrawer.tsx` | 29 | 提供详情抽屉外壳，保留给兼容代码和后续扩展。 |
 | `src/components/FileTree.tsx` | 31 | 提供文件结构展示组件。 |
 | `src/components/QualityCheck.tsx` | 28 | 提供质量检查结果组件。 |
@@ -34,6 +34,8 @@
 - 复制先确认目标名称，再调用 `clone_skill`，成功后进入新 Skill Detail 并显示新路径与 User 来源
 - 应用内归档读写 `AppSettings.skillArchives`，通过 `save_app_settings` 持久化，保留本地文件
 - 删除本地文件必须二次确认，调用 `delete_skill`，成功后从 Library store 移除该 Skill
+- 页头标题和路径允许收缩，操作区不压缩按钮文本；1200px 以下操作区整体换到标题下方
+- 独立备份按钮在后端未提供明确命令契约前保持禁用并显示“备份待实现”
 
 ## 修改规则
 
@@ -41,6 +43,7 @@
 - 文件、质量、依赖、危险区保持只读展示
 - 删除、归档、复制等操作必须保留确认弹窗、取消反馈和失败反馈
 - 删除弹窗必须展示名称、来源、完整路径、影响目录、废纸篓与应用内备份说明、恢复方式和确认勾选框
+- 不允许保留可点击但无响应的 Detail 操作按钮
 
 ## 解耦要求
 

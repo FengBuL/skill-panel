@@ -11,14 +11,14 @@
 ## 代码规模
 
 - 源码文件数：20
-- 代码总行数：1233
+- 代码总行数：1254
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
 | `src/components/ui.tsx` | 79 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
-| `src/components/ui.css` | 539 | 提供 Button、ActionButton、PageHeader、StatusPill、Modal、Drawer、Template、EmptyState 等无阴影组件样式。 |
+| `src/components/ui.css` | 560 | 提供 Button、ActionButton、PageHeader、StatusPill、Modal、Drawer、Template、EmptyState 等无阴影组件样式，按钮文本默认保持单行。 |
 | `src/components/ActionButton.tsx` | 34 | 提供 Notion 风格通用操作按钮，支持 primary、ghost、secondary、danger、text。 |
 | `src/components/Modal.tsx` | 28 | 提供 Notion 风格弹窗结构。 |
 | `src/components/Drawer.tsx` | 14 | 提供 Notion 风格抽屉结构。 |
@@ -45,6 +45,7 @@
 - 纯图标按钮提供可访问标签
 - 错误边界包裹可恢复 UI 区域
 - Toast、错误边界和通用错误展示需在输出前脱敏
+- 共享按钮文本默认不拆行；窄屏布局应由容器换行或纵向排列处理
 
 ## 修改规则
 

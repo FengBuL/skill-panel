@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
 import { useSettingsStore } from './store/settingsStore';
@@ -11,6 +12,69 @@ const { invokeMock, listenMock } = vi.hoisted(() => ({
   invokeMock: vi.fn(),
   listenMock: vi.fn(),
 }));
+
+const editableSkill: Skill = {
+  name: 'editable skill',
+  description: 'Editable local source',
+  source: 'mine',
+  category: 'AI',
+  path: '/tmp/editable-skill/SKILL.md',
+  modifiedAt: '2026-07-16',
+  size: 100,
+  starred: false,
+  disabled: false,
+  protected: false,
+};
+
+const protectedSkillFixture: Skill = {
+  name: 'protected skill',
+  description: 'Protected plugin source',
+  source: 'plugin',
+  category: 'AI',
+  path: '/tmp/protected-skill/SKILL.md',
+  modifiedAt: '2026-07-16',
+  size: 100,
+  starred: false,
+  disabled: false,
+  protected: true,
+};
+
+function skillDetailFor(skill: Skill): SkillDetail {
+  return {
+    path: skill.path,
+    name: skill.name,
+    description: skill.description,
+    source: skill.source === 'mine' ? 'codex-user' : 'plugin-cache',
+    parseStatus: 'parsed',
+    modifiedAt: skill.modifiedAt,
+    markdown: `# ${skill.name}\n\nBody`,
+    bodyMarkdown: `# ${skill.name}\n\nBody`,
+    rawContent: `# ${skill.name}\n\nBody`,
+    frontmatter: { name: skill.name, description: skill.description },
+  };
+}
+
+function mockShellCommands(skills: Skill[]) {
+  invokeMock.mockImplementation((command: string, payload?: unknown) => {
+    if (command === 'watch_scan_dirs') return Promise.resolve();
+    if (command === 'scan_skills') return Promise.resolve(skills);
+    if (command === 'load_app_settings') {
+      return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+    }
+    if (command === 'read_skill') {
+      const path = (payload as { path?: string } | undefined)?.path;
+      const skill = skills.find((item) => item.path === path) || skills[0];
+      return Promise.resolve(skillDetailFor(skill));
+    }
+    if (command === 'get_version_history') {
+      return Promise.resolve([{ id: 'v1', time: '2026-07-16', note: 'snapshot', diffLines: 1, source: 'manual' }]);
+    }
+    if (command === 'clone_skill') {
+      return Promise.resolve({ newPath: '/tmp/editable-copy/SKILL.md' });
+    }
+    return Promise.resolve([]);
+  });
+}
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
@@ -340,6 +404,195 @@ describe('AppShell Tauri event fallback', () => {
     expect(await screen.findByText('受保护来源')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '删除本地文件' })).toBeDisabled();
     expect(invokeMock).not.toHaveBeenCalledWith('delete_skill', expect.anything());
+  });
+
+  it('marks the standalone detail backup button as pending while no command contract exists', async () => {
+    const skill: Skill = {
+      name: 'local skill',
+      description: 'Editable local source',
+      source: 'mine',
+      category: 'AI',
+      path: '/tmp/local-skill/SKILL.md',
+      modifiedAt: '2026-07-15',
+      size: 100,
+      starred: false,
+      disabled: false,
+      protected: false,
+    };
+    useSkillStore.setState({ skills: [skill], filtered: [skill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: skill.path });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'load_app_settings') {
+        return Promise.resolve({ language: 'zh-CN', customScanDirectories: [], showDefaultScanDirectories: true, skillArchives: {} });
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    expect(await screen.findByRole('button', { name: '备份待实现' })).toBeDisabled();
+  });
+
+  it('keeps detail header actions from wrapping button labels under long paths', () => {
+    const css = readFileSync('src/detail/detail.css', 'utf8');
+
+    expect(css).toMatch(/\.detail-title-block\s*{[^}]*flex:\s*1[^}]*min-width:\s*0/s);
+    expect(css).toMatch(/\.detail-actions-row\s*{[^}]*flex-shrink:\s*0/s);
+    expect(css).toMatch(/\.detail-actions-row\s+\.btn\s*{[^}]*white-space:\s*nowrap/s);
+    expect(css).toMatch(/@media\s*\(max-width:\s*1200px\)\s*{[^}]*\.detail-page-header\s*{[^}]*flex-direction:\s*column/s);
+  });
+
+  it('selects a Library card on single click without leaving Library', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: /protected skill/i }));
+
+    expect(useUIStore.getState().subView).toBeNull();
+    expect(useSkillStore.getState().drawerIdx).toBe(1);
+    expect(screen.getByText('Protected plugin source')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /protected skill/i })).toHaveClass('active');
+  });
+
+  it('opens an editable Library card in the normal Editor on double click', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    expect(screen.queryByText(/这是受保护的 Skill/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Markdown body')).not.toHaveAttribute('readonly');
+  });
+
+  it('opens a protected Library card in read-only Editor on double click', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    expect(screen.getByText('这是受保护的 Skill。当前页面仅供查看，原文件不会被修改。如需编辑，请复制到可编辑目录。')).toBeInTheDocument();
+    expect(screen.getByLabelText('name')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Markdown body')).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '撤销更改' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'AI 辅助' })).toBeDisabled();
+    expect(screen.getByText('只读模式已禁用 AI 写回。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '恢复 v1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '复制到可编辑目录' })).toBeInTheDocument();
+  });
+
+  it('copies a protected read-only Editor skill into a normal editable Editor', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(await screen.findByRole('button', { name: '复制到可编辑目录' }));
+
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('clone_skill', {
+      destName: protectedSkillFixture.name,
+      srcPath: protectedSkillFixture.path,
+    }));
+    await waitFor(() => expect(screen.queryByText(/这是受保护的 Skill/)).not.toBeInTheDocument());
+    expect(screen.getByLabelText('Markdown body')).not.toHaveAttribute('readonly');
+    expect(useUIStore.getState().subView).toBe('editor');
+    expect(useUIStore.getState().subParam).toBe('/tmp/editable-copy/SKILL.md');
+  });
+
+  it('opens editable and protected Library cards from Enter key', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    const { unmount } = render(<AppShell />);
+
+    const editableCard = await screen.findByRole('button', { name: /editable skill/i });
+    editableCard.focus();
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+
+    unmount();
+    useUIStore.setState({ mainView: 'library', subView: null, subParam: null });
+    useSkillStore.setState({ skills: [], filtered: [], filters: { source: [], category: [], status: [] }, drawerIdx: -1 });
+    render(<AppShell />);
+
+    const protectedCard = await screen.findByRole('button', { name: /protected skill/i });
+    protectedCard.focus();
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    expect(screen.getByText(/这是受保护的 Skill/)).toBeInTheDocument();
+  });
+
+  it('returns from a Library-opened editable Editor back to Library', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
+    await user.click(await screen.findByRole('button', { name: '返回' }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
+    expect(screen.getByText('Manage your Skills')).toBeInTheDocument();
+    expect(useSkillStore.getState().drawerIdx).toBe(0);
+  });
+
+  it('returns from a Library-opened protected read-only Editor back to Library', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(await screen.findByRole('button', { name: '返回' }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
+    expect(screen.getByText('Manage your Skills')).toBeInTheDocument();
+    expect(useSkillStore.getState().drawerIdx).toBe(1);
+  });
+
+  it('returns from Detail-opened Editor back to the original Detail page', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill]);
+    useSkillStore.setState({ skills: [editableSkill], filtered: [editableSkill], drawerIdx: 0 });
+    useUIStore.setState({ mainView: 'library', subView: 'detail', subParam: editableSkill.path });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '编辑' }));
+    await user.click(await screen.findByRole('button', { name: '返回' }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(editableSkill.path);
+  });
+
+  it('confirms before returning with unsaved Editor changes and keeps the correct target', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
+    await user.type(await screen.findByLabelText('Markdown body'), '\nchanged');
+    await user.click(screen.getByRole('button', { name: '返回' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '离开编辑器？' });
+    expect(dialog).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: '继续编辑' }));
+    expect(useUIStore.getState().subView).toBe('editor');
+
+    await user.click(screen.getByRole('button', { name: '返回' }));
+    await user.click(await screen.findByRole('button', { name: '确认返回' }));
+    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
   });
 
   it('saves AI keys through set_ai_key without keeping the raw key in settings state', async () => {

@@ -1,9 +1,11 @@
 import type { Skill } from '../store/skillStore';
+import type { KeyboardEvent } from 'react';
 
 type SkillCardProps = {
   skill: Skill;
   active?: boolean;
   onClick?: () => void;
+  onOpen?: () => void;
 };
 
 function sourceLabel(source: Skill['source']) {
@@ -31,9 +33,21 @@ function iconToneClass(skill: Skill) {
   return 'skill-icon-blue';
 }
 
-export function SkillCard({ skill, active = false, onClick }: SkillCardProps) {
+export function SkillCard({ skill, active = false, onClick, onOpen }: SkillCardProps) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    onOpen?.();
+  };
+
   return (
-    <button className={`card skill-card ${active ? 'active' : ''}`} type="button" onClick={onClick}>
+    <button
+      className={`card skill-card ${active ? 'active' : ''}`}
+      type="button"
+      onClick={onClick}
+      onDoubleClick={onOpen}
+      onKeyDown={handleKeyDown}
+    >
       <div className="skill-card-header">
         <div className={`skill-icon ${iconToneClass(skill)}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

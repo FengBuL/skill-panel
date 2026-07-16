@@ -380,13 +380,12 @@ async function runScenario(browser, scenario) {
 
   if (scenario.page === 'drawer') {
     await page.locator('.skill-card').filter({ hasText: 'visual qa skill' }).first().click();
-    await page.getByRole('button', { name: '编辑' }).waitFor({ timeout: 5000 });
+    await page.locator('.detail-panel').filter({ hasText: 'visual qa skill' }).waitFor({ timeout: 5000 });
     await page.waitForTimeout(350);
   }
 
   if (scenario.page === 'editor') {
-    await page.locator('.skill-card').filter({ hasText: 'visual qa skill' }).first().click();
-    await page.getByRole('button', { name: '编辑' }).click();
+    await page.locator('.skill-card').filter({ hasText: 'visual qa skill' }).first().dblclick();
     await page.locator('.editor-workspace').waitFor({ timeout: 5000 });
     await page.getByRole('button', { name: 'AI', exact: true }).click();
     await page.locator('.ai-rail').waitFor({ timeout: 5000 });
@@ -412,7 +411,7 @@ async function runScenario(browser, scenario) {
     const topBar = document.querySelector('.top-nav');
     const libraryGrid = document.querySelector('.skill-grid');
     const libraryCard = document.querySelector('.skill-card');
-    const detailPanel = document.querySelector('.detail-page-header');
+    const detailPanel = document.querySelector('.detail-page-header, .detail-panel');
     const dashboard = Array.from(document.querySelectorAll('.page-subtitle')).find(element => element.textContent?.includes('Skill 仓库概览'));
     const editor = document.querySelector('.editor-workspace');
     const aiRail = document.querySelector('.ai-rail');

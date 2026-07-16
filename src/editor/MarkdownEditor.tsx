@@ -1,9 +1,10 @@
 type MarkdownEditorProps = {
   value: string;
   onChange: (next: string) => void;
+  readOnly?: boolean;
 };
 
-export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
+export function MarkdownEditor({ value, onChange, readOnly = false }: MarkdownEditorProps) {
   return (
     <div className="card-body editor-markdown-body">
       <textarea
@@ -11,6 +12,7 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
         aria-label="Markdown body"
         spellCheck={false}
         value={value}
+        readOnly={readOnly}
         onChange={(event) => onChange(event.target.value)}
       />
     </div>

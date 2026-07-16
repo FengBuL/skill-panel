@@ -248,18 +248,27 @@ export function DetailView() {
   return (
     <>
       <div className="page-header detail-page-header">
-        <div>
+        <div className="detail-title-block">
           <h1 className="page-title">{current.name}</h1>
           <p className="page-subtitle">{displayPath}</p>
         </div>
         <div className="flex gap-2 detail-actions-row">
           {permission.canEdit ? (
-            <button className="btn btn-primary" type="button" onClick={() => ui.enterSub('editor', current.path)}>编辑</button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => ui.enterEditor(current.path, {
+                readOnly: false,
+                returnTarget: { subView: 'detail', subParam: current.path },
+              })}
+            >
+              编辑
+            </button>
           ) : (
             <button className="btn btn-primary" type="button" onClick={() => openModal('copy')}>复制到可编辑目录</button>
           )}
           <button className="btn btn-text" type="button" onClick={() => void openCurrentFolder()}>打开目录</button>
-          <button className="btn btn-text" type="button">备份</button>
+          <button className="btn btn-text" type="button" disabled title="待实现" aria-label="备份待实现">备份待实现</button>
           <button className="btn btn-danger-text" type="button" onClick={() => openModal('archive')}>
             {archived ? '取消归档' : '归档'}
           </button>

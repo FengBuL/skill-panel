@@ -10,6 +10,7 @@ export type FrontmatterDraft = {
 type FrontmatterFormProps = {
   value: FrontmatterDraft;
   onChange: (next: FrontmatterDraft) => void;
+  readOnly?: boolean;
 };
 
 const fields: { key: keyof FrontmatterDraft; label: string }[] = [
@@ -21,7 +22,7 @@ const fields: { key: keyof FrontmatterDraft; label: string }[] = [
   { key: 'author', label: 'author' },
 ];
 
-export function FrontmatterForm({ value, onChange }: FrontmatterFormProps) {
+export function FrontmatterForm({ value, onChange, readOnly = false }: FrontmatterFormProps) {
   return (
     <div className="card-body editor-frontmatter-body">
       {fields.map((field) => (
@@ -31,6 +32,7 @@ export function FrontmatterForm({ value, onChange }: FrontmatterFormProps) {
             id={`frontmatter-${field.key}`}
             className="input"
             value={value[field.key]}
+            readOnly={readOnly}
             onChange={(event) => onChange({ ...value, [field.key]: event.target.value })}
           />
         </div>

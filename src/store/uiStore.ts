@@ -6,11 +6,22 @@ export type MainView = 'dashboard' | 'library';
 export type SubView = 'editor' | 'create' | 'preview' | 'detail' | 'ai' | 'logs' | 'dependencies' | 'settings' | 'empty-states' | null;
 
 interface UndoEntry { label: string; undo?: () => void; redo?: () => void; ts: number }
+export interface EditorReturnTarget {
+  subView: SubView;
+  subParam: string | null;
+}
+
+export interface EditorOptions {
+  readOnly?: boolean;
+  returnTarget?: EditorReturnTarget;
+}
 
 interface UIState {
   mainView: MainView;
   subView: SubView;
   subParam: string | null; // editor/preview 传 skill name
+  editorReadOnly: boolean;
+  editorReturnTarget: EditorReturnTarget | null;
   cmdOpen: boolean;
   historyOpen: boolean;
   aiRailOpen: boolean;
@@ -20,6 +31,7 @@ interface UIState {
 
   setMainView: (v: MainView) => void;
   enterSub: (v: SubView, param?: string) => void;
+  enterEditor: (param?: string, options?: EditorOptions) => void;
   exitSub: () => void;
   setCmdOpen: (b: boolean) => void;
   setHistoryOpen: (b: boolean) => void;
@@ -34,6 +46,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   mainView: 'library',
   subView: null,
   subParam: null,
+  editorReadOnly: false,
+  editorReturnTarget: null,
   cmdOpen: false,
   historyOpen: false,
   aiRailOpen: false,
@@ -41,11 +55,22 @@ export const useUIStore = create<UIState>((set, get) => ({
   undoStack: [],
   redoStack: [],
 
-  setMainView: (v) => set({ mainView: v, subView: null, subParam: null }),
+  setMainView: (v) => set({ mainView: v, subView: null, subParam: null, editorReadOnly: false, editorReturnTarget: null }),
 
-  enterSub: (v, param) => set({ subView: v, subParam: param ?? null }),
+  enterSub: (v, param) => set({
+    subView: v,
+    subParam: param ?? null,
+    ...(v === 'editor' ? {} : { editorReadOnly: false, editorReturnTarget: null }),
+  }),
 
-  exitSub: () => set({ subView: null, subParam: null }),
+  enterEditor: (param, options) => set({
+    subView: 'editor',
+    subParam: param ?? null,
+    editorReadOnly: options?.readOnly ?? false,
+    editorReturnTarget: options?.returnTarget ?? { subView: null, subParam: null },
+  }),
+
+  exitSub: () => set({ subView: null, subParam: null, editorReadOnly: false, editorReturnTarget: null }),
 
   setCmdOpen: (b) => set({ cmdOpen: b }),
   setHistoryOpen: (b) => set({ historyOpen: b }),

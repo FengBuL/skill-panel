@@ -11,13 +11,13 @@
 ## 代码规模
 
 - 源码文件数：9
-- 代码总行数：750
+- 代码总行数：775
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/store/uiStore.ts` | 77 | 负责 UI 状态、Detail 子视图、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
+| `src/store/uiStore.ts` | 102 | 负责 UI 状态、Detail 子视图、Editor 只读状态、Editor 返回目标、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/stores/SkillPanelProvider.tsx` | 130 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useDebouncedValue.ts` | 16 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/usePreferencePersistence.ts` | 48 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
@@ -30,6 +30,7 @@
 ## 对外契约
 
 - useUIStore 控制主视图和次级视图
+- useUIStore 通过 `enterEditor` 保存 Editor 只读状态和来源返回目标
 - Hook 只处理单一交互职责
 - 偏好持久化保持浏览器兼容
 - 受保护来源的前端按钮状态复用统一权限 helper
@@ -37,6 +38,7 @@
 ## 修改规则
 
 - 跨页面状态集中到 store
+- Editor 入口必须使用 `enterEditor` 传递只读状态和返回目标
 - 局部交互优先留在页面组件
 - Hook 输入输出保持清晰
 

@@ -6,7 +6,8 @@ import { ValidationResult } from '../components/ValidationResult';
 import { showToast } from '../components/Toast';
 import { useAIRail } from '../hooks/useAIRail';
 import { sanitizeText } from '../lib/redaction';
-import { getVersionHistory, readSkill, restoreVersion, updateSkill, validateSkill } from '../lib/invoke';
+import { cloneSkill, getVersionHistory, readSkill, restoreVersion, updateSkill, validateSkill } from '../lib/invoke';
+import { getSkillPermission } from '../lib/skillPermissions';
 import { useSettingsStore } from '../store/settingsStore';
 import { useSkillStore } from '../store/skillStore';
 import { useUIStore } from '../store/uiStore';
@@ -245,9 +246,18 @@ export function EditorView() {
   const [restoreCandidate, setRestoreCandidate] = useState<RestoreCandidate>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [aiDraftNotice, setAiDraftNotice] = useState<string | null>(null);
+  const [showReturnConfirm, setShowReturnConfirm] = useState(false);
+  const [copyingProtected, setCopyingProtected] = useState(false);
+  const [copyFailure, setCopyFailure] = useState<string | null>(null);
 
   const skill = useMemo(() => selectedSkill, [selectedSkill]);
   const pagePath = skill?.path || pathForName(frontmatter.name);
+  const permission = skill ? getSkillPermission(skill) : null;
+  const readOnly = ui.editorReadOnly || Boolean(permission?.readOnly);
+  const returnTarget = ui.editorReturnTarget ?? {
+    subView: skill ? 'detail' as const : null,
+    subParam: skill?.path || null,
+  };
 
   useEffect(() => {
     const nextName = selectedSkill?.name || ui.subParam || 'Browser Control';
@@ -259,6 +269,8 @@ export function EditorView() {
     setVersions([]);
     setSuccessBanner(null);
     setAiDraftNotice(null);
+    setShowReturnConfirm(false);
+    setCopyFailure(null);
   }, [selectedSkill?.name, ui.subParam]);
 
   useEffect(() => {
@@ -281,15 +293,18 @@ export function EditorView() {
   }, [skill?.path]);
 
   const markDirty = () => {
+    if (readOnly) return;
     setDirty(true);
     setSaveStatus('dirty');
     setSuccessBanner(null);
   };
   const updateFrontmatter = (next: FrontmatterDraft) => {
+    if (readOnly) return;
     setFrontmatter(next);
     markDirty();
   };
   const updateMarkdown = (next: string) => {
+    if (readOnly) return;
     setMarkdown(next);
     markDirty();
   };
@@ -304,7 +319,7 @@ export function EditorView() {
   };
 
   const save = async (options?: { force?: boolean }) => {
-    if (!skill?.path || !dirty || saveStatus === 'saving') return;
+    if (readOnly || !skill?.path || !dirty || saveStatus === 'saving') return;
     setSaveStatus('saving');
     setSaveFailure(null);
     try {
@@ -354,7 +369,7 @@ export function EditorView() {
   };
 
   const confirmUndo = () => {
-    if (!baseline) return;
+    if (readOnly || !baseline) return;
     setFrontmatter(baseline.frontmatter);
     setMarkdown(baseline.markdown);
     setDirty(false);
@@ -375,7 +390,7 @@ export function EditorView() {
   };
 
   const confirmRestore = async () => {
-    if (!skill?.path || !restoreCandidate) return;
+    if (readOnly || !skill?.path || !restoreCandidate) return;
     try {
       await restoreVersion(skill.path, restoreCandidate.id);
       const reloaded = await readSkill(skill.path);
@@ -422,22 +437,72 @@ export function EditorView() {
     vendor: settings.aiVendor,
     desensitize: settings.aiDesensitize,
     onApply: (newContent) => {
+      if (readOnly) return;
       updateMarkdown(newContent);
       setAiDraftNotice('已采纳 1 条建议，点击保存后写回 SKILL.md');
     },
     onToast: (message) => showToast(sanitizeText(message), ''),
   });
 
+  const performReturn = () => {
+    setShowReturnConfirm(false);
+    if (returnTarget.subView) {
+      ui.enterSub(returnTarget.subView, returnTarget.subParam ?? undefined);
+      return;
+    }
+    ui.exitSub();
+  };
+
+  const requestReturn = () => {
+    if (dirty && !readOnly) {
+      setShowReturnConfirm(true);
+      return;
+    }
+    performReturn();
+  };
+
+  const copyProtectedToEditable = async () => {
+    if (!skill?.path || copyingProtected) return;
+    setCopyingProtected(true);
+    setCopyFailure(null);
+    try {
+      const result = await cloneSkill(skill.path, skill.name);
+      const copied = {
+        ...skill,
+        source: 'mine' as const,
+        protected: false,
+        path: result.newPath,
+      };
+      skillStore.setSkills([...skillStore.skills, copied]);
+      skillStore.openDrawer(skillStore.skills.length);
+      ui.enterEditor(result.newPath, {
+        readOnly: false,
+        returnTarget,
+      });
+      showToast('已复制到可编辑目录', '');
+    } catch (error) {
+      const message = sanitizeText(error instanceof Error ? error.message : String(error));
+      setCopyFailure(`复制失败：${message}`);
+    } finally {
+      setCopyingProtected(false);
+    }
+  };
+
   return (
     <>
       <div className="page-header editor-page-header">
-        <div>
-          <h1 className="page-title">编辑 {frontmatter.name}</h1>
-          <p className="page-subtitle">{pagePath}</p>
+        <div className="editor-header-main">
+          <button className="btn btn-text editor-back-button" type="button" aria-label="返回" onClick={requestReturn}>
+            <span aria-hidden="true">←</span>
+            <span>返回</span>
+          </button>
+          <div className="editor-title-block">
+            <h1 className="page-title">{readOnly ? '查看' : '编辑'} {frontmatter.name}</h1>
+            <p className="page-subtitle">{pagePath}</p>
+          </div>
         </div>
         <div className="flex gap-2 editor-header-actions">
-          <button className="btn btn-ghost" type="button" onClick={() => ui.enterSub('ai', skill?.path || frontmatter.name)}>AI 辅助</button>
-          <button className="btn btn-text" type="button" onClick={() => ui.enterSub('detail', skill?.path || frontmatter.name)}>返回详情</button>
+          <button className="btn btn-ghost" type="button" disabled={readOnly} onClick={() => ui.enterSub('ai', skill?.path || frontmatter.name)}>AI 辅助</button>
         </div>
       </div>
 
@@ -448,11 +513,20 @@ export function EditorView() {
               <h2 className="card-title">Frontmatter</h2>
               <span className={`editor-dirty-pill ${dirty ? 'is-dirty' : ''}`}>{saveStatus === 'saving' ? '保存中…' : dirty ? '未保存' : '已同步'}</span>
             </div>
+            {readOnly ? (
+              <div className="editor-banner warning" aria-live="polite">
+                <p>这是受保护的 Skill。当前页面仅供查看，原文件不会被修改。如需编辑，请复制到可编辑目录。</p>
+                <button className="btn btn-ghost btn-sm" type="button" disabled={copyingProtected || !skill?.path} onClick={copyProtectedToEditable}>
+                  {copyingProtected ? '复制中' : '复制到可编辑目录'}
+                </button>
+                {copyFailure ? <small>{copyFailure}</small> : null}
+              </div>
+            ) : null}
             {successBanner ? <div className="editor-banner success" aria-live="polite">{successBanner}</div> : null}
             {aiDraftNotice ? <div className="editor-banner info" aria-live="polite">{aiDraftNotice}</div> : null}
-            <FrontmatterForm value={frontmatter} onChange={updateFrontmatter} />
+            <FrontmatterForm value={frontmatter} onChange={updateFrontmatter} readOnly={readOnly} />
             <div className="card-header editor-section-header"><h2 className="card-title">Markdown</h2></div>
-            <MarkdownEditor value={markdown} onChange={updateMarkdown} />
+            <MarkdownEditor value={markdown} onChange={updateMarkdown} readOnly={readOnly} />
           </div>
 
           <PreviewPane markdown={markdown} />
@@ -465,7 +539,9 @@ export function EditorView() {
             </div>
             <div className="card-header editor-section-header"><h2 className="card-title">AI 辅助</h2></div>
             <div className="card-body">
-              {showAI ? (
+              {readOnly ? (
+                <p className="text-sm text-secondary mb-3">只读模式已禁用 AI 写回。</p>
+              ) : showAI ? (
                 <AIRail
                   status={aiRail.status}
                   stream={aiRail.stream}
@@ -494,6 +570,7 @@ export function EditorView() {
                   className="editor-version-row"
                   type="button"
                   aria-label={`恢复 ${version.id}`}
+                  disabled={readOnly}
                   onClick={() => setRestoreCandidate(version)}
                 >
                   <span>{version.time}</span>
@@ -504,14 +581,14 @@ export function EditorView() {
               )) : <p className="text-sm text-secondary">暂无版本历史</p>}
             </div>
             <div className="editor-save-row">
-              <button className="btn btn-text" type="button" disabled={!dirty} onClick={() => setShowUndoConfirm(true)}>撤销更改</button>
-              <button className="btn btn-primary" type="button" disabled={!dirty || saveStatus === 'saving' || !skill?.path} onClick={() => save()}>保存</button>
+              <button className="btn btn-text" type="button" disabled={readOnly || !dirty} onClick={() => setShowUndoConfirm(true)}>撤销更改</button>
+              <button className="btn btn-primary" type="button" disabled={readOnly || !dirty || saveStatus === 'saving' || !skill?.path} onClick={() => save()}>保存</button>
             </div>
           </aside>
         </div>
       </EditorWorkspace>
 
-      {aiRail.status === 'diffing' && aiRail.result && aiRail.lastAction ? (
+      {!readOnly && aiRail.status === 'diffing' && aiRail.result && aiRail.lastAction ? (
         <DiffModal
           hunks={aiRail.hunks}
           result={aiRail.result}
@@ -550,6 +627,23 @@ export function EditorView() {
             <div className="editor-modal-actions">
               <button className="btn btn-text" type="button" onClick={() => setShowUndoConfirm(false)}>保留草稿并继续</button>
               <button className="btn btn-primary" type="button" onClick={confirmUndo}>确认撤销</button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {showReturnConfirm ? (
+        <Modal
+          title="离开编辑器？"
+          description="当前编辑尚未保存。确认返回后，未保存内容会丢失。"
+          onClose={() => setShowReturnConfirm(false)}
+          primary={performReturn}
+        >
+          <div className="editor-modal-body">
+            <p>可以继续编辑，或确认返回上一级。</p>
+            <div className="editor-modal-actions">
+              <button className="btn btn-text" type="button" onClick={() => setShowReturnConfirm(false)}>继续编辑</button>
+              <button className="btn btn-primary" type="button" onClick={performReturn}>确认返回</button>
             </div>
           </div>
         </Modal>

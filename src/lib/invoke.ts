@@ -67,7 +67,8 @@ function firstCategorySignal(s: SkillSummary): string | null {
 
 // SkillSummary → store Skill 映射
 export function mapSummary(s: SkillSummary): Skill {
-  const isPlugin = s.source === 'plugin-cache' || s.source === 'system' || s.source === 'unknown';
+  const source = String(s.source);
+  const isPlugin = source === 'plugin-cache' || source === 'plugin' || source === 'system' || source === 'unknown';
   const frontmatter = s.frontmatter || {};
   return {
     name: s.name,
@@ -116,6 +117,10 @@ export async function getVersionHistory(path: string): Promise<{ id: string; tim
 
 export async function restoreVersion(path: string, versionId: string): Promise<void> {
   await invoke('restore_version', { path, versionId });
+}
+
+export async function cloneSkill(srcPath: string, destName: string): Promise<{ newPath: string }> {
+  return await invoke('clone_skill', { srcPath, destName });
 }
 
 // 校验 Skill
