@@ -462,9 +462,10 @@ describe('AppShell Tauri event fallback', () => {
     expect(useSkillStore.getState().drawerIdx).toBe(1);
     expect(screen.getByText('Protected plugin source')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /protected skill/i })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: /protected skill/i })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('opens an editable Library card in the normal Editor on double click', async () => {
+  it('opens an editable Library card in full Detail on double click without entering Editor', async () => {
     const user = userEvent.setup();
     mockShellCommands([editableSkill, protectedSkillFixture]);
 
@@ -472,13 +473,13 @@ describe('AppShell Tauri event fallback', () => {
 
     await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
 
-    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
-    expect(screen.queryByText(/这是受保护的 Skill/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Markdown body')).not.toHaveAttribute('readonly');
-    expectEditorHeaderActionsOrder();
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(editableSkill.path);
+    expect(screen.getByRole('button', { name: '编辑' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Markdown body')).not.toBeInTheDocument();
   });
 
-  it('opens a protected Library card in read-only Editor on double click', async () => {
+  it('opens a protected Library card in full Detail on double click without entering Editor', async () => {
     const user = userEvent.setup();
     mockShellCommands([editableSkill, protectedSkillFixture]);
 
@@ -486,17 +487,39 @@ describe('AppShell Tauri event fallback', () => {
 
     await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
 
-    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
-    expect(screen.getByText('这是受保护的 Skill。当前页面仅供查看，原文件不会被修改。如需编辑，请复制到可编辑目录。')).toBeInTheDocument();
-    expect(screen.getByLabelText('name')).toHaveAttribute('readonly');
-    expect(screen.getByLabelText('Markdown body')).toHaveAttribute('readonly');
-    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '撤销更改' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'AI 辅助' })).toBeDisabled();
-    expect(screen.getByText('只读模式已禁用 AI 写回。')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '恢复 v1' })).toBeDisabled();
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(protectedSkillFixture.path);
+    expect(await screen.findByText('受保护来源')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '只读查看' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '复制到可编辑目录' })).toBeInTheDocument();
-    expectEditorHeaderActionsOrder();
+    expect(screen.queryByLabelText('Markdown body')).not.toBeInTheDocument();
+  });
+
+  it('opens full Detail from the Library side panel action', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(screen.getByRole('button', { name: '查看完整详情' }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(protectedSkillFixture.path);
+  });
+
+  it('returns from full Detail to Library while preserving the selected card', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([editableSkill, protectedSkillFixture]);
+
+    render(<AppShell />);
+
+    await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(await screen.findByRole('button', { name: '返回 Library' }));
+
+    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
+    expect(useSkillStore.getState().drawerIdx).toBe(1);
+    expect(screen.getByRole('button', { name: /protected skill/i })).toHaveClass('active');
   });
 
   it('copies a protected read-only Editor skill into a normal editable Editor', async () => {
@@ -506,6 +529,7 @@ describe('AppShell Tauri event fallback', () => {
     render(<AppShell />);
 
     await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(await screen.findByRole('button', { name: '只读查看' }));
     await user.click(await screen.findByRole('button', { name: '复制到可编辑目录' }));
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith('clone_skill', {
@@ -527,7 +551,8 @@ describe('AppShell Tauri event fallback', () => {
     const editableCard = await screen.findByRole('button', { name: /editable skill/i });
     editableCard.focus();
     await user.keyboard('{Enter}');
-    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(editableSkill.path);
 
     unmount();
     useUIStore.setState({ mainView: 'library', subView: null, subParam: null });
@@ -537,36 +562,47 @@ describe('AppShell Tauri event fallback', () => {
     const protectedCard = await screen.findByRole('button', { name: /protected skill/i });
     protectedCard.focus();
     await user.keyboard('{Enter}');
-    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
-    expect(screen.getByText(/这是受保护的 Skill/)).toBeInTheDocument();
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(protectedSkillFixture.path);
+    expect(screen.getByRole('button', { name: '只读查看' })).toBeInTheDocument();
   });
 
-  it('returns from a Library-opened editable Editor back to Library', async () => {
+  it('opens a normal Editor from editable Detail and returns to that Detail', async () => {
     const user = userEvent.setup();
     mockShellCommands([editableSkill, protectedSkillFixture]);
 
     render(<AppShell />);
 
     await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
+    await user.click(await screen.findByRole('button', { name: '编辑' }));
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    expect(screen.getByLabelText('Markdown body')).not.toHaveAttribute('readonly');
+    expectEditorHeaderActionsOrder();
     await user.click(await screen.findByRole('button', { name: '返回' }));
 
-    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
-    expect(screen.getByText('Manage your Skills')).toBeInTheDocument();
-    expect(useSkillStore.getState().drawerIdx).toBe(0);
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(editableSkill.path);
   });
 
-  it('returns from a Library-opened protected read-only Editor back to Library', async () => {
+  it('opens a read-only Editor from protected Detail and returns to that Detail', async () => {
     const user = userEvent.setup();
     mockShellCommands([editableSkill, protectedSkillFixture]);
 
     render(<AppShell />);
 
     await user.dblClick(await screen.findByRole('button', { name: /protected skill/i }));
+    await user.click(await screen.findByRole('button', { name: '只读查看' }));
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
+    expect(screen.getByText('这是受保护的 Skill。当前页面仅供查看，原文件不会被修改。如需编辑，请复制到可编辑目录。')).toBeInTheDocument();
+    expect(screen.getByLabelText('name')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Markdown body')).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'AI 辅助' })).toBeDisabled();
+    expectEditorHeaderActionsOrder();
     await user.click(await screen.findByRole('button', { name: '返回' }));
 
-    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
-    expect(screen.getByText('Manage your Skills')).toBeInTheDocument();
-    expect(useSkillStore.getState().drawerIdx).toBe(1);
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(protectedSkillFixture.path);
   });
 
   it('returns from Detail-opened Editor back to the original Detail page', async () => {
@@ -591,6 +627,7 @@ describe('AppShell Tauri event fallback', () => {
     render(<AppShell />);
 
     await user.dblClick(await screen.findByRole('button', { name: /editable skill/i }));
+    await user.click(await screen.findByRole('button', { name: '编辑' }));
     await user.type(await screen.findByLabelText('Markdown body'), '\nchanged');
     await user.click(screen.getByRole('button', { name: '返回' }));
 
@@ -601,7 +638,8 @@ describe('AppShell Tauri event fallback', () => {
 
     await user.click(screen.getByRole('button', { name: '返回' }));
     await user.click(await screen.findByRole('button', { name: '确认返回' }));
-    await waitFor(() => expect(useUIStore.getState().subView).toBeNull());
+    await waitFor(() => expect(useUIStore.getState().subView).toBe('detail'));
+    expect(useUIStore.getState().subParam).toBe(editableSkill.path);
   });
 
   it('saves AI keys through set_ai_key without keeping the raw key in settings state', async () => {

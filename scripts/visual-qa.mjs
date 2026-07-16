@@ -386,6 +386,8 @@ async function runScenario(browser, scenario) {
 
   if (scenario.page === 'editor') {
     await page.locator('.skill-card').filter({ hasText: 'visual qa skill' }).first().dblclick();
+    await page.getByRole('button', { name: '编辑' }).waitFor({ timeout: 5000 });
+    await page.getByRole('button', { name: '编辑' }).click();
     await page.locator('.editor-workspace').waitFor({ timeout: 5000 });
     await page.getByRole('button', { name: 'AI', exact: true }).click();
     await page.locator('.ai-rail').waitFor({ timeout: 5000 });

@@ -2,6 +2,7 @@ import type { Skill } from '../store/skillStore';
 
 type DetailPanelProps = {
   skill: Skill | null;
+  onOpenDetail?: (skill: Skill) => void;
 };
 
 function sourceLabel(source?: Skill['source']) {
@@ -13,7 +14,7 @@ function shortPath(path: string) {
   return path.replace(/^\/Users\/[^/]+/, '~');
 }
 
-export function DetailPanel({ skill }: DetailPanelProps) {
+export function DetailPanel({ skill, onOpenDetail }: DetailPanelProps) {
   const current = skill || {
     name: 'aihot-query',
     description: '从 aihot.virxact.com 获取每日 AI 热点资讯和动态。',
@@ -41,6 +42,17 @@ export function DetailPanel({ skill }: DetailPanelProps) {
           <p>{shortPath(current.path)}</p>
         </div>
       </div>
+      {skill ? (
+        <div className="detail-panel-actions">
+          <button
+            className="btn btn-primary detail-panel-open-button"
+            type="button"
+            onClick={() => onOpenDetail?.(skill)}
+          >
+            查看完整详情
+          </button>
+        </div>
+      ) : null}
       <div className="detail-body">
         <div className="detail-section">
           <div className="section-title">概览</div>

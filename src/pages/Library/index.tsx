@@ -6,7 +6,6 @@ import { SearchBar } from '../../components/SearchBar';
 import { SkillCard } from '../../components/SkillCard';
 import { DetailPanel } from '../../detail/DetailPanel';
 import { scanSkills } from '../../lib/invoke';
-import { getSkillPermission } from '../../lib/skillPermissions';
 import { useSkillStore } from '../../store/skillStore';
 import { useUIStore } from '../../store/uiStore';
 import './Library.css';
@@ -45,12 +44,9 @@ export default function LibraryPage() {
   const selectSkill = (idx: number) => {
     store.openDrawer(idx >= 0 ? idx : 0);
   };
-  const openSkill = (idx: number, skill: typeof visibleSkills[number]) => {
+  const openSkillDetail = (idx: number, skill: typeof visibleSkills[number]) => {
     selectSkill(idx);
-    ui.enterEditor(skill.path || skill.name, {
-      readOnly: getSkillPermission(skill).readOnly,
-      returnTarget: { subView: null, subParam: null },
-    });
+    ui.enterSub('detail', skill.path || skill.name);
   };
 
   return (
@@ -88,12 +84,18 @@ export default function LibraryPage() {
                 skill={skill}
                 active={active}
                 onClick={() => selectSkill(idx)}
-                onOpen={() => openSkill(idx, skill)}
+                onOpen={() => openSkillDetail(idx, skill)}
               />
             );
           })}
         </div>
-        <DetailPanel skill={detailSkill} />
+        <DetailPanel
+          skill={detailSkill}
+          onOpenDetail={(skill) => {
+            const idx = store.skills.indexOf(skill);
+            openSkillDetail(idx, skill);
+          }}
+        />
       </div>
     </>
   );

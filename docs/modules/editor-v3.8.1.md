@@ -31,9 +31,9 @@
 - readSkill 读取 Markdown 和 frontmatter
 - validateSkill 返回质量检查结果
 - 编辑内容变更标记 dirty
-- Editor 接收已选中的 Skill 上下文，入口包括 Detail 编辑操作、Library 双击/Enter、受保护只读查看或 Create 完成流程
+- Editor 接收已选中的 Skill 上下文，入口包括 Detail 的“编辑”、Detail 的“只读查看”或 Create 完成流程
 - Editor 打开期间 Library 保持顶部导航高亮
-- 从 Library 进入 Editor 时返回 Library，从 Detail 进入 Editor 时返回原 Detail；未保存内容触发离开确认
+- 从 Detail 进入 Editor 时返回原 Detail；未保存内容触发离开确认
 - 受保护 Skill 进入只读 Editor，显示安全提示，Frontmatter 和 Markdown 可查看且不可编辑
 - 只读 Editor 禁用保存、撤销、恢复版本和 AI 写回，提供“复制到可编辑目录”按钮
 - 只读 Editor 复制成功后打开新副本的正常 Editor，复制失败时停留在只读页面

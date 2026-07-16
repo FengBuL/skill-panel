@@ -11,13 +11,13 @@
 ## 代码规模
 
 - 源码文件数：7
-- 代码总行数：1010
+- 代码总行数：1026
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/detail/DetailView.tsx` | 448 | 负责 Skill Detail 数据选择、归档持久化、打开目录、复制确认、删除确认、待实现备份状态和操作反馈。 |
+| `src/detail/DetailView.tsx` | 464 | 负责 Skill Detail 数据选择、返回 Library、进入 Editor、归档持久化、打开目录、复制确认、删除确认、待实现备份状态和操作反馈。 |
 | `src/detail/detail.css` | 399 | 负责 Skill Detail 网格、页头长路径响应式布局、基础信息、质量检查、依赖表格、危险区和模态框样式。 |
 | `src/detail/DetailDrawer.tsx` | 29 | 提供详情抽屉外壳，保留给兼容代码和后续扩展。 |
 | `src/components/FileTree.tsx` | 31 | 提供文件结构展示组件。 |
@@ -28,8 +28,10 @@
 ## 对外契约
 
 - 详情数据来自 useSkillStore 当前扫描结果和 useUIStore.subParam
-- Library 卡片点击进入 `subView: detail`
-- 受保护来源显示只读提示，编辑入口切换为复制到可编辑目录，删除本地文件禁用
+- Library 卡片双击、Enter 或右侧 DetailPanel 的“查看完整详情”进入 `subView: detail`
+- Detail 页提供“返回 Library”，返回后保留 Library 搜索、筛选和选中状态
+- 可编辑来源显示“编辑”，点击后进入正常 Editor，并将返回目标设为当前 Detail
+- 受保护来源显示只读提示、“只读查看”和“复制到可编辑目录”；只读查看进入只读 Editor，删除本地文件禁用
 - 打开目录调用 `open_skill_folder` 并显示成功或失败反馈
 - 复制先确认目标名称，再调用 `clone_skill`，成功后进入新 Skill Detail 并显示新路径与 User 来源
 - 应用内归档读写 `AppSettings.skillArchives`，通过 `save_app_settings` 持久化，保留本地文件

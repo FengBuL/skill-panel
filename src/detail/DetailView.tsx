@@ -97,6 +97,21 @@ export function DetailView() {
   const displayPath = shortPath(current.path);
   const fullDirectoryPath = directoryPath(current.path);
   const permission = getSkillPermission(current);
+  const returnToLibrary = () => {
+    ui.exitSub();
+  };
+  const openEditableEditor = () => {
+    ui.enterEditor(current.path, {
+      readOnly: false,
+      returnTarget: { subView: 'detail', subParam: current.path },
+    });
+  };
+  const openReadOnlyEditor = () => {
+    ui.enterEditor(current.path, {
+      readOnly: true,
+      returnTarget: { subView: 'detail', subParam: current.path },
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -253,19 +268,20 @@ export function DetailView() {
           <p className="page-subtitle">{displayPath}</p>
         </div>
         <div className="flex gap-2 detail-actions-row">
+          <button className="btn btn-text" type="button" onClick={returnToLibrary}>返回 Library</button>
           {permission.canEdit ? (
             <button
               className="btn btn-primary"
               type="button"
-              onClick={() => ui.enterEditor(current.path, {
-                readOnly: false,
-                returnTarget: { subView: 'detail', subParam: current.path },
-              })}
+              onClick={openEditableEditor}
             >
               编辑
             </button>
           ) : (
-            <button className="btn btn-primary" type="button" onClick={() => openModal('copy')}>复制到可编辑目录</button>
+            <>
+              <button className="btn btn-primary" type="button" onClick={openReadOnlyEditor}>只读查看</button>
+              <button className="btn btn-text" type="button" onClick={() => openModal('copy')}>复制到可编辑目录</button>
+            </>
           )}
           <button className="btn btn-text" type="button" onClick={() => void openCurrentFolder()}>打开目录</button>
           <button className="btn btn-text" type="button" disabled title="待实现" aria-label="备份待实现">备份待实现</button>

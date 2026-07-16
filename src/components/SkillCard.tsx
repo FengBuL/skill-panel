@@ -44,6 +44,7 @@ export function SkillCard({ skill, active = false, onClick, onOpen }: SkillCardP
     <button
       className={`card skill-card ${active ? 'active' : ''}`}
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       onDoubleClick={onOpen}
       onKeyDown={handleKeyDown}

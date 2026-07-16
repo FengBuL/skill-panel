@@ -309,12 +309,22 @@
   padding: 20px;
 }
 
+.detail-panel-actions {
+  border-bottom: 1px solid var(--border-color);
+  padding: 14px 20px;
+}
+
 .detail-section {
   margin-bottom: 20px;
 }
 
 .detail-section:last-of-type {
   margin-bottom: 0;
+}
+
+.detail-panel-open-button {
+  width: 100%;
+  white-space: nowrap;
 }
 
 .section-title {
