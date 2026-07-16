@@ -22,7 +22,7 @@ function sourceLabel(source?: Skill['source']) {
 }
 
 function shortPath(path: string) {
-  if (!path) return '~/.workbuddy/skills/aihot/SKILL.md';
+  if (!path) return '暂无数据';
   return path.replace(/^\/Users\/[^/]+/, '~');
 }
 
@@ -31,7 +31,7 @@ function directoryPath(path: string) {
 }
 
 function formatDate(value: string) {
-  if (!value) return '2026年7月7日';
+  if (!value) return '暂无数据';
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
     const [year, month, day] = value.slice(0, 10).split('-');
     return `${year}年${Number(month)}月${Number(day)}日`;
@@ -57,13 +57,13 @@ function normalizeSettings(settings: AppSettings | null): AppSettings {
 }
 
 const fallbackSkill: Skill = {
-  name: 'aihot-query',
-  description: '从 aihot.virxact.com 获取每日 AI 热点资讯和动态。',
-  source: 'plugin',
-  category: 'AI',
-  path: '~/.workbuddy/skills/aihot/SKILL.md',
-  modifiedAt: '2026-07-07',
-  size: 12400,
+  name: '暂无数据',
+  description: '',
+  source: 'mine',
+  category: '未分类',
+  path: '',
+  modifiedAt: '',
+  size: 0,
   starred: false,
   disabled: false,
   protected: true,
@@ -93,7 +93,7 @@ export function DetailView() {
   const archived = Boolean(settings.skillArchives?.[current.path]);
   const statusTone = archived ? 'archived' : current.disabled ? 'archived' : 'healthy';
   const statusText = archived ? '已归档' : current.disabled ? '已禁用' : '健康';
-  const usageCount = Math.max(12, Math.round((current.size || 12400) / 100));
+  const usageCount = current.size ? Math.round(current.size / 100) : '暂无数据';
   const displayPath = shortPath(current.path);
   const fullDirectoryPath = directoryPath(current.path);
   const permission = getSkillPermission(current);
@@ -306,7 +306,7 @@ export function DetailView() {
           <div className="section-title">状态</div>
           <div className="flex items-center gap-2 mt-2">
             <span className={`status-pill status-${statusTone}`}>{statusText}</span>
-            <span className="text-sm text-secondary">上次校验通过</span>
+            <span className="text-sm text-secondary">暂无真实校验记录</span>
           </div>
         </div>
         <div className="card card-body">
@@ -319,7 +319,7 @@ export function DetailView() {
         <div className="card card-body">
           <div className="section-title">使用统计</div>
           <div className="detail-stat-number">{usageCount}</div>
-          <div className="text-sm text-secondary">最近使用：今天 09:41</div>
+          <div className="text-sm text-secondary">最近使用：暂无数据</div>
         </div>
       </div>
 
@@ -335,17 +335,16 @@ export function DetailView() {
           <div className="card-header"><h2 className="card-title">基础信息</h2></div>
           <div className="card-body detail-info-list">
             <div className="detail-row"><span className="detail-label">名称</span><span className="detail-value">{current.name}</span></div>
-            <div className="detail-row"><span className="detail-label">显示名</span><span className="detail-value">{current.description || 'AI 热点查询'}</span></div>
-            <div className="detail-row"><span className="detail-label">版本</span><span className="detail-value">1.3.2</span></div>
-            <div className="detail-row"><span className="detail-label">作者</span><span className="detail-value">{current.source === 'plugin' ? 'WorkBuddy Team' : 'User'}</span></div>
+            <div className="detail-row"><span className="detail-label">显示名</span><span className="detail-value">{current.description || '暂无数据'}</span></div>
+            <div className="detail-row"><span className="detail-label">版本</span><span className="detail-value">暂无数据</span></div>
+            <div className="detail-row"><span className="detail-label">作者</span><span className="detail-value">暂无数据</span></div>
             <div className="detail-row"><span className="detail-label">路径</span><span className="detail-value detail-path">{displayPath.replace(/\/SKILL\.md$/, '')}</span></div>
             <div className="detail-row"><span className="detail-label">更新时间</span><span className="detail-value">{formatDate(current.modifiedAt)}</span></div>
-            <div className="detail-row"><span className="detail-label">文件结构</span><span className="detail-value detail-path">SKILL.md · references/ · assets/</span></div>
+            <div className="detail-row"><span className="detail-label">文件结构</span><span className="detail-value detail-path">尚未接入</span></div>
             <div className="detail-row">
               <span className="detail-label">标签</span>
               <span className="detail-value detail-tags">
                 <span className="tag tag-category">{current.category || '未分类'}</span>
-                <span className="tag">news</span>
                 <span className="tag">{current.source === 'plugin' ? 'builtin' : 'user'}</span>
               </span>
             </div>

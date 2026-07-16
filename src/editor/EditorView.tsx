@@ -44,63 +44,19 @@ type ConflictState = {
 
 type RestoreCandidate = VersionEntry | null;
 
-const browserMarkdown = `# Browser Control
-
-Open, navigate, inspect, test web targets.
-
-## When To Use
-
-Use when user asks to open a URL.
-
-## Commands
-
-- open_url - Navigate
-- screenshot - Capture
-
-## Safety
-
-Only operate on localhost.`;
-
-const aihotMarkdown = `# aihot-query
-
-## 描述
-
-从 aihot.virxact.com 获取每日 AI 热点资讯和动态。
-
-## 触发条件
-
-- 用户询问“今天 AI 圈有什么”
-- 用户提到“AI 日报”
-- 用户查询 OpenAI / Anthropic / Google 最新发布
-
-## 工作流
-
-1. 解析用户意图，提取关键词
-2. 调用 aihot API 获取热点列表
-3. 按相关性和时间排序
-4. 生成中文摘要并返回
-
-## 注意事项
-
-- 默认返回 Top 10 条热点
-- 支持按日期筛选
-- 不保存用户查询历史`;
-
 function initialFrontmatter(name: string): FrontmatterDraft {
-  const isAihot = name === 'aihot-query';
   return {
     name,
-    display: isAihot ? 'AI 热点查询' : name,
-    version: isAihot ? '1.3.2' : '1.0.0',
-    category: isAihot ? 'AI' : '浏览器',
-    tags: isAihot ? 'news, builtin' : 'browser, automation',
-    author: isAihot ? 'WorkBuddy Team' : 'User',
+    display: '',
+    version: '',
+    category: '',
+    tags: '',
+    author: '',
   };
 }
 
 function pathForName(name: string) {
-  if (name === 'Browser Control') return '~/.codex/skills/browser-control/SKILL.md';
-  return `~/.workbuddy/skills/${name.replace(/\s+/g, '-').toLowerCase()}/SKILL.md`;
+  return name ? `尚未保存/${name.replace(/\s+/g, '-').toLowerCase()}/SKILL.md` : '暂无数据';
 }
 
 function frontmatterFromDetail(detail: Partial<SkillDetail> | null, current: FrontmatterDraft, fallbackName: string): FrontmatterDraft {
@@ -230,9 +186,9 @@ export function EditorView() {
   const skillStore = useSkillStore();
   const settings = useSettingsStore();
   const selectedSkill = skillStore.skills.find((item) => item.name === ui.subParam || item.path === ui.subParam) || null;
-  const requestedName = selectedSkill?.name || ui.subParam || 'Browser Control';
+  const requestedName = selectedSkill?.name || ui.subParam || 'untitled-skill';
   const [frontmatter, setFrontmatter] = useState(() => initialFrontmatter(requestedName));
-  const [markdown, setMarkdown] = useState(() => (ui.subParam ? aihotMarkdown : browserMarkdown));
+  const [markdown, setMarkdown] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'synced' | 'dirty' | 'saving'>('synced');
   const [showAI, setShowAI] = useState(false);
@@ -260,9 +216,9 @@ export function EditorView() {
   };
 
   useEffect(() => {
-    const nextName = selectedSkill?.name || ui.subParam || 'Browser Control';
+    const nextName = selectedSkill?.name || ui.subParam || 'untitled-skill';
     setFrontmatter(initialFrontmatter(nextName));
-    setMarkdown(ui.subParam ? aihotMarkdown : browserMarkdown);
+    setMarkdown('');
     setDirty(false);
     setSaveStatus('synced');
     setBaseline(null);
@@ -423,11 +379,9 @@ export function EditorView() {
       }
     }
     setValidation({
-      score: 86,
+      score: 0,
       checks: [
-        { id: 'frontmatter', label: 'Frontmatter 字段完整', status: 'ok' },
-        { id: 'markdown', label: 'Markdown 结构正常', status: 'ok' },
-        { id: 'trigger', label: '触发条件可增加英文关键词', status: 'warn' },
+        { id: 'validate-skill', label: 'validate_skill', status: 'fail', detail: '验证失败或尚未接入真实返回' },
       ],
     });
   };

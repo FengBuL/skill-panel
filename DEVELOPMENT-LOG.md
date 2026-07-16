@@ -66,3 +66,27 @@
 - Git 回退点：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
 - 第 8 步安装基线：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`
 - 基线 SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`
+
+## 2026-07-16 REL-3.8.3-L3-REAL-DATA-PAGE-01 更正记录
+
+### 触发原因
+
+- 用户在第 8 步安装验收发现 v3.8.3 候选安装版显示虚拟 Skill 数据。
+- Library 只显示少量 Skill，缺少分页，超过 100 个 Skill 时无法访问剩余内容。
+- 失败候选代码 commit：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。
+- 失败候选记录 commit：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`。
+
+### 更正决定
+
+- 第 8 步标记为“验证失败”。
+- 原候选目录 `output/releases/v3.8.3-candidate/`、App Zip、DMG 和 SHA256 保留。
+- 禁止创建 tag、正式发布或覆盖失败候选包。
+- 修复批次继续使用版本 `3.8.3`，新候选目录为 `output/releases/v3.8.3-candidate-2/`。
+
+### 修复范围
+
+- `scanSkills()` 不再在生产扫描失败时返回内置 demo Skill。
+- Library 增加扫描失败、空结果和显式 demo 状态。
+- Library 增加真实分页，默认每页 6 个，搜索、筛选和分类先完成后分页。
+- 文件监听重扫失败时保留当前真实数据并显示失败提示。
+- Dashboard、Detail、Editor、Dependencies、ValidationResult、AI Assistant 已审计虚构数据来源。

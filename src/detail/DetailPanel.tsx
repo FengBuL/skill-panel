@@ -10,23 +10,25 @@ function sourceLabel(source?: Skill['source']) {
 }
 
 function shortPath(path: string) {
-  if (!path) return '~/.workbuddy/skills/skill/SKILL.md';
+  if (!path) return '';
   return path.replace(/^\/Users\/[^/]+/, '~');
 }
 
 export function DetailPanel({ skill, onOpenDetail }: DetailPanelProps) {
-  const current = skill || {
-    name: 'aihot-query',
-    description: '从 aihot.virxact.com 获取每日 AI 热点资讯和动态。',
-    source: 'plugin' as const,
-    category: 'AI',
-    path: '~/.workbuddy/skills/aihot/SKILL.md',
-    modifiedAt: '今天',
-    size: 2400,
-    starred: false,
-    disabled: false,
-    protected: true,
-  };
+  if (!skill) {
+    return (
+      <aside className="card detail-panel">
+        <div className="detail-body">
+          <div className="detail-section">
+            <div className="section-title">详情</div>
+            <p className="text-sm text-secondary">暂无数据</p>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  const current = skill;
 
   return (
     <aside className="card detail-panel">
@@ -42,35 +44,33 @@ export function DetailPanel({ skill, onOpenDetail }: DetailPanelProps) {
           <p>{shortPath(current.path)}</p>
         </div>
       </div>
-      {skill ? (
-        <div className="detail-panel-actions">
-          <button
-            className="btn btn-primary detail-panel-open-button"
-            type="button"
-            onClick={() => onOpenDetail?.(skill)}
-          >
-            查看完整详情
-          </button>
-        </div>
-      ) : null}
+      <div className="detail-panel-actions">
+        <button
+          className="btn btn-primary detail-panel-open-button"
+          type="button"
+          onClick={() => onOpenDetail?.(skill)}
+        >
+          查看完整详情
+        </button>
+      </div>
       <div className="detail-body">
         <div className="detail-section">
           <div className="section-title">概览</div>
           <div className="detail-row"><span className="detail-label">状态</span><span className="detail-value detail-value-healthy">健康</span></div>
           <div className="detail-row"><span className="detail-label">分类</span><span className="detail-value">{current.category || '未分类'}</span></div>
           <div className="detail-row"><span className="detail-label">来源</span><span className="detail-value">{sourceLabel(current.source)}</span></div>
-          <div className="detail-row"><span className="detail-label">版本</span><span className="detail-value">1.3.2</span></div>
+          <div className="detail-row"><span className="detail-label">版本</span><span className="detail-value">暂无数据</span></div>
         </div>
         <div className="detail-section">
           <div className="section-title">使用</div>
-          <div className="detail-row"><span className="detail-label">调用次数</span><span className="detail-value">{Math.max(12, Math.round((current.size || 12400) / 100))}</span></div>
-          <div className="detail-row"><span className="detail-label">最近使用</span><span className="detail-value">{current.modifiedAt || '今天'} 09:41</span></div>
-          <div className="detail-row"><span className="detail-label">首次发现</span><span className="detail-value">2026年3月12日</span></div>
+          <div className="detail-row"><span className="detail-label">调用次数</span><span className="detail-value">暂无数据</span></div>
+          <div className="detail-row"><span className="detail-label">最近使用</span><span className="detail-value">暂无数据</span></div>
+          <div className="detail-row"><span className="detail-label">首次发现</span><span className="detail-value">暂无数据</span></div>
         </div>
         <div className="detail-section">
           <div className="section-title">文件</div>
-          <div className="detail-row"><span className="detail-label">SKILL.md</span><span className="detail-value">{((current.size || 2400) / 1000).toFixed(1)} KB</span></div>
-          <div className="detail-row"><span className="detail-label">references/</span><span className="detail-value">3 个文件</span></div>
+          <div className="detail-row"><span className="detail-label">SKILL.md</span><span className="detail-value">{current.size ? `${(current.size / 1000).toFixed(1)} KB` : '暂无数据'}</span></div>
+          <div className="detail-row"><span className="detail-label">references/</span><span className="detail-value">尚未接入</span></div>
         </div>
         <div className="detail-section">
           <div className="section-title">标签</div>

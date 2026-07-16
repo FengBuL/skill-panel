@@ -3,7 +3,7 @@
 任务: REL-3.8.3-CANDIDATE-MACOS
 版本: 3.8.3
 目标平台: macOS
-发布就绪状态: 内部验收候选可进入第 8 步
+发布就绪状态: L3 安装验收失败，发布阻塞
 更新时间: 2026-07-16
 ---
 
@@ -12,10 +12,10 @@
 ## 当前状态
 
 - 第 7 步目标平台：macOS。
-- 候选类型：macOS 内部验收候选。
+- 候选类型：macOS 内部验收失败候选。
 - Windows 状态：延期。
 - 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- 正式对外发布：等待签名和公证条件恢复并完成验证。
+- 正式对外发布：虚拟数据、Library 分页、签名和公证均为阻塞项。
 
 ## 第 7 步门槛
 
@@ -52,7 +52,16 @@
 
 ## 正式发布阻塞项
 
+- v3.8.3 candidate-1 安装版显示虚拟 Skill 数据，未可靠读取本机真实 Skill。
+- Library 缺少分页，超过 100 个 Skill 时无法访问剩余内容。
 - 当前机器缺少 Developer ID Application 签名 identity。
 - 当前机器缺少可用公证凭据或 profile。
 - Gatekeeper、stapler 和完整签名包检查需在签名和公证条件恢复后执行。
 - Windows 候选、Windows 安装、Windows 升级、Windows 回退、Credential Store、系统废纸篓验证延期。
+
+## L3 失败更正
+
+- 失败候选代码 commit：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。
+- 失败候选记录 commit：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`。
+- 原候选产物和 SHA256 保留，不覆盖。
+- candidate-2 修复验证完成前禁止 tag 和正式发布。

@@ -8,13 +8,11 @@ type QualityCheckProps = {
   items?: QualityCheckItem[];
 };
 
-const defaultItems: QualityCheckItem[] = [
-  { status: '通过', tone: 'healthy', label: 'SKILL.md 结构完整' },
-  { status: '通过', tone: 'healthy', label: 'references/ 目录文件齐全' },
-  { status: '通过', tone: 'healthy', label: 'Tauri 命令契约无变更' },
-];
+export function QualityCheck({ items = [] }: QualityCheckProps) {
+  if (!items.length) {
+    return <div className="aux-state">暂无校验结果</div>;
+  }
 
-export function QualityCheck({ items = defaultItems }: QualityCheckProps) {
   return (
     <div className="quality-list">
       {items.map((item) => (

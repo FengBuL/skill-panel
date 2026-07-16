@@ -27,7 +27,7 @@ npm run visual:qa
 npm run git:diff:check
 ```
 
-7. 验证通过后创建 v3.8.3 候选代码提交。
+7. 验证通过后创建 v3.8.3 候选代码提交；candidate-1 已在人工安装验收中失败，当前状态为“人工安装验收失败，修复中”。
 8. 在当前 macOS 真机构建 App 和 DMG。若当前 shell 找不到 Cargo，使用 `PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`。
 9. 将候选产物存放到 `output/releases/v3.8.3-candidate/`。
 10. 记录 commit、文件名、大小、SHA256、架构、bundle id、应用版本、构建命令、测试结果、签名状态、公证状态和回退点。
@@ -95,3 +95,10 @@ npm run git:diff:check
 - 回退后 v3.8.2 应用版本。
 - 回退后可丢弃 Skill 详情。
 - 内部候选触发的 macOS 未签名警告弹窗。
+
+## 第 8 步失败处理
+
+- 发现安装版虚拟数据或 Library 分页缺陷时，第 8 步立即标记为验证失败。
+- 保留失败候选目录、文件大小和 SHA256。
+- 修复批次使用独立 candidate-2 目录。
+- 修复批次完成前禁止创建正式 tag，禁止发布。

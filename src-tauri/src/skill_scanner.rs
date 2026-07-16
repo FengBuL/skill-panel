@@ -38,7 +38,11 @@ pub fn scan_configured_skill_roots_for_home(
     settings: &AppSettings,
     home: &Path,
 ) -> Vec<SkillSummary> {
-    let mut roots = default_scan_roots_for_home(home);
+    let mut roots = if settings.show_default_scan_directories {
+        default_scan_roots_for_home(home)
+    } else {
+        Vec::new()
+    };
     roots.extend(
         settings
             .custom_scan_directories
@@ -513,6 +517,67 @@ mod tests {
 
         fs::remove_dir_all(home).ok();
         fs::remove_dir_all(custom_root).ok();
+    }
+
+    #[test]
+    fn configured_scan_can_disable_default_roots() {
+        let home = temp_home("configured-no-default-home");
+        let custom_root = temp_home("configured-no-default-custom");
+        write_skill(
+            &home.join(".codex").join("skills").join("codex-local"),
+            "Codex Local",
+            "Default codex skill",
+        );
+        write_skill(
+            &custom_root.join("team"),
+            "Team Custom",
+            "Custom directory skill",
+        );
+
+        let settings = AppSettings {
+            language: Language::System,
+            custom_scan_directories: vec![custom_root.to_string_lossy().to_string()],
+            show_default_scan_directories: false,
+            ..AppSettings::default()
+        };
+
+        let skills = scan_configured_skill_roots_for_home(&settings, &home);
+
+        assert!(skills.iter().any(|skill| skill.name == "Team Custom"));
+        assert!(!skills.iter().any(|skill| skill.name == "Codex Local"));
+
+        fs::remove_dir_all(home).ok();
+        fs::remove_dir_all(custom_root).ok();
+    }
+
+    #[test]
+    fn configured_scan_counts_120_temp_home_skills() {
+        let home = temp_home("configured-120-home");
+        for index in 1..=120 {
+            write_skill(
+                &home
+                    .join(".codex")
+                    .join("skills")
+                    .join(format!("temp-skill-{index:03}")),
+                &format!("Temp Skill {index:03}"),
+                "Temporary scan verification skill",
+            );
+        }
+
+        let settings = AppSettings {
+            language: Language::System,
+            custom_scan_directories: Vec::new(),
+            show_default_scan_directories: true,
+            ..AppSettings::default()
+        };
+
+        let skills = scan_configured_skill_roots_for_home(&settings, &home);
+
+        assert_eq!(skills.len(), 120);
+        assert!(skills.iter().any(|skill| skill.name == "Temp Skill 001"));
+        assert!(skills.iter().any(|skill| skill.name == "Temp Skill 120"));
+
+        fs::remove_dir_all(home).ok();
     }
 
     #[test]

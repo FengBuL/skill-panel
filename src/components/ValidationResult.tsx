@@ -9,12 +9,6 @@ type ValidationResultProps = {
   checks?: ValidationCheck[];
 };
 
-const fallbackChecks: ValidationCheck[] = [
-  { id: 'frontmatter', label: 'Frontmatter 字段完整', status: 'ok' },
-  { id: 'markdown', label: 'Markdown 结构正常', status: 'ok' },
-  { id: 'trigger', label: '触发条件可增加英文关键词', status: 'warn' },
-];
-
 function toneForStatus(status: string) {
   if (status === 'ok') return 'healthy';
   if (status === 'warn') return 'review';
@@ -27,7 +21,11 @@ function labelForStatus(status: string) {
   return '待审';
 }
 
-export function ValidationResult({ checks = fallbackChecks }: ValidationResultProps) {
+export function ValidationResult({ checks = [] }: ValidationResultProps) {
+  if (!checks.length) {
+    return <div className="aux-state">暂无校验结果</div>;
+  }
+
   return (
     <div className="validation-result-list">
       {checks.map((check) => (

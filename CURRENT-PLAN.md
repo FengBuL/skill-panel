@@ -20,6 +20,8 @@
 | 候选代码提交 | 已完成 | `17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。 |
 | macOS App 和 DMG 构建 | 已完成 | 已存放于 `output/releases/v3.8.3-candidate/`。 |
 | 第 8 步准备 | 已完成 | 已记录基线、候选包、检查清单、回退步骤和截图要求。 |
+| 第 8 步安装验收 | 验证失败 | 用户在 2026-07-16 发现安装版显示虚拟 Skill 数据，Library 无分页，超过 100 个 Skill 无法访问剩余内容。禁止 tag、发布或覆盖现有候选包。 |
+| L3 修复批次 | 进行中 | 任务 `REL-3.8.3-L3-REAL-DATA-PAGE-01`；继续使用版本 `3.8.3`；新候选目录固定为 `output/releases/v3.8.3-candidate-2/`。 |
 
 ## 门槛规则
 
@@ -54,3 +56,11 @@ npm run git:diff:check
 |---|---:|---|
 | `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.app.zip` | `4952711` | `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e` |
 | `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.dmg` | `4964044` | `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584` |
+
+## 2026-07-16 第 8 步失败更正
+
+- 失败候选代码 commit：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。
+- 失败候选记录 commit：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`。
+- 失败现象：安装版没有加载本机真实 Skill，Library 只显示少量 Skill 且缺少分页。
+- 原候选目录和 SHA256 必须保留：`output/releases/v3.8.3-candidate/`。
+- 修复通过后仅生成 candidate-2，禁止创建正式 tag，禁止正式发布。

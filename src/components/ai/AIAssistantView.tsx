@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AiAction, ParsedHunk } from '../../lib/ai';
+import type { AiAction } from '../../lib/ai';
 import { hasApiKey } from '../../lib/ai';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
@@ -7,41 +7,7 @@ import { PageHeader } from '../PageHeader';
 import { showToast } from '../Toast';
 import { KeyStatusBadge } from '../KeyStatusBadge';
 import { AIModeSelector } from './AIModeSelector';
-import { DiffPreview } from './DiffPreview';
 import './ai.css';
-
-const sampleHunks: ParsedHunk[] = [
-  {
-    id: 1,
-    oldStart: 3,
-    oldLines: 2,
-    newStart: 3,
-    newLines: 2,
-    addedCount: 1,
-    removedCount: 1,
-    lines: [
-      '-从 aihot.virxact.com 获取每日 AI 热点资讯和动态。',
-      '+从 aihot.virxact.com 获取每日 AI 热点资讯、行业动态与关键产品发布。',
-      ' ',
-      '## 触发条件',
-      '+- 用户询问“今天 AI 有什么新闻”',
-    ],
-  },
-  {
-    id: 2,
-    oldStart: 14,
-    oldLines: 1,
-    newStart: 15,
-    newLines: 1,
-    addedCount: 1,
-    removedCount: 1,
-    lines: [
-      '## 工作流',
-      '-4. 生成中文摘要并返回',
-      '+4. 生成中文摘要，标注信息来源后返回',
-    ],
-  },
-];
 
 export function AIAssistantView() {
   const settings = useSettingsStore();
@@ -63,19 +29,11 @@ export function AIAssistantView() {
     };
   }, [settings.aiVendor, settings.setAIKeyStored]);
 
-  const acceptAll = () => {
-    showToast('已进入写回确认，本批次保留人工确认流程', '');
-  };
-
-  const rejectAll = () => {
-    showToast('已拒绝 AI 建议', '');
-  };
-
   return (
     <>
       <PageHeader
         title="AI 助手"
-        subtitle="为 aihot-query 提供润色、结构优化与安全审查，所有写回需经 diff 确认"
+        subtitle="提供润色、结构优化与安全审查，所有写回需经 diff 确认"
         actions={<button className="btn btn-text" type="button" onClick={() => ui.enterSub('editor', ui.subParam ?? undefined)}>返回编辑器</button>}
       />
 
@@ -108,11 +66,11 @@ export function AIAssistantView() {
         <section className="card">
           <div className="card-header ai-diff-card-header">
             <h2 className="card-title">Diff 对比</h2>
-            <span className="status-pill status-review">待确认</span>
+            <span className="status-pill status-review">暂无数据</span>
           </div>
           <div className="card-body">
-            <p className="text-sm text-secondary mb-3">请检查 AI 建议的每一处改动，确认后才可写回 SKILL.md。</p>
-            <DiffPreview hunks={sampleHunks} onAcceptAll={acceptAll} onRejectAll={rejectAll} />
+            <p className="text-sm text-secondary mb-3">暂无 AI 建议。请从 Editor 右侧 AI 面板确认脱敏预览后发送。</p>
+            <div className="aux-state">暂无 Diff 数据</div>
           </div>
         </section>
       </div>

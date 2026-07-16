@@ -1,6 +1,72 @@
 {
-  "generatedAt": "2026-07-16T08:45:14.697Z",
+  "generatedAt": "2026-07-16T09:33:22.042Z",
   "results": [
+    {
+      "id": "real-120-library-page-1",
+      "title": "120 Skill Library first page",
+      "page": "library",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/real-120-library-page-1.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "real-120-library-middle-page",
+      "title": "120 Skill Library middle page",
+      "page": "library-middle",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/real-120-library-middle-page.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "real-120-library-last-page",
+      "title": "120 Skill Library last page",
+      "page": "library-last",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/real-120-library-last-page.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "real-120-library-search",
+      "title": "120 Skill Library search result",
+      "page": "library-search",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/real-120-library-search.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "real-120-detail",
+      "title": "120 Skill real detail",
+      "page": "temp-detail",
+      "viewport": "1440x960",
+      "screenshot": "output/playwright/real-120-detail.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "id": "real-dashboard-empty-1280x800",
+      "title": "Dashboard with no call records",
+      "page": "dashboard",
+      "viewport": "1280x800",
+      "screenshot": "output/playwright/real-dashboard-empty-1280x800.png",
+      "passed": true,
+      "failedAssertions": [],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
     {
       "id": "v38-library-1440x960",
       "title": "v3.8 Library card grid",

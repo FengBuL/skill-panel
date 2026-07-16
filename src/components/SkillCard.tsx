@@ -69,7 +69,7 @@ export function SkillCard({ skill, active = false, onClick, onOpen }: SkillCardP
               <path d="M12 2v20" />
               <path d="M2 12h20" />
             </svg>
-            {Math.max(12, Math.round((skill.size || skill.name.length * 1000) / 100))}
+            {skill.size ? Math.round(skill.size / 100) : '暂无数据'}
           </span>
           <span className="stat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

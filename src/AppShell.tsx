@@ -27,6 +27,8 @@ import { AIAssistantView } from './components/ai/AIAssistantView';
 export function AppShell() {
   const { mainView, subView, enterSub, undo, redo } = useUIStore();
   const skillStore = useSkillStore();
+  const setScanStatus = skillStore.setScanStatus;
+  const setSkills = skillStore.setSkills;
 
   useEffect(() => {
     const openHashView = () => {
@@ -57,10 +59,18 @@ export function AppShell() {
     invoke('watch_scan_dirs', { dirs }).catch(() => {});
     // 监听变化事件 → 重新扫描
     safeListen('scan-changed', () => {
-      scanSkills().then(r => { skillStore.setSkills(r.skills); showToast('检测到文件变化，已重新扫描', ''); });
+      scanSkills().then(r => {
+        setScanStatus(r.status, r.error);
+        if (r.status === 'error') {
+          showToast(`重新扫描失败：${r.error}`, '打开设置', () => enterSub('settings'));
+          return;
+        }
+        setSkills(r.skills);
+        showToast('检测到文件变化，已重新扫描', '');
+      });
     }).then(fn => { unlisten = fn; });
     return () => { unlisten?.(); };
-  }, []);
+  }, [enterSub, setScanStatus, setSkills]);
 
   // 次级视图优先
   let page;

@@ -85,8 +85,23 @@ const prototypeSkills = [
   modifiedAt: '2026-07-06T08:00:00Z',
 }));
 
+const tempHomeSkills = Array.from({ length: 120 }, (_, index) => {
+  const number = index + 1;
+  const padded = String(number).padStart(3, '0');
+
+  return {
+    path: `C:\\Users\\demo\\.codex\\skills\\temp-${padded}\\SKILL.md`,
+    name: `temp skill ${padded}`,
+    description: `Disposable fixture Skill ${padded} used for pagination visual QA.`,
+    source: number % 5 === 0 ? 'agents-user' : 'codex-user',
+    category: number % 3 === 0 ? '金融' : number % 2 === 0 ? '开发者' : '生产力',
+    parseStatus: 'parsed',
+    modifiedAt: '2026-07-16T08:00:00Z',
+  };
+});
+
 const detailsByPath = Object.fromEntries(
-  baseSkills.map((skill) => [
+  [...baseSkills, ...prototypeSkills, ...tempHomeSkills].map((skill) => [
     skill.path,
     {
       ...skill,
@@ -104,6 +119,60 @@ const detailsByPath = Object.fromEntries(
 );
 
 const scenarios = [
+  {
+    id: 'real-120-library-page-1',
+    title: '120 Skill Library first page',
+    viewport: { width: 1440, height: 960 },
+    page: 'library',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: '1–6 / 120',
+  },
+  {
+    id: 'real-120-library-middle-page',
+    title: '120 Skill Library middle page',
+    viewport: { width: 1440, height: 960 },
+    page: 'library-middle',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: 'temp skill 055',
+  },
+  {
+    id: 'real-120-library-last-page',
+    title: '120 Skill Library last page',
+    viewport: { width: 1440, height: 960 },
+    page: 'library-last',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: '115–120 / 120',
+  },
+  {
+    id: 'real-120-library-search',
+    title: '120 Skill Library search result',
+    viewport: { width: 1440, height: 960 },
+    page: 'library-search',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: 'temp skill 077',
+  },
+  {
+    id: 'real-120-detail',
+    title: '120 Skill real detail',
+    viewport: { width: 1440, height: 960 },
+    page: 'temp-detail',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: 'Disposable fixture Skill 001',
+  },
+  {
+    id: 'real-dashboard-empty-1280x800',
+    title: 'Dashboard with no call records',
+    viewport: { width: 1280, height: 800 },
+    page: 'dashboard',
+    mode: 'success',
+    skills: tempHomeSkills,
+    expectedText: '尚未接入真实调用统计',
+  },
   {
     id: 'v38-library-1440x960',
     title: 'v3.8 Library card grid',
@@ -185,6 +254,7 @@ const scenarios = [
     page: 'library',
     mode: 'empty',
     skills: [],
+    expectedText: '未发现 Skill',
   },
   {
     id: 'v38-failed-1024x768',
@@ -193,6 +263,7 @@ const scenarios = [
     page: 'library',
     mode: 'failed',
     skills: [],
+    expectedText: 'Skill 扫描失败',
   },
 ];
 
@@ -369,8 +440,38 @@ async function runScenario(browser, scenario) {
   await page.locator('.top-nav').waitFor({ timeout: 5000 });
   await page.getByText('Manage your Skills').waitFor({ timeout: 5000 });
 
-  if (scenario.mode !== 'empty') {
+  if (scenario.mode === 'success' && scenario.skills.length > 0) {
     await page.locator('.skill-card').first().waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.mode === 'empty') {
+    await page.getByText('未发现 Skill').waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.mode === 'failed') {
+    await page.getByText('Skill 扫描失败').waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'library-middle') {
+    for (let count = 0; count < 9; count += 1) {
+      await page.getByRole('button', { name: '下一页' }).click();
+    }
+    await page.locator('.skill-card').filter({ hasText: 'temp skill 055' }).first().waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'library-last') {
+    await page.getByRole('button', { name: '末页' }).click();
+    await page.locator('.skill-card').filter({ hasText: 'temp skill 120' }).first().waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'library-search') {
+    await page.getByRole('textbox', { name: '搜索 Skill' }).fill('temp skill 077');
+    await page.locator('.skill-card').filter({ hasText: 'temp skill 077' }).first().waitFor({ timeout: 5000 });
+  }
+
+  if (scenario.page === 'temp-detail') {
+    await page.locator('.skill-card').filter({ hasText: 'temp skill 001' }).first().dblclick();
+    await page.getByRole('button', { name: '编辑' }).waitFor({ timeout: 5000 });
   }
 
   if (scenario.page === 'dashboard') {
@@ -457,7 +558,7 @@ async function runScenario(browser, scenario) {
               ? '调用日志'
               : 'visual qa skill',
     empty: 'Manage your Skills',
-    failed: 'aihot-query',
+    failed: 'Skill 扫描失败',
   }[scenario.mode];
 
   const assertions = [
@@ -466,15 +567,15 @@ async function runScenario(browser, scenario) {
     ['expected scenario text is present', checks.bodyText.includes(expectedText)],
   ];
 
-  if (scenario.page === 'library' && scenario.mode !== 'empty') {
+  if (scenario.page.startsWith('library') && scenario.mode === 'success') {
     assertions.push(['library grid is visible', checks.libraryGridVisible]);
   }
 
-  if (scenario.skills.length > 0 && scenario.page === 'library') {
+  if (scenario.skills.length > 0 && scenario.page.startsWith('library')) {
     assertions.push(['library cards are visible', checks.libraryCardVisible]);
   }
 
-  if (scenario.page === 'drawer') {
+  if (scenario.page === 'drawer' || scenario.page === 'temp-detail') {
     assertions.push(['detail page is visible', checks.detailVisible]);
   }
 

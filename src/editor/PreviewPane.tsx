@@ -4,7 +4,7 @@ type PreviewPaneProps = {
 
 function parseSections(markdown: string) {
   const lines = markdown.split('\n');
-  const title = lines.find((line) => line.startsWith('# '))?.replace(/^#\s+/, '') || 'aihot-query';
+  const title = lines.find((line) => line.startsWith('# '))?.replace(/^#\s+/, '') || '暂无数据';
   const sections: { heading: string; items: string[]; paragraphs: string[] }[] = [];
   let current: { heading: string; items: string[]; paragraphs: string[] } | null = null;
 

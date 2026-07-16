@@ -3,6 +3,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { SkillDetail, SkillSummary, UpdateSkillInput } from '../types/skill';
 import type { Skill } from '../store/skillStore';
+import { sanitizeText } from './redaction';
 
 // mock 数据（Tauri 不可用时 fallback，如纯浏览器开发）
 const MOCK_SKILLS: Skill[] = [
@@ -84,17 +85,42 @@ export function mapSummary(s: SkillSummary): Skill {
   };
 }
 
-// 扫描 Skill（真实 invoke，失败 fallback mock）
-export async function scanSkills(): Promise<{ skills: Skill[]; isMock: boolean }> {
+export type SkillScanResult =
+  | { status: 'success'; skills: Skill[]; isMock: false; error?: undefined }
+  | { status: 'empty'; skills: Skill[]; isMock: false; error?: undefined }
+  | { status: 'error'; skills: Skill[]; isMock: false; error: string }
+  | { status: 'demo'; skills: Skill[]; isMock: true; error: string };
+
+function isExplicitDemoModeEnabled(): boolean {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('skill-panel-demo-mode') === 'true') {
+    return true;
+  }
+  const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+  return viteEnv?.VITE_SKILL_PANEL_DEMO === 'true';
+}
+
+function scanErrorSummary(error: unknown): string {
+  return sanitizeText(error instanceof Error ? error.message : String(error));
+}
+
+// 扫描 Skill（真实 invoke；仅显式 demo 模式使用内置数据）
+export async function scanSkills(): Promise<SkillScanResult> {
   try {
     const summaries = await invoke<SkillSummary[]>('scan_skills');
     if (Array.isArray(summaries)) {
-      return { skills: summaries.map(mapSummary), isMock: false };
+      const skills = summaries.map(mapSummary);
+      return { skills, isMock: false, status: skills.length ? 'success' : 'empty' };
     }
-    return { skills: MOCK_SKILLS, isMock: true };
-  } catch {
-    // Tauri 不可用（纯浏览器开发环境）
-    return { skills: MOCK_SKILLS, isMock: true };
+    const error = 'scan_skills returned an invalid payload';
+    console.warn(`[skill-panel] scan_skills failed: ${error}`);
+    return { skills: [], isMock: false, status: 'error', error };
+  } catch (error) {
+    const summary = scanErrorSummary(error);
+    console.warn(`[skill-panel] scan_skills failed: ${summary}`);
+    if (isExplicitDemoModeEnabled()) {
+      return { skills: MOCK_SKILLS, isMock: true, status: 'demo', error: summary };
+    }
+    return { skills: [], isMock: false, status: 'error', error: summary };
   }
 }
 

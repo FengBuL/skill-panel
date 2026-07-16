@@ -76,6 +76,24 @@ function mockShellCommands(skills: Skill[]) {
   });
 }
 
+function makeLibrarySkills(count: number, category = 'AI', start = 1): Skill[] {
+  return Array.from({ length: count }, (_, index) => {
+    const id = start + index;
+    return {
+      name: `library-skill-${String(id).padStart(3, '0')}`,
+      description: `Library skill ${id}`,
+      source: id % 5 === 0 ? 'plugin' : 'mine',
+      category,
+      path: `/tmp/library-skill-${String(id).padStart(3, '0')}/SKILL.md`,
+      modifiedAt: `2026-07-${String((id % 28) + 1).padStart(2, '0')}`,
+      size: 100,
+      starred: id % 7 === 0,
+      disabled: id % 11 === 0,
+      protected: id % 5 === 0,
+    };
+  });
+}
+
 function expectEditorHeaderActionsOrder() {
   const actionRow = document.querySelector('.editor-header-actions');
   expect(actionRow).toBeTruthy();
@@ -96,8 +114,22 @@ describe('AppShell Tauri event fallback', () => {
     invokeMock.mockReset();
     listenMock.mockReset();
     useUIStore.setState({ mainView: 'library', subView: null, subParam: null });
-    useSkillStore.setState({ skills: [], filtered: [], filters: { source: [], category: [], status: [] } });
+    useSkillStore.setState({
+      skills: [],
+      filtered: [],
+      search: '',
+      filters: { source: [], category: [], status: [] },
+      page: 1,
+      pageSize: 6,
+      libraryCategory: '全部',
+      scanStatus: 'idle',
+      scanError: '',
+      scanIsDemo: false,
+      drawerIdx: -1,
+      drawerOpen: false,
+    });
     useSettingsStore.setState({ aiVendor: 'glm', aiKeyStored: false });
+    localStorage.removeItem('skill-panel-demo-mode');
     invokeMock.mockImplementation((command: string) => {
       if (command === 'watch_scan_dirs') return Promise.resolve();
       if (command === 'scan_skills') return Promise.resolve([]);
@@ -116,6 +148,163 @@ describe('AppShell Tauri event fallback', () => {
     expect(await screen.findByText('Manage your Skills')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索 Skill 名称、标签或描述...')).toBeInTheDocument();
     await waitFor(() => expect(listenMock).toHaveBeenCalledWith('scan-changed', expect.any(Function)));
+  });
+
+  it('shows a scan failure state without built-in demo skills when installed scanning fails', async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'scan_skills') return Promise.reject(new Error('Unable to parse settings at /Users/demo/.codex/skill-panel/settings.json'));
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('Skill 扫描失败')).toBeInTheDocument();
+    expect(screen.getByText(/<PATH>/)).toBeInTheDocument();
+    expect(screen.queryByText('aihot-query')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重新扫描' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '打开设置' })).toBeInTheDocument();
+  });
+
+  it('marks explicit demo mode while showing built-in demo skills', async () => {
+    localStorage.setItem('skill-panel-demo-mode', 'true');
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'scan_skills') return Promise.reject(new Error('browser preview'));
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('演示数据')).toBeInTheDocument();
+    expect(screen.getAllByText('aihot-query').length).toBeGreaterThan(0);
+  });
+
+  it('shows an empty state when a real scan returns no skills', async () => {
+    render(<AppShell />);
+
+    expect(await screen.findByText('未发现 Skill')).toBeInTheDocument();
+    expect(screen.queryByText('aihot-query')).not.toBeInTheDocument();
+  });
+
+  it('paginates 7 scanned skills into 2 pages with 6 skills on the first page', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(7));
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('1–6 / 7')).toBeInTheDocument();
+    expect(screen.getByText('第 1 / 2 页')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-001').length).toBeGreaterThan(0);
+    expect(screen.queryByText('library-skill-007')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+
+    expect(await screen.findByText('7–7 / 7')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-007').length).toBeGreaterThan(0);
+    expect(screen.queryByText('library-skill-001')).not.toBeInTheDocument();
+  });
+
+  it('allows 101 scanned skills to reach the last page', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(101));
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('第 1 / 17 页')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '末页' }));
+
+    expect(await screen.findByText('第 17 / 17 页')).toBeInTheDocument();
+    expect(screen.getByText('97–101 / 101')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-101').length).toBeGreaterThan(0);
+  });
+
+  it('calculates 311 scanned skills as 52 pages and keeps the last page size correct', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(311));
+
+    render(<AppShell />);
+
+    expect(await screen.findByText('第 1 / 52 页')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '末页' }));
+
+    expect(await screen.findByText('307–311 / 311')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-311').length).toBeGreaterThan(0);
+    expect(screen.queryByText('library-skill-306')).not.toBeInTheDocument();
+  });
+
+  it('resets to page 1 after search changes', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(20));
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '下一页' }));
+    expect(await screen.findByText('第 2 / 4 页')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('搜索 Skill'), '020');
+
+    expect(await screen.findByText('1–1 / 1')).toBeInTheDocument();
+    expect(screen.getByText('第 1 / 1 页')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-020').length).toBeGreaterThan(0);
+  });
+
+  it('resets to page 1 after category changes', async () => {
+    const user = userEvent.setup();
+    mockShellCommands([...makeLibrarySkills(12, 'AI'), ...makeLibrarySkills(12, '金融', 13)]);
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '下一页' }));
+    expect(await screen.findByText('第 2 / 4 页')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '金融' }));
+
+    expect(await screen.findByText('第 1 / 2 页')).toBeInTheDocument();
+    expect(screen.getByText('1–6 / 12')).toBeInTheDocument();
+  });
+
+  it('clamps the current page when filtered results shrink', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(20));
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '末页' }));
+    expect(await screen.findByText('第 4 / 4 页')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('搜索 Skill'), '001');
+
+    expect(await screen.findByText('第 1 / 1 页')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-001').length).toBeGreaterThan(0);
+  });
+
+  it('does not repeat or skip skills while paging', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(13));
+
+    render(<AppShell />);
+
+    expect((await screen.findAllByText('library-skill-001')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('library-skill-006').length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    expect((await screen.findAllByText('library-skill-007')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('library-skill-012').length).toBeGreaterThan(0);
+    expect(screen.queryByText('library-skill-006')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    expect((await screen.findAllByText('library-skill-013')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('library-skill-012')).not.toBeInTheDocument();
+  });
+
+  it('preserves the Library page after returning from Detail', async () => {
+    const user = userEvent.setup();
+    mockShellCommands(makeLibrarySkills(7));
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: '下一页' }));
+    await user.dblClick(await screen.findByRole('button', { name: /library-skill-007/i }));
+    await user.click(await screen.findByRole('button', { name: '返回 Library' }));
+
+    expect(await screen.findByText('第 2 / 2 页')).toBeInTheDocument();
+    expect(screen.getAllByText('library-skill-007').length).toBeGreaterThan(0);
   });
 
   it('renders Dashboard metrics from the live skill store', async () => {
@@ -751,13 +940,13 @@ describe('AppShell Tauri event fallback', () => {
     expect(screen.getByText('已采纳 1 条建议，点击保存后写回 SKILL.md')).toBeInTheDocument();
     expect(invokeMock).not.toHaveBeenCalledWith('update_skill', expect.anything());
     expect(invokeMock).toHaveBeenCalledWith('ai_optimize', {
-      content: expect.stringContaining('# Browser Control'),
+      content: '',
       action: 'polish',
       vendor: 'glm',
       desensitize: true,
       sendConfirmed: true,
       rawContentConfirmed: false,
-      preview: expect.stringContaining('# Browser Control'),
+      preview: '',
     });
   });
 });

@@ -24,6 +24,8 @@ export interface SkillFilters {
   status: string[]; // 'starred','disabled','attention','archived'
 }
 
+export type SkillScanStatus = 'idle' | 'success' | 'empty' | 'error' | 'demo';
+
 interface SkillState {
   skills: Skill[];
   filtered: Skill[];
@@ -31,6 +33,10 @@ interface SkillState {
   filters: SkillFilters;
   page: number;
   pageSize: number;
+  libraryCategory: string;
+  scanStatus: SkillScanStatus;
+  scanError: string;
+  scanIsDemo: boolean;
   bulkMode: boolean;
   bulkSelected: Set<number>;
   drawerIdx: number; // -1=关闭
@@ -43,6 +49,8 @@ interface SkillState {
   toggleFilter: (type: keyof SkillFilters, val: string) => void;
   clearFilters: (type: keyof SkillFilters) => void;
   setPage: (p: number) => void;
+  setLibraryCategory: (category: string) => void;
+  setScanStatus: (status: SkillScanStatus, error?: string) => void;
   applyFilters: () => void;
   toggleBulk: () => void;
   toggleSelect: (idx: number) => void;
@@ -60,7 +68,11 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   search: '',
   filters: { source: [], category: [], status: [] },
   page: 1,
-  pageSize: 8,
+  pageSize: 6,
+  libraryCategory: '全部',
+  scanStatus: 'idle',
+  scanError: '',
+  scanIsDemo: false,
   bulkMode: false,
   bulkSelected: new Set(),
   drawerIdx: -1,
@@ -88,7 +100,24 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     get().applyFilters();
   },
 
-  setPage: (p) => set({ page: p }),
+  setPage: (p) => {
+    const { filtered, skills, pageSize } = get();
+    const total = (filtered.length || get().search || get().filters.source.length || get().filters.category.length || get().filters.status.length)
+      ? filtered.length
+      : skills.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    set({ page: Math.min(Math.max(1, p), totalPages) });
+  },
+
+  setLibraryCategory: (category) => {
+    set({ libraryCategory: category, page: 1 });
+  },
+
+  setScanStatus: (status, error = '') => set({
+    scanStatus: status,
+    scanError: error,
+    scanIsDemo: status === 'demo',
+  }),
 
   applyFilters: () => {
     const { skills, search, filters } = get();
@@ -102,7 +131,8 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     if (filters.status.includes('starred')) r = r.filter(s => s.starred);
     if (filters.status.includes('disabled')) r = r.filter(s => s.disabled);
     if (filters.status.includes('attention')) r = r.filter(s => s.disabled || !s.description || s.description === '(无描述)');
-    set({ filtered: r });
+    const totalPages = Math.max(1, Math.ceil(r.length / get().pageSize));
+    set({ filtered: r, page: Math.min(get().page, totalPages) });
   },
 
   toggleBulk: () => {

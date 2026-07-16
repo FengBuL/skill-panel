@@ -10,13 +10,11 @@ type DependencyListProps = {
   items?: DependencyItem[];
 };
 
-const defaultItems: DependencyItem[] = [
-  { name: 'humanizer', description: '文本润色', relation: '被调用', status: '正常', tone: 'healthy' },
-  { name: 'web-search', description: '网络搜索', relation: '可选依赖', status: '正常', tone: 'healthy' },
-  { name: 'old-feed-parser', description: '旧版订阅解析', relation: '历史依赖', status: '未找到', tone: 'archived' },
-];
+export function DependencyList({ items = [] }: DependencyListProps) {
+  if (!items.length) {
+    return <div className="aux-state">暂无依赖数据</div>;
+  }
 
-export function DependencyList({ items = defaultItems }: DependencyListProps) {
   return (
     <table className="table detail-dependency-table">
       <thead>

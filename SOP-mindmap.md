@@ -45,4 +45,11 @@ mindmap
       升级检查清单
       回退检查清单
       截图要求
+    第 8 步失败
+      虚拟 Skill 数据
+      Library 缺少分页
+      发布阻塞
+      candidate-2 修复批次
+      禁止 tag
+      禁止发布
 ```
