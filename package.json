@@ -17,6 +17,7 @@
     "tauri:build:macos": "tauri build --bundles app,dmg",
     "local:update:macos": "sh scripts/update-local-macos-app.sh",
     "tauri:icons": "tauri icon src-tauri/icons/source.png",
+    "git:diff:check": "git diff --check",
     "visual:qa": "node scripts/visual-qa.mjs",
     "packaging:check": "vitest run src/packaging.config.test.ts",
     "cargo:test": "export PATH=\"$HOME/.cargo/bin:$PATH\"; cd src-tauri && cargo test --lib --bins --tests"
