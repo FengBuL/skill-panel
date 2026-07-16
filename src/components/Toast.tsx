@@ -1,5 +1,6 @@
 // Toast 系统 — wt-0-foundation 产出
 import { useEffect, useState } from 'react';
+import { sanitizeText } from '../lib/redaction';
 import './Toast.css';
 
 interface ToastMsg { id: number; text: string; action?: string; onAction?: () => void }
@@ -7,7 +8,7 @@ let toastId = 0;
 const listeners = new Set<(t: ToastMsg) => void>();
 
 export function showToast(text: string, action?: string, onAction?: () => void) {
-  const t: ToastMsg = { id: ++toastId, text, action, onAction };
+  const t: ToastMsg = { id: ++toastId, text: sanitizeText(text), action, onAction };
   listeners.forEach(fn => fn(t));
 }
 

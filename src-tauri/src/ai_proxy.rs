@@ -1,4 +1,5 @@
 // AI 代理 — reqwest 调用厂商 API + keyring 存 Key + 流式 emit + usage/cost 解析
+#[cfg(not(test))]
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,9 +29,29 @@ struct AiErrorEvent {
     message: String,
 }
 
+#[cfg(not(test))]
 const KEYRING_SERVICE: &str = "skill-panel-ai";
 
 static CANCEL_FLAG: AtomicBool = AtomicBool::new(false);
+
+#[cfg(test)]
+fn mock_keyring() -> &'static std::sync::Mutex<std::collections::HashMap<String, String>> {
+    static MOCK: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+        std::sync::OnceLock::new();
+    MOCK.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn is_allowed_vendor(vendor: &str) -> bool {
+    matches!(vendor, "openai" | "claude" | "glm" | "ollama")
+}
+
+fn validate_vendor(vendor: &str) -> Result<(), String> {
+    if is_allowed_vendor(vendor) {
+        Ok(())
+    } else {
+        Err("不支持的厂商".to_string())
+    }
+}
 
 /// 取消正在进行的 AI 调用
 pub fn cancel() {
@@ -39,14 +60,44 @@ pub fn cancel() {
 
 /// 从 Keychain 读取 API Key
 pub fn get_api_key(vendor: &str) -> Result<String, String> {
-    let entry = Entry::new(KEYRING_SERVICE, vendor).map_err(|e| e.to_string())?;
+    validate_vendor(vendor)?;
+    #[cfg(test)]
+    {
+        if let Some(key) = mock_keyring()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(vendor)
+            .cloned()
+        {
+            return Ok(key);
+        }
+        return Err(format!("未配置 {} 的 API Key", vendor));
+    }
+    #[cfg(not(test))]
+    let entry = Entry::new(KEYRING_SERVICE, vendor)
+        .map_err(|_| format!("无法访问 {} 的 Keychain 项", vendor))?;
+    #[cfg(not(test))]
     entry
         .get_password()
-        .map_err(|e| format!("未存储 {} 的 API Key: {}", vendor, e))
+        .map_err(|_| format!("未配置 {} 的 API Key", vendor))
 }
 
 /// 检查是否已存储 API Key（不返回 Key 本身）
 pub fn has_api_key(vendor: &str) -> bool {
+    if validate_vendor(vendor).is_err() {
+        return false;
+    }
+    if vendor == "ollama" {
+        return true;
+    }
+    #[cfg(test)]
+    {
+        return mock_keyring()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .contains_key(vendor);
+    }
+    #[cfg(not(test))]
     Entry::new(KEYRING_SERVICE, vendor)
         .and_then(|entry| entry.get_password())
         .is_ok()
@@ -54,30 +105,30 @@ pub fn has_api_key(vendor: &str) -> bool {
 
 /// 存储 API Key 到 Keychain
 pub fn set_api_key(vendor: &str, key: &str) -> Result<(), String> {
-    let entry = Entry::new(KEYRING_SERVICE, vendor).map_err(|e| e.to_string())?;
-    entry.set_password(key).map_err(|e| e.to_string())
+    validate_vendor(vendor)?;
+    if vendor == "ollama" {
+        return Ok(());
+    }
+    #[cfg(test)]
+    {
+        mock_keyring()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(vendor.to_string(), key.to_string());
+        return Ok(());
+    }
+    #[cfg(not(test))]
+    let entry = Entry::new(KEYRING_SERVICE, vendor)
+        .map_err(|_| format!("无法访问 {} 的 Keychain 项", vendor))?;
+    #[cfg(not(test))]
+    entry
+        .set_password(key)
+        .map_err(|_| format!("无法保存 {} 的 API Key", vendor))
 }
 
 /// 脱敏处理：路径/密钥/邮箱打码
 pub fn desensitize(content: &str) -> String {
-    let mut out = content.to_string();
-    while let Some(pos) = out.find("sk-") {
-        let end = out[pos..]
-            .find(|c: char| c.is_whitespace())
-            .map(|e| pos + e)
-            .unwrap_or(out.len());
-        out.replace_range(pos..end, "<API_KEY>");
-    }
-    for prefix in &["~/", "/Users/", "/home/", "C:\\", "D:\\"] {
-        while let Some(pos) = out.find(prefix) {
-            let end = out[pos..]
-                .find(|c: char| c.is_whitespace() || c == '"' || c == ')' || c == ']')
-                .map(|e| pos + e)
-                .unwrap_or(out.len());
-            out.replace_range(pos..end, "<PATH>");
-        }
-    }
-    out
+    crate::redaction::redact_text(content)
 }
 
 /// 按 model 单价表计算费用（CNY per 1M tokens）
@@ -156,15 +207,55 @@ pub async fn optimize(
     action: String,
     vendor: String,
     desensitize_flag: bool,
+    send_confirmed: bool,
+    raw_content_confirmed: bool,
+    preview: String,
 ) -> Result<(), String> {
     CANCEL_FLAG.store(false, Ordering::SeqCst);
 
-    let key = get_api_key(&vendor)?;
+    validate_vendor(&vendor)?;
+    if !send_confirmed {
+        let msg = "AI 发送前需要确认".to_string();
+        let _ = app.emit(
+            "ai-error",
+            AiErrorEvent {
+                message: msg.clone(),
+            },
+        );
+        return Err(msg);
+    }
+    if !desensitize_flag && !raw_content_confirmed {
+        let msg = "关闭脱敏需要本次风险确认".to_string();
+        let _ = app.emit(
+            "ai-error",
+            AiErrorEvent {
+                message: msg.clone(),
+            },
+        );
+        return Err(msg);
+    }
 
     let safe_content = if desensitize_flag {
         desensitize(&content)
     } else {
         content.clone()
+    };
+    let expected_preview = crate::redaction::preview_text(&safe_content);
+    if preview != expected_preview {
+        let msg = "AI 发送预览与后端计算内容不一致".to_string();
+        let _ = app.emit(
+            "ai-error",
+            AiErrorEvent {
+                message: msg.clone(),
+            },
+        );
+        return Err(msg);
+    }
+
+    let key = if vendor == "ollama" {
+        String::new()
+    } else {
+        get_api_key(&vendor)?
     };
 
     let prompt = match action.as_str() {
@@ -227,7 +318,7 @@ pub async fn optimize(
     let resp = match req.json(&body).send().await {
         Ok(r) => r,
         Err(e) => {
-            let msg = format!("请求失败: {}", e);
+            let msg = desensitize(&format!("请求失败: {}", e));
             let _ = app.emit(
                 "ai-error",
                 AiErrorEvent {
@@ -239,10 +330,14 @@ pub async fn optimize(
     };
 
     let status = resp.status();
-    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| desensitize(&format!("读取响应失败: {}", e)))?;
 
     if !status.is_success() {
-        let msg = format!("API 返回错误 {}: {}", status, &text[..text.len().min(200)]);
+        let snippet: String = text.chars().take(200).collect();
+        let msg = desensitize(&format!("API 返回错误 {}: {}", status, snippet));
         let _ = app.emit(
             "ai-error",
             AiErrorEvent {
@@ -329,4 +424,53 @@ pub async fn optimize(
     let _ = crate::call_logger::append_log(&log);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{desensitize, has_api_key, set_api_key};
+
+    #[test]
+    fn desensitize_covers_keys_tokens_paths_emails_urls_and_json_strings() {
+        let fake_api_key = format!("sk-{}-secret", "test");
+        let fake_jwt = format!(
+            "{}.{}.{}",
+            "eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ1c2VyQGV4YW1wbGUuY29tIn0", "signature"
+        );
+        let input = [
+            r#"{"api_key": ""#,
+            &fake_api_key,
+            r#"", "Authorization": "Bearer "#,
+            &fake_jwt,
+            r#"", "nested": {"secret": "plain-secret-token", "path": "/Users/alice/.codex/skills/demo/SKILL.md", "url": "https://api.example.com/run?token=abcd1234&safe=1&password=secret"}, "email": "owner@example.com", "windows": "C:\\Users\\Alice\\Documents\\secret.txt"}"#,
+        ]
+        .join("");
+
+        let output = desensitize(&input);
+
+        assert!(output.contains("<API_KEY>"));
+        assert!(output.contains("<TOKEN>"));
+        assert!(output.contains("<PATH>"));
+        assert!(output.contains("<EMAIL>"));
+        assert!(output.contains("safe=1"));
+        assert!(!output.contains(&fake_api_key));
+        assert!(!output.contains("eyJhbGci"));
+        assert!(!output.contains("plain-secret-token"));
+        assert!(!output.contains("/Users/alice"));
+        assert!(!output.contains("owner@example.com"));
+        assert!(!output.contains("password=secret"));
+        assert!(!output.contains("C:\\Users\\Alice"));
+    }
+
+    #[test]
+    fn api_key_commands_reject_unknown_vendors_before_keychain_access() {
+        let vendor = "https://evil.example.com";
+        let key = "sk-test-secret";
+
+        let error = set_api_key(vendor, key).expect_err("unknown vendor should be rejected");
+
+        assert!(error.contains("不支持的厂商"));
+        assert!(!error.contains(key));
+        assert!(!has_api_key(vendor));
+    }
 }

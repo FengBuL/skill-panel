@@ -80,14 +80,37 @@ pub fn append_audit_log(entry: AuditLogEntry) -> Result<(), String> {
         fs::create_dir_all(parent)
             .map_err(|error| format!("Unable to create audit log directory: {error}"))?;
     }
-    let line = serde_json::to_string(&entry)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(parent_or_self(&log_path), fs::Permissions::from_mode(0o700)).ok();
+    }
+    let safe_entry = AuditLogEntry {
+        action: crate::redaction::redact_text(&entry.action),
+        timestamp: entry.timestamp,
+        detail: crate::redaction::redact_json_value(&entry.detail),
+    };
+    let line = serde_json::to_string(&safe_entry)
         .map_err(|error| format!("Unable to serialize audit log entry: {error}"))?;
-    let mut file = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path)
-        .map_err(|error| format!("Unable to open audit log: {error}"))?;
+    let mut options = fs::OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(&log_path).map_err(|error| {
+        format!(
+            "Unable to open audit log: {}",
+            crate::redaction::redact_text(&error.to_string())
+        )
+    })?;
     writeln!(file, "{line}").map_err(|error| format!("Unable to write audit log: {error}"))
+}
+
+#[cfg(unix)]
+fn parent_or_self(path: &Path) -> &Path {
+    path.parent().unwrap_or(path)
 }
 
 #[cfg(test)]
@@ -253,6 +276,40 @@ mod tests {
     }
 
     #[test]
+    fn append_audit_log_recursively_redacts_nested_detail_strings() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("audit-redact-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
+        let entry = crate::models::AuditLogEntry {
+            action: "test.audit".to_string(),
+            timestamp: "2026-07-16T00:00:00Z".to_string(),
+            detail: serde_json::json!({
+                "api_key": "sk-test-secret",
+                "nested": {
+                    "path": "/Users/alice/.codex/skills/demo/SKILL.md",
+                    "email": "owner@example.com"
+                },
+                "items": ["Bearer raw-token-value"]
+            }),
+        };
+
+        append_audit_log(entry).expect("audit log should append");
+        let audit_path = home.join(".codex").join("skill-panel").join("audit.log");
+        let raw = fs::read_to_string(audit_path).expect("audit log should exist");
+
+        assert!(raw.contains("<API_KEY>"));
+        assert!(raw.contains("<PATH>"));
+        assert!(raw.contains("<EMAIL>"));
+        assert!(raw.contains("<TOKEN>"));
+        assert!(!raw.contains("sk-test-secret"));
+        assert!(!raw.contains("/Users/alice"));
+        assert!(!raw.contains("owner@example.com"));
+        assert!(!raw.contains("raw-token-value"));
+
+        fs::remove_dir_all(home).ok();
+    }
+
+    #[test]
     fn file_commands_reject_paths_outside_configured_roots_without_leaking_input_path() {
         let _home_env_lock = lock_home_env();
         let home = temp_root("outside-home");
@@ -395,7 +452,10 @@ mod tests {
         )
         .expect("protected source should copy to an editable root");
         let cloned_path = PathBuf::from(cloned.new_path);
-        assert_eq!(cloned_path, codex_skill_root.join("editable-copy").join("SKILL.md"));
+        assert_eq!(
+            cloned_path,
+            codex_skill_root.join("editable-copy").join("SKILL.md")
+        );
         assert!(cloned_path.exists());
 
         let conflict = expect_command_error(
@@ -644,8 +704,21 @@ pub async fn ai_optimize(
     action: String,
     vendor: String,
     desensitize: bool,
+    send_confirmed: bool,
+    raw_content_confirmed: bool,
+    preview: String,
 ) -> Result<(), String> {
-    crate::ai_proxy::optimize(app, content, action, vendor, desensitize).await
+    crate::ai_proxy::optimize(
+        app,
+        content,
+        action,
+        vendor,
+        desensitize,
+        send_confirmed,
+        raw_content_confirmed,
+        preview,
+    )
+    .await
 }
 
 #[tauri::command]

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AiAction, ParsedHunk } from '../../lib/ai';
+import { hasApiKey } from '../../lib/ai';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import { PageHeader } from '../PageHeader';
@@ -47,6 +48,20 @@ export function AIAssistantView() {
   const ui = useUIStore();
   const [mode, setMode] = useState<AiAction>('polish');
   const [note, setNote] = useState('');
+  const [keyStored, setKeyStored] = useState(settings.aiKeyStored);
+
+  useEffect(() => {
+    let active = true;
+    hasApiKey(settings.aiVendor).then((stored) => {
+      if (active) {
+        setKeyStored(stored);
+        settings.setAIKeyStored(stored);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [settings.aiVendor, settings.setAIKeyStored]);
 
   const acceptAll = () => {
     showToast('已进入写回确认，本批次保留人工确认流程', '');
@@ -79,7 +94,14 @@ export function AIAssistantView() {
                 onChange={(event) => setNote(event.target.value)}
               />
             </div>
-            <button className="btn btn-primary ai-page-full-button mt-3" type="button">生成优化建议</button>
+            <button
+              className="btn btn-primary ai-page-full-button mt-3"
+              type="button"
+              disabled={!keyStored}
+              onClick={() => showToast('请从 Editor 右侧 AI 面板确认脱敏预览后发送', '')}
+            >
+              生成优化建议
+            </button>
           </div>
         </section>
 
@@ -98,7 +120,7 @@ export function AIAssistantView() {
       <section className="card mt-4">
         <div className="card-header"><h2 className="card-title">API Key 状态</h2></div>
         <div className="card-body">
-          <KeyStatusBadge stored={settings.aiKeyStored} />
+          <KeyStatusBadge stored={keyStored} />
         </div>
       </section>
     </>

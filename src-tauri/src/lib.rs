@@ -3,6 +3,7 @@ pub mod call_logger;
 pub mod commands;
 pub mod dep_analyzer;
 pub mod models;
+pub mod redaction;
 pub mod settings_store;
 pub mod skill_path_guard;
 pub mod skill_scanner;

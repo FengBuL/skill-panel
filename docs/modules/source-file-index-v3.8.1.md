@@ -11,14 +11,15 @@
 | `scripts/update-local-macos-app.sh` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/visual-qa.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 612 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
 | `src-tauri/build.rs` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `src-tauri/Cargo.toml` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 32 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `src-tauri/src/ai_proxy.rs` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 276 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
-| `src-tauri/src/call_logger.rs` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 58 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
-| `src-tauri/src/commands.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 720 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/Cargo.toml` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 33 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 |
+| `src-tauri/src/ai_proxy.rs` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 476 | 负责 Keychain/Credential Store、厂商允许列表、AI 发送确认、脱敏和后端代理。 |
+| `src-tauri/src/call_logger.rs` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 202 | 负责调用日志写入前脱敏、读取旧 JSONL 再脱敏和日志读取。 |
+| `src-tauri/src/commands.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 793 | 负责 Tauri 命令注册、audit 脱敏、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/dep_analyzer.rs` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 66 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
-| `src-tauri/src/lib.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 54 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/lib.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 55 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/main.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 6 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
 | `src-tauri/src/models.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 252 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/redaction.rs` | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 176 | 提供后端 API Key、token、JWT、路径、邮箱、URL 查询参数和 JSON 嵌套字符串脱敏工具。 |
 | `src-tauri/src/settings_store.rs` | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 279 | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 |
 | `src-tauri/src/skill_scanner.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 686 | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 |
 | `src-tauri/src/skill_path_guard.rs` | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 303 | 负责 Skill 文件命令的 canonicalization、允许根校验、符号链接逃逸拦截和来源权限矩阵。 |
@@ -30,16 +31,16 @@
 | `src/App.editor.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 1118 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/App.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 2008 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/App.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 11 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 435 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 463 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
 | `src/AppShell.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 109 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
 | `src/common/EmptyState.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 65 | 提供统一空状态、扫描中和无搜索结果展示。 |
 | `src/common/ErrorBoundary.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 59 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
 | `src/common/SkillExport.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 37 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
-| `src/common/Toast.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 54 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
+| `src/common/Toast.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 57 | 提供 workspace 通知展示并在展示前执行防御性脱敏。 |
 | `src/common/Ui.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 95 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
-| `src/components/ai/ai.css` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 657 | 负责 AI Rail、AI Assistant 页面、Diff 对比和 Key 状态的无阴影样式。 |
-| `src/components/ai/AIRail.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 102 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
-| `src/components/ai/AIAssistantView.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 109 | 负责 AI Assistant 页面、优化方向选择、Diff 对比和 Key 状态展示。 |
+| `src/components/ai/ai.css` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 717 | 负责 AI Rail、AI Assistant 页面、Diff 对比、发送确认和 Key 状态的无阴影样式。 |
+| `src/components/ai/AIRail.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 145 | 负责 AI Rail、发送前确认、脱敏预览、取消、费用显示和 diff 选择采纳。 |
+| `src/components/ai/AIAssistantView.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 128 | 负责 AI Assistant 页面、优化方向选择、Diff 对比和 Keychain 状态刷新。 |
 | `src/components/ai/AIModeSelector.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 36 | 提供 AI Assistant 优化模式选择结构。 |
 | `src/components/ai/CostBadge.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 44 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
 | `src/components/ai/DiffHunk.tsx` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 66 | 负责 AI Rail、页面级 Diff hunk 展示、选择采纳和拒绝操作。 |
@@ -87,7 +88,7 @@
 | `src/editor/MarkdownEditor.tsx` | 编辑器工作区 | [editor-v3.8.1.md](./editor-v3.8.1.md) | 18 | 提供 Markdown textarea 编辑区。 |
 | `src/editor/PreviewPane.tsx` | 编辑器工作区 | [editor-v3.8.1.md](./editor-v3.8.1.md) | 47 | 提供 Markdown 预览区。 |
 | `src/editor/EditorWorkspace.tsx` | 编辑器工作区 | [editor-v3.8.1.md](./editor-v3.8.1.md) | 14 | 提供 Editor 工作区外壳。 |
-| `src/hooks/useAIRail.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 171 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
+| `src/hooks/useAIRail.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 207 | 负责 AI Rail、API Key 检查、发送确认状态机、流式生成、取消和 diff 选择采纳。 |
 | `src/hooks/useDebouncedValue.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 16 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useDragDrop.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 171 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useKeyboardNav.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 97 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
@@ -99,11 +100,12 @@
 | `src/i18n/resources.ts` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 764 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/i18n/runtime.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 321 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/i18n/useI18n.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 212 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/lib/ai.test.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 40 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
-| `src/lib/ai.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 171 | 负责 AI Rail、API Key 检查、流式生成、取消、费用显示、diff 选择采纳和后端代理。 |
+| `src/lib/ai.test.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 89 | 覆盖 diff 工具、前端脱敏语义和 AI 发送确认参数。 |
+| `src/lib/ai.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 182 | 负责 AI Rail、API Key 检查、脱敏预览、确认参数、事件监听和 diff 工具。 |
+| `src/lib/redaction.ts` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 33 | 提供前端 API Key、token、JWT、路径、邮箱和 URL 敏感参数脱敏工具。 |
 | `src/lib/invoke.test.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 31 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/lib/invoke.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 125 | 负责 Skill 扫描调用、前端数据映射和浏览器预览 fallback 数据。 |
-| `src/lib/logs.ts` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 26 | 负责调用日志展示、AI 调用记录、依赖关系分析和日志读取。 |
+| `src/lib/logs.ts` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 29 | 负责调用日志读取、fallback 空态和前端防御性脱敏。 |
 | `src/lib/skillPermissions.test.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 24 | 覆盖用户来源、受保护来源、归档和复制能力判断。 |
 | `src/lib/skillPermissions.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 38 | 提供前端统一来源权限矩阵，供按钮状态和操作入口复用。 |
 | `src/lib/skills.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 7 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
@@ -124,12 +126,12 @@
 | `src/pages/Library/Library.css` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 335 | 负责 Library 1:1 原型布局、搜索、分类 pill、卡片网格、详情面板和响应式样式。 |
 | `src/pages/Dependencies/index.tsx` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 65 | 负责依赖分析页面、拓扑图、风险摘要和依赖详情。 |
 | `src/pages/Dependencies/Dependencies.css` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 123 | 负责依赖分析页面、拓扑图、风险摘要和表格样式。 |
-| `src/pages/Logs/index.tsx` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 116 | 负责调用日志页面、筛选入口、日志表格和详情展示。 |
+| `src/pages/Logs/index.tsx` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 135 | 负责调用日志页面、筛选入口、空日志表格、详情展示和前端防御性脱敏。 |
 | `src/pages/Logs/Logs.css` | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 98 | 负责调用日志页面、表格、筛选和详情样式。 |
 | `src/pages/EmptyStates/index.tsx` | 新建与预览流程 | [create-preview-v3.8.1.md](./create-preview-v3.8.1.md) | 64 | 提供 Empty/Error 状态验收页。 |
 | `src/pages/EmptyStates/EmptyStates.css` | 新建与预览流程 | [create-preview-v3.8.1.md](./create-preview-v3.8.1.md) | 29 | 负责 Empty/Error 状态验收页网格样式。 |
 | `src/pages/Preview/index.tsx` | 新建与预览流程 | [create-preview-v3.8.1.md](./create-preview-v3.8.1.md) | 55 | 负责创建 Skill 的入口、预览页面和次级视图流程。 |
-| `src/pages/Settings/index.tsx` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 170 | 负责主题、扫描、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
+| `src/pages/Settings/index.tsx` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 208 | 负责主题、扫描、AI 厂商、Keychain 状态刷新、Key 保存、脱敏、diff 确认和预算设置。 |
 | `src/pages/Settings/Settings.css` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 155 | 负责 Settings 左侧导航、设置表单、卡片和安全说明样式。 |
 | `src/router.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 42 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/settings/Settings.tsx` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 15 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
@@ -141,9 +143,9 @@
 | `src/styles.css` | 样式系统与视觉规范 | [styles-system-v3.8.1.md](./styles-system-v3.8.1.md) | 216 | 负责全局样式重置、body warm paper 背景、Inter 字体、固定应用壳高度、基础控件和原型辅助类。 |
 | `src/styles/tokens.css` | 样式系统与视觉规范 | [styles-system-v3.8.1.md](./styles-system-v3.8.1.md) | 74 | 负责第 0 批必须变量、兼容语义 token、间距、圆角和基础色。 |
 | `src/test/setup.ts` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 2 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
-| `src/types/commands.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 182 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/commands.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 190 | 负责前后端共享数据形状、命令名称列表、AI 发送确认参数和 TypeScript 类型守卫。 |
 | `src/types/skill.test.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 148 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src/types/skill.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 198 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/skill.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 206 | 负责前后端共享数据形状、命令名称列表、AI 发送确认参数和 TypeScript 类型守卫。 |
 | `ui-style-guide.md` | 样式系统与视觉规范 | [styles-system-v3.8.1.md](./styles-system-v3.8.1.md) | 193 | 负责全局 token、基础样式、v3.8.1 UI 样式规范和视觉一致性。 |
 | `vite.config.ts` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 20 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 

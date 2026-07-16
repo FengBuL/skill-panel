@@ -4,22 +4,14 @@ import { LogTable, type LogTableRow } from '../../components/LogTable';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusPill } from '../../components/StatusPill';
 import { getCallLogs, type CallLogRow } from '../../lib/logs';
+import { sanitizeText } from '../../lib/redaction';
 import './Logs.css';
-
-const fallbackRows: LogTableRow[] = [
-  { time: '今天 09:41:12', skillName: 'aihot-query', prompt: '“今天 AI 圈有什么”', tokens: '1,240', duration: '1.2s', status: 'ok' },
-  { time: '今天 09:38:55', skillName: 'meeting-notes', prompt: '“总结刚刚的会议”', tokens: '2,860', duration: '3.4s', status: 'ok' },
-  { time: '今天 09:15:02', skillName: 'deploy-preview', prompt: '“部署当前目录”', tokens: '—', duration: '8.1s', status: 'warning' },
-  { time: '昨天 18:22:41', skillName: 'git-sync', prompt: '“查看仓库状态”', tokens: '—', duration: '0.4s', status: 'ok' },
-  { time: '昨天 16:05:33', skillName: 'finance-lookup', prompt: '“查一下 NVDA”', tokens: '420', duration: '0.9s', status: 'fail' },
-  { time: '7月5日 11:30:18', skillName: 'image-caption', prompt: '“给这张图写说明”', tokens: '3,120', duration: '4.7s', status: 'archived' },
-];
 
 function toLogTableRow(log: CallLogRow): LogTableRow {
   return {
-    time: log.time,
-    skillName: log.skillName,
-    prompt: `“${log.prompt}”`,
+    time: sanitizeText(log.time),
+    skillName: sanitizeText(log.skillName),
+    prompt: `“${sanitizeText(log.prompt)}”`,
     tokens: log.tokens ? log.tokens.toLocaleString('en-US') : '—',
     duration: `${(log.durationMs / 1000).toFixed(1)}s`,
     status: log.status === 'ok' ? 'ok' : 'fail',
@@ -39,7 +31,7 @@ export default function LogsPage() {
         setError('');
       })
       .catch(err => {
-        setError(String(err));
+        setError(sanitizeText(err));
       })
       .finally(() => {
         setLoading(false);
@@ -50,7 +42,7 @@ export default function LogsPage() {
     loadLogs();
   }, [loadLogs]);
 
-  const rows = useMemo(() => (logs.length ? logs.map(toLogTableRow) : fallbackRows), [logs]);
+  const rows = useMemo(() => logs.map(toLogTableRow), [logs]);
   const selected = rows[0];
 
   return (
@@ -114,10 +106,11 @@ export default function LogsPage() {
       <section className="card">
         <div className="card-body aux-card-body-flush">
           <LogTable rows={rows} />
+          {rows.length ? null : <div className="aux-state">暂无调用日志</div>}
         </div>
       </section>
 
-      <section className="card logs-detail-card">
+      {selected ? <section className="card logs-detail-card">
         <div className="card-header">
           <h2 className="card-title">日志详情</h2>
         </div>
@@ -136,7 +129,7 @@ export default function LogsPage() {
           </div>
           <p className="text-sm text-secondary logs-safe-note">完整请求与响应内容仅保存在本地日志文件，已脱敏处理。</p>
         </div>
-      </section>
+      </section> : null}
     </div>
   );
 }

@@ -11,7 +11,9 @@ import {
   hasApiKey,
   parseDiff,
   applyDiffHunks,
+  buildAIPreview,
 } from '../lib/ai';
+import { sanitizeText } from '../lib/redaction';
 
 export interface UseAIRailOptions {
   content: string;
@@ -28,7 +30,10 @@ export interface UseAIRailReturn {
   error: string | null;
   hunks: ParsedHunk[];
   lastAction: AiAction | null;
+  pendingAction: AiAction | null;
+  pendingPreview: string;
   run: (action: AiAction) => Promise<void>;
+  confirmSend: (rawContentConfirmed?: boolean) => Promise<void>;
   cancel: () => void;
   applySelected: (selectedIds: Set<number>) => void;
   reject: () => void;
@@ -43,6 +48,8 @@ export function useAIRail(opts: UseAIRailOptions): UseAIRailReturn {
   const [error, setError] = useState<string | null>(null);
   const [hunks, setHunks] = useState<ParsedHunk[]>([]);
   const [lastAction, setLastAction] = useState<AiAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<AiAction | null>(null);
+  const [pendingPreview, setPendingPreview] = useState('');
   const contentRef = useRef(content);
 
   useEffect(() => {
@@ -56,6 +63,8 @@ export function useAIRail(opts: UseAIRailOptions): UseAIRailReturn {
     setError(null);
     setHunks([]);
     setLastAction(null);
+    setPendingAction(null);
+    setPendingPreview('');
   }, []);
 
   const run = useCallback(
@@ -76,11 +85,31 @@ export function useAIRail(opts: UseAIRailOptions): UseAIRailReturn {
         return;
       }
 
+      setPendingAction(action);
+      setPendingPreview(buildAIPreview(contentRef.current, desensitize));
+      setStatus('confirming');
+    },
+    [status, vendor, desensitize, onToast],
+  );
+
+  const confirmSend = useCallback(
+    async (rawContentConfirmed = false) => {
+      if (!pendingAction) return;
+      const action = pendingAction;
+      const preview = buildAIPreview(contentRef.current, desensitize);
+      setStatus('generating');
+      setStream('');
+      setError(null);
+      setPendingPreview(preview);
+
       await runAI({
         content: contentRef.current,
         action,
         vendor,
         desensitize,
+        sendConfirmed: true,
+        rawContentConfirmed,
+        preview,
         onChunk: (chunk) => {
           setStream((prev) => prev + chunk);
         },
@@ -120,22 +149,27 @@ export function useAIRail(opts: UseAIRailOptions): UseAIRailReturn {
           if (msg === '已取消') {
             onToast('已取消', 'info');
           } else {
-            onToast(msg, 'error');
+            onToast(sanitizeText(msg), 'error');
           }
           setStatus('idle');
-          setError(msg);
+          setError(sanitizeText(msg));
         },
       });
     },
-    [status, vendor, desensitize, onToast],
+    [pendingAction, vendor, desensitize, onToast],
   );
 
   const cancel = useCallback(() => {
+    if (status === 'confirming') {
+      reset();
+      onToast('已取消发送', 'info');
+      return;
+    }
     cancelAI();
     setStatus('idle');
     setStream('');
     onToast('已取消', 'info');
-  }, [onToast]);
+  }, [status, reset, onToast]);
 
   const applySelected = useCallback(
     (selectedIds: Set<number>) => {
@@ -161,7 +195,10 @@ export function useAIRail(opts: UseAIRailOptions): UseAIRailReturn {
     error,
     hunks,
     lastAction,
+    pendingAction,
+    pendingPreview,
     run,
+    confirmSend,
     cancel,
     applySelected,
     reject,

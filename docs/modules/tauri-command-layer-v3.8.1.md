@@ -2,25 +2,26 @@
 
 ## 模块简介
 
-负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。
+负责 Tauri 应用入口、命令注册、命令适配、应用版本、统一脱敏和前端可调用边界。
 
 ## 检索关键词
 
-`Tauri`、`commands`、`invoke_handler`、`app_version`、`backend`
+`Tauri`、`commands`、`invoke_handler`、`app_version`、`backend`、`redaction`
 
 ## 代码规模
 
-- 源码文件数：4
-- 代码总行数：1032
+- 源码文件数：5
+- 代码总行数：1282
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
 | `src-tauri/src/main.rs` | 6 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
-| `src-tauri/src/lib.rs` | 54 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
-| `src-tauri/src/commands.rs` | 720 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/lib.rs` | 55 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/commands.rs` | 793 | 负责 Tauri 应用入口、命令注册、命令适配、audit 日志脱敏、应用版本和前端可调用边界。 |
 | `src-tauri/src/models.rs` | 252 | 负责 Tauri 应用入口、命令注册、命令适配、应用版本和前端可调用边界。 |
+| `src-tauri/src/redaction.rs` | 176 | 提供后端 API Key、token、JWT、路径、邮箱、URL 查询参数和 JSON 嵌套字符串脱敏工具。 |
 
 ## 对外契约
 
@@ -29,12 +30,15 @@
 - 模型使用 serde camelCase
 - 文件命令统一通过后端路径守卫校验允许根、符号链接和来源权限
 - delete_skill 返回 Skill 名称、原路径、备份路径、废纸篓结果和恢复说明
+- append_audit_log 写入前递归脱敏 detail
+- ai_optimize 在取 Key 与网络请求前校验发送确认字段
 
 ## 修改规则
 
 - 新增命令同步 commands.rs、lib.rs、src/types/skill.ts
 - 命令参数保持前端友好命名
 - 错误返回 Result<T, String>
+- 命令错误涉及用户内容、路径、token 或 Keychain 时先脱敏
 
 ## 解耦要求
 

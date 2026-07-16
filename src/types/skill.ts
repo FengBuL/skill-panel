@@ -190,7 +190,15 @@ export interface SkillCommandMap {
     { time: string; skillName: string; prompt: string; status: string; durationMs: number; tokens: number }[]
   >;
   analyze_deps: (input: { path: string }) => Promise<Record<string, unknown>>;
-  ai_optimize: (input: { content: string; action: string; vendor: string; desensitize: boolean }) => Promise<void>;
+  ai_optimize: (input: {
+    content: string;
+    action: string;
+    vendor: string;
+    desensitize: boolean;
+    sendConfirmed: boolean;
+    rawContentConfirmed: boolean;
+    preview: string;
+  }) => Promise<void>;
   watch_scan_dirs: (input: { dirs: string[] }) => Promise<void>;
   set_ai_key: (input: { vendor: string; key: string }) => Promise<void>;
   ai_cancel: () => Promise<void>;

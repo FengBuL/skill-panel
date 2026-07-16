@@ -17,9 +17,9 @@
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/types/skill.ts` | 198 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/skill.ts` | 206 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
 | `src/types/skill.test.ts` | 148 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src/types/commands.ts` | 182 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
+| `src/types/commands.ts` | 190 | 负责前后端共享数据形状、命令名称列表、AI 发送确认参数和 TypeScript 类型守卫。 |
 | `src/node-fs.d.ts` | 4 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
 | `src-tauri/tests/skill_contract.rs` | 127 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
 
@@ -29,12 +29,14 @@
 - AppSettings 使用 camelCase 序列化
 - Rust 契约测试验证 JSON 形状
 - DeleteSkillResult 使用 camelCase，包含 `skillName`、`originalPath`、`backupPath`、`trashResult` 和 `restoreInstructions`
+- ai_optimize 参数包含 `sendConfirmed`、`rawContentConfirmed` 和 `preview`
 
 ## 修改规则
 
 - 新增命令先更新类型契约
 - Rust 模型变更同步前端类型
 - 契约测试随字段变化更新
+- AI 发送契约变更需同步 `src/lib/ai.ts`、`src/types/commands.ts`、`src/types/skill.ts` 和 Rust command 参数
 
 ## 解耦要求
 

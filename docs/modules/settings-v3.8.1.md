@@ -19,7 +19,7 @@
 | --- | ---: | --- |
 | `src/components/SettingCard.tsx` | 14 | 提供 Settings 分组卡片结构。 |
 | `src/components/SettingsNav.tsx` | 13 | 提供 Settings 左侧分组导航。 |
-| `src/pages/Settings/index.tsx` | 170 | 负责主题、扫描、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
+| `src/pages/Settings/index.tsx` | 208 | 负责主题、扫描、AI 厂商、Keychain 状态刷新、Key 保存、脱敏、diff 确认和预算设置。 |
 | `src/pages/Settings/Settings.css` | 155 | 负责 Settings 左侧导航、设置表单、卡片和安全说明样式。 |
 | `src/settings/Settings.tsx` | 15 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
 | `src/store/settingsStore.ts` | 80 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
@@ -29,12 +29,14 @@
 - 前端设置状态由 useSettingsStore 管理
 - 后端 AppSettings 负责持久化
 - Key 保存走 set_ai_key 命令
+- Key 状态展示页面加载时调用 get_ai_key，只显示配置状态或不可还原状态文案
 
 ## 修改规则
 
 - 新增设置字段需要同步前端类型、Rust 模型、契约测试
 - 敏感值只存 Keychain
 - 设置项保持短标签和帮助文案
+- Keychain 错误展示前必须脱敏
 
 ## 解耦要求
 

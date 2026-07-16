@@ -2,7 +2,7 @@
 
 ## 模块简介
 
-提供 Button、ActionButton、PageHeader、StatusPill、SearchBar、FilterBar、CategoryPill、MetricCard、RiskSummary、SkillRowMini、Toggle、Segment、空状态、错误边界、导出控件等可复用组件。
+提供 Button、ActionButton、PageHeader、StatusPill、SearchBar、FilterBar、CategoryPill、MetricCard、RiskSummary、SkillRowMini、Toggle、Segment、空状态、错误边界、Toast 脱敏、导出控件等可复用组件。
 
 ## 检索关键词
 
@@ -10,8 +10,8 @@
 
 ## 代码规模
 
-- 源码文件数：19
-- 代码总行数：1197
+- 源码文件数：20
+- 代码总行数：1233
 
 ## 代码文件清单
 
@@ -32,9 +32,10 @@
 | `src/components/RiskSummary.tsx` | 16 | 提供 Dashboard 依赖提醒行结构。 |
 | `src/components/SkillRowMini.tsx` | 22 | 提供 Dashboard 表格行结构。 |
 | `src/common/Ui.tsx` | 95 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
-| `src/common/Toast.tsx` | 54 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
+| `src/common/Toast.tsx` | 57 | 提供 workspace 通知展示并在展示前执行防御性脱敏。 |
+| `src/lib/redaction.ts` | 33 | 提供前端 API Key、token、路径、邮箱和 URL 敏感参数脱敏工具。 |
 | `src/common/EmptyState.tsx` | 65 | 提供统一空状态、扫描中和无搜索结果展示。 |
-| `src/common/ErrorBoundary.tsx` | 59 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
+| `src/common/ErrorBoundary.tsx` | 59 | 提供错误边界并在 console 与错误文本展示前执行防御性脱敏。 |
 | `src/common/SkillExport.tsx` | 37 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
 
 ## 对外契约
@@ -43,6 +44,7 @@
 - 新增 Notion 风格组件保持纯展示属性，页面业务通过调用方传入
 - 纯图标按钮提供可访问标签
 - 错误边界包裹可恢复 UI 区域
+- Toast、错误边界和通用错误展示需在输出前脱敏
 
 ## 修改规则
 

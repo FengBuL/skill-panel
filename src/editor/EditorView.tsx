@@ -5,6 +5,7 @@ import { AIRail } from '../components/ai/AIRail';
 import { ValidationResult } from '../components/ValidationResult';
 import { showToast } from '../components/Toast';
 import { useAIRail } from '../hooks/useAIRail';
+import { sanitizeText } from '../lib/redaction';
 import { getVersionHistory, readSkill, restoreVersion, updateSkill, validateSkill } from '../lib/invoke';
 import { useSettingsStore } from '../store/settingsStore';
 import { useSkillStore } from '../store/skillStore';
@@ -424,7 +425,7 @@ export function EditorView() {
       updateMarkdown(newContent);
       setAiDraftNotice('已采纳 1 条建议，点击保存后写回 SKILL.md');
     },
-    onToast: (message) => showToast(message, ''),
+    onToast: (message) => showToast(sanitizeText(message), ''),
   });
 
   return (
@@ -473,7 +474,9 @@ export function EditorView() {
                   monthlyUsed={settings.aiMonthlyUsed}
                   monthlyBudget={settings.aiMonthlyBudget}
                   desensitize={settings.aiDesensitize}
+                  pendingPreview={aiRail.pendingPreview}
                   onRun={aiRail.run}
+                  onConfirmSend={aiRail.confirmSend}
                   onCancel={aiRail.cancel}
                 />
               ) : (

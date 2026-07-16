@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { MaterialIcon } from './Ui';
+import { sanitizeText } from '../lib/redaction';
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -20,7 +21,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Skill Panel render error', error, info.componentStack);
+    console.error('Skill Panel render error', sanitizeText(error.message), sanitizeText(info.componentStack));
   }
 
   render() {
@@ -33,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div>
             <h1>{title}</h1>
             <p>{description}</p>
-            <pre>{this.state.error.message}</pre>
+            <pre>{sanitizeText(this.state.error.message)}</pre>
           </div>
         </section>
       );

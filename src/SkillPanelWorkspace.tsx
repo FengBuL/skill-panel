@@ -25,6 +25,7 @@ import { usePreferencePersistence } from './hooks/usePreferencePersistence';
 import { useSkillQuery } from './hooks/useSkillQuery';
 import { getSystemLanguages, isLanguage, useI18nRuntime, type TranslationKey } from './i18n';
 import { SkillCard } from './library/SkillCard';
+import { sanitizeText } from './lib/redaction';
 import { Settings } from './settings/Settings';
 import {
   isReadOnlySkillSource as isReadOnlySkill,
@@ -1855,7 +1856,7 @@ export function SkillPanelWorkspace() {
   ) => {
     const id = nextToastIdRef.current;
     nextToastIdRef.current += 1;
-    setToastMessages((messages) => [...messages.slice(-3), { actionLabel: options.actionLabel, id, kind, message, onAction: options.onAction }]);
+    setToastMessages((messages) => [...messages.slice(-3), { actionLabel: options.actionLabel, id, kind, message: sanitizeText(message), onAction: options.onAction }]);
     window.setTimeout(() => dismissToast(id), options.durationMs ?? 3000);
     return id;
   };

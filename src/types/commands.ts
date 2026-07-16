@@ -92,7 +92,15 @@ export interface AnalyzeDepsCmd {
 // ============ AI 命令（wt-3-ai 依赖） ============
 export interface AIOptimizeCmd {
   name: 'ai_optimize';
-  args: { content: string; action: AIAction; vendor: AIVendor; desensitize: boolean };
+  args: {
+    content: string;
+    action: AIAction;
+    vendor: AIVendor;
+    desensitize: boolean;
+    sendConfirmed: boolean;
+    rawContentConfirmed: boolean;
+    preview: string;
+  };
   returns: void; // 通过 Tauri event 'ai-chunk' 流式推送，'ai-done' 结束
 }
 

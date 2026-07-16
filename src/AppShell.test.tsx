@@ -382,6 +382,30 @@ describe('AppShell Tauri event fallback', () => {
     expect(await screen.findByText('未配置 glm 的 API Key，请先在设置中添加')).toBeInTheDocument();
   });
 
+  it('requires preview confirmation before sending editor AI content', async () => {
+    const user = userEvent.setup();
+    useUIStore.setState({ subView: 'editor', subParam: null });
+    useSettingsStore.setState({ aiVendor: 'glm', aiKeyStored: true, aiDesensitize: true });
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'watch_scan_dirs') return Promise.resolve();
+      if (command === 'get_ai_key') return Promise.resolve(true);
+      return Promise.resolve([]);
+    });
+
+    render(<AppShell />);
+
+    await user.click(await screen.findByRole('button', { name: 'AI' }));
+    await user.click(screen.getByRole('button', { name: '润色正文' }));
+
+    expect(await screen.findByText('发送前确认')).toBeInTheDocument();
+    expect(screen.getByText('服务商：GLM')).toBeInTheDocument();
+    expect(screen.getByText('脱敏状态：已开启')).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalledWith('ai_optimize', expect.anything());
+
+    await user.click(screen.getByRole('button', { name: '取消发送' }));
+    expect(invokeMock).not.toHaveBeenCalledWith('ai_optimize', expect.anything());
+  });
+
   it('applies selected AI diff output back into the editor markdown', async () => {
     const user = userEvent.setup();
     const listeners = new Map<string, (event: { payload: unknown }) => void>();
@@ -418,6 +442,7 @@ describe('AppShell Tauri event fallback', () => {
 
     await user.click(await screen.findByRole('button', { name: 'AI' }));
     await user.click(screen.getByRole('button', { name: '润色正文' }));
+    await user.click(await screen.findByRole('button', { name: '确认发送' }));
 
     expect(await screen.findByText('AI 修改对比 · polish')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '全部接受' }));
@@ -430,6 +455,9 @@ describe('AppShell Tauri event fallback', () => {
       action: 'polish',
       vendor: 'glm',
       desensitize: true,
+      sendConfirmed: true,
+      rawContentConfirmed: false,
+      preview: expect.stringContaining('# Browser Control'),
     });
   });
 });

@@ -19,7 +19,7 @@
 | --- | ---: | --- |
 | `package.json` | 51 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `vite.config.ts` | 20 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `src-tauri/Cargo.toml` | 32 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `src-tauri/Cargo.toml` | 33 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 |
 | `src-tauri/tauri.conf.json` | 67 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/build.rs` | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/update-local-macos-app.sh` | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |

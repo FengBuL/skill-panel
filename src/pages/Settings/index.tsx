@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActionButton } from '../../components/ActionButton';
 import { PageHeader } from '../../components/PageHeader';
 import { SettingCard } from '../../components/SettingCard';
 import { SettingsNav } from '../../components/SettingsNav';
 import { Toggle } from '../../components/ui';
-import { setAIKey } from '../../lib/ai';
+import { hasApiKey, setAIKey } from '../../lib/ai';
+import { sanitizeText } from '../../lib/redaction';
 import { useSettingsStore, type AIVendor, type Theme } from '../../store/settingsStore';
 import { useUIStore } from '../../store/uiStore';
 import './Settings.css';
@@ -31,6 +32,16 @@ export default function SettingsPage() {
   const [savingKey, setSavingKey] = useState(false);
   const budgetPercent = Math.min(100, Math.max(0, (settings.aiMonthlyUsed / Math.max(settings.aiMonthlyBudget, 1)) * 100));
 
+  useEffect(() => {
+    let active = true;
+    hasApiKey(settings.aiVendor).then((stored) => {
+      if (active) settings.setAIKeyStored(stored);
+    });
+    return () => {
+      active = false;
+    };
+  }, [settings.aiVendor, settings.setAIKeyStored]);
+
   const saveApiKey = async () => {
     const key = apiKey.trim();
     if (!key || savingKey) return;
@@ -42,7 +53,7 @@ export default function SettingsPage() {
       setApiKey('');
       setConfiguringKey(false);
     } catch (error) {
-      setKeyError(String(error));
+      setKeyError(sanitizeText(error));
     } finally {
       setSavingKey(false);
     }

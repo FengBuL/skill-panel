@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { parseDiff, applyDiffHunks } from './ai';
+import { vi } from 'vitest';
+import { invoke } from '@tauri-apps/api/core';
+import { parseDiff, applyDiffHunks, runAI, sanitizeForAI } from './ai';
+
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
+
+vi.mock('./tauriEvents', () => ({
+  safeListen: vi.fn(async () => vi.fn()),
+}));
 
 describe('ai diff utilities', () => {
   it('parses structured diff from two texts', () => {
@@ -35,5 +45,45 @@ describe('ai diff utilities', () => {
     const selectedIds = new Set([hunks.findIndex((h) => h.lines.some((l) => l.includes('B1'))) ?? 0]);
     const result = applyDiffHunks(original, hunks, selectedIds);
     expect(result).toContain('B1');
+  });
+
+  it('sanitizes frontend preview content with the shared placeholder semantics', () => {
+    const output = sanitizeForAI('sk-test-secret owner@example.com /Users/alice/demo Authorization: Bearer raw-token');
+
+    expect(output).toContain('<API_KEY>');
+    expect(output).toContain('<EMAIL>');
+    expect(output).toContain('<PATH>');
+    expect(output).toContain('<TOKEN>');
+    expect(output).not.toContain('sk-test-secret');
+    expect(output).not.toContain('owner@example.com');
+    expect(output).not.toContain('/Users/alice');
+    expect(output).not.toContain('raw-token');
+  });
+
+  it('sends AI only with explicit send confirmation metadata', async () => {
+    vi.mocked(invoke).mockResolvedValue(undefined);
+
+    await runAI({
+      content: 'hello owner@example.com',
+      action: 'polish',
+      vendor: 'glm',
+      desensitize: true,
+      sendConfirmed: true,
+      rawContentConfirmed: false,
+      preview: 'hello <EMAIL>',
+      onChunk: vi.fn(),
+      onDone: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    expect(invoke).toHaveBeenCalledWith('ai_optimize', {
+      content: 'hello owner@example.com',
+      action: 'polish',
+      vendor: 'glm',
+      desensitize: true,
+      sendConfirmed: true,
+      rawContentConfirmed: false,
+      preview: 'hello <EMAIL>',
+    });
   });
 });

@@ -285,6 +285,55 @@
   border-top: 1px solid var(--border-2);
 }
 
+.ai-send-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border-2);
+  padding-bottom: 10px;
+}
+
+.ai-confirm-meta {
+  display: grid;
+  gap: 4px;
+  padding: 0 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.ai-preview-text {
+  margin: 0 12px;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 10px;
+  color: var(--text-2);
+  font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-risk-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ai-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 12px;
+}
+
 .ai-stream-header {
   display: flex;
   align-items: center;

@@ -1,4 +1,5 @@
 // AIRail — 编辑器右栏 AI 面板（动作列表 + 流式区 + CostBadge）
+import { useState } from 'react';
 import type { AiStatus, AiVendor, AiResult, AiAction } from '../../lib/ai';
 import { AI_ACTIONS } from '../../lib/ai';
 import { CostBadge } from './CostBadge';
@@ -11,7 +12,9 @@ export function AIRail({
   monthlyUsed,
   monthlyBudget,
   desensitize,
+  pendingPreview,
   onRun,
+  onConfirmSend,
   onCancel,
 }: {
   status: AiStatus;
@@ -21,10 +24,15 @@ export function AIRail({
   monthlyUsed: number;
   monthlyBudget: number;
   desensitize: boolean;
+  pendingPreview: string;
   onRun: (action: AiAction) => void;
+  onConfirmSend: (rawContentConfirmed?: boolean) => void;
   onCancel: () => void;
 }) {
   const isGenerating = status === 'generating';
+  const isConfirming = status === 'confirming';
+  const [rawRiskAccepted, setRawRiskAccepted] = useState(false);
+  const canConfirm = desensitize || rawRiskAccepted;
 
   return (
     <div className="ai-rail">
@@ -46,7 +54,7 @@ export function AIRail({
           <button
             key={action.id}
             className="ai-action-btn"
-            disabled={isGenerating}
+            disabled={isGenerating || isConfirming}
             onClick={() => onRun(action.id)}
           >
             <span className="material-symbols-outlined ai-action-icon" aria-hidden="true">
@@ -62,6 +70,42 @@ export function AIRail({
           </button>
         ))}
       </div>
+
+      {isConfirming && (
+        <div className="ai-send-confirm">
+          <div className="ai-result-header">发送前确认</div>
+          <div className="ai-confirm-meta">
+            <span>服务商：{vendor.toUpperCase()}</span>
+            <span>内容范围：当前编辑器草稿</span>
+            <span>脱敏状态：{desensitize ? '已开启' : '已关闭'}</span>
+          </div>
+          <pre className="ai-preview-text">{pendingPreview}</pre>
+          {!desensitize && (
+            <label className="ai-risk-confirm">
+              <input
+                type="checkbox"
+                checked={rawRiskAccepted}
+                onChange={(event) => setRawRiskAccepted(event.target.checked)}
+              />
+              我确认本次发送原始内容
+            </label>
+          )}
+          <div className="ai-confirm-actions">
+            <button className="ai-cancel-btn" type="button" onClick={onCancel}>取消发送</button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={!canConfirm}
+              onClick={() => {
+                onConfirmSend(rawRiskAccepted);
+                setRawRiskAccepted(false);
+              }}
+            >
+              确认发送
+            </button>
+          </div>
+        </div>
+      )}
 
       {(stream || isGenerating) && (
         <div className="ai-stream-area">

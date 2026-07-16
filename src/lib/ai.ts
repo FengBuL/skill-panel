@@ -1,10 +1,11 @@
 // AI 调用封装 — invoke + listen + cancel + diff 工具
 import { invoke } from '@tauri-apps/api/core';
 import { safeListen } from './tauriEvents';
+import { previewText, sanitizeText } from './redaction';
 
 export type AiAction = 'struct' | 'desc' | 'polish' | 'fm' | 'safe';
 export type AiVendor = 'openai' | 'claude' | 'glm' | 'ollama';
-export type AiStatus = 'idle' | 'generating' | 'diffing' | 'applied' | 'error';
+export type AiStatus = 'idle' | 'confirming' | 'generating' | 'diffing' | 'applied' | 'error';
 
 export interface AiUsage {
   promptTokens: number;
@@ -22,6 +23,14 @@ export interface AiActionDef {
   icon: string;
   labelKey: string;
   writeBack: boolean;
+}
+
+export function sanitizeForAI(content: string): string {
+  return sanitizeText(content);
+}
+
+export function buildAIPreview(content: string, desensitize: boolean): string {
+  return previewText(desensitize ? sanitizeForAI(content) : content);
 }
 
 export const AI_ACTIONS: AiActionDef[] = [
@@ -52,11 +61,14 @@ export async function runAI(params: {
   action: AiAction;
   vendor: AiVendor;
   desensitize: boolean;
+  sendConfirmed: boolean;
+  rawContentConfirmed: boolean;
+  preview: string;
   onChunk: (chunk: string) => void;
   onDone: (result: AiResult) => void;
   onError: (msg: string) => void;
 }): Promise<void> {
-  const { content, action, vendor, desensitize, onChunk, onDone, onError } = params;
+  const { content, action, vendor, desensitize, sendConfirmed, rawContentConfirmed, preview, onChunk, onDone, onError } = params;
 
   const unlistenChunk = await safeListen<{ chunk: string; done: boolean }>('ai-chunk', (e) => {
     if (e.payload.done) return;
@@ -79,9 +91,9 @@ export async function runAI(params: {
   });
 
   try {
-    await invoke('ai_optimize', { content, action, vendor, desensitize });
+    await invoke('ai_optimize', { content, action, vendor, desensitize, sendConfirmed, rawContentConfirmed, preview });
   } catch (err) {
-    onError(String(err));
+    onError(sanitizeText(err));
   } finally {
     unlistenChunk();
     unlistenDone();

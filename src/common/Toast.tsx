@@ -1,5 +1,7 @@
 import { MaterialIcon } from './Ui';
 
+import { sanitizeText } from '../lib/redaction';
+
 export type ToastKind = 'error' | 'info' | 'success';
 
 export type ToastMessage = {
@@ -18,7 +20,9 @@ export type ToastPayload = {
 export const toastEventName = 'skill-panel:toast';
 
 export function publishToast(payload: ToastPayload) {
-  window.dispatchEvent(new CustomEvent<ToastPayload>(toastEventName, { detail: payload }));
+  window.dispatchEvent(new CustomEvent<ToastPayload>(toastEventName, {
+    detail: { ...payload, message: sanitizeText(payload.message) },
+  }));
 }
 
 const toastIcons: Record<ToastKind, string> = {
@@ -37,7 +41,7 @@ export function ToastViewport({ messages, onDismiss }: { messages: ToastMessage[
       {messages.map((message) => (
         <div key={message.id} className={`toast-message toast-${message.kind}`}>
           <MaterialIcon name={toastIcons[message.kind]} size={18} />
-          <span>{message.message}</span>
+              <span>{sanitizeText(message.message)}</span>
           {message.actionLabel && message.onAction ? (
             <button type="button" onClick={message.onAction}>
               {message.actionLabel}
