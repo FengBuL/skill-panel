@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs';
 import packageJson from '../package.json';
 import tauriConfig from '../src-tauri/tauri.conf.json';
-import { readFileSync } from 'node:fs';
 
 const tauriMainSource = readFileSync('src-tauri/src/main.rs', 'utf8');
+const cargoManifestSource = readFileSync('src-tauri/Cargo.toml', 'utf8');
 
 describe('packaging configuration', () => {
   it('documents platform-specific Tauri build commands', () => {
@@ -25,9 +26,10 @@ describe('packaging configuration', () => {
     expect(tauriConfig.app.windows[0].title).toBe('Skill Panel');
   });
 
-  it('keeps release version metadata aligned for v3.8.2 release', () => {
-    expect(packageJson.version).toBe('3.8.2');
+  it('keeps release version metadata aligned for v3.8.3 macOS candidate', () => {
+    expect(packageJson.version).toBe('3.8.3');
     expect(tauriConfig.version).toBe(packageJson.version);
+    expect(cargoManifestSource).toContain(`version = "${packageJson.version}"`);
   });
 
   it('configures Windows and macOS bundle targets', () => {
