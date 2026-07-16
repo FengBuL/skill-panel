@@ -76,6 +76,13 @@ function mockShellCommands(skills: Skill[]) {
   });
 }
 
+function expectEditorHeaderActionsOrder() {
+  const actionRow = document.querySelector('.editor-header-actions');
+  expect(actionRow).toBeTruthy();
+  const actionLabels = Array.from(actionRow?.querySelectorAll('button') || []).map((button) => button.textContent?.replace(/\s+/g, ' ').trim());
+  expect(actionLabels).toEqual(['AI 辅助', '← 返回']);
+}
+
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: invokeMock,
 }));
@@ -468,6 +475,7 @@ describe('AppShell Tauri event fallback', () => {
     await waitFor(() => expect(useUIStore.getState().subView).toBe('editor'));
     expect(screen.queryByText(/这是受保护的 Skill/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Markdown body')).not.toHaveAttribute('readonly');
+    expectEditorHeaderActionsOrder();
   });
 
   it('opens a protected Library card in read-only Editor on double click', async () => {
@@ -488,6 +496,7 @@ describe('AppShell Tauri event fallback', () => {
     expect(screen.getByText('只读模式已禁用 AI 写回。')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '恢复 v1' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '复制到可编辑目录' })).toBeInTheDocument();
+    expectEditorHeaderActionsOrder();
   });
 
   it('copies a protected read-only Editor skill into a normal editable Editor', async () => {

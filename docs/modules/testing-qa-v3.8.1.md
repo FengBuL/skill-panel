@@ -11,15 +11,15 @@
 ## 代码规模
 
 - 源码文件数：4
-- 代码总行数：1380
+- 代码总行数：1387
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/AppShell.test.tsx` | 716 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |
-| `src/packaging.config.test.ts` | 71 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
-| `src/test/setup.ts` | 2 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `src/AppShell.test.tsx` | 725 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |
+| `src/packaging.config.test.ts` | 70 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `src/test/setup.ts` | 1 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
 | `scripts/visual-qa.mjs` | 591 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
 
 ## 对外契约
@@ -30,6 +30,7 @@
 - Detail 受保护来源复制到可编辑目录有前端行为测试
 - Detail 归档持久化、复制确认、删除确认和受保护来源删除禁用有前端行为测试
 - Library 卡片单击选中、双击打开、Enter 打开和返回状态保留有前端行为测试
+- Editor 页头操作区顺序为“AI 辅助”“返回”，普通和只读 Editor 共用同一顺序
 - 受保护 Skill 只读 Editor 的安全提示、只读输入、禁用保存/撤销/恢复/AI 写回和复制到可编辑目录有前端行为测试
 - Detail 长路径页头按钮不拆字和独立备份按钮待实现状态有前端行为测试
 

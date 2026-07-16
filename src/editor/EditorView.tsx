@@ -492,10 +492,6 @@ export function EditorView() {
     <>
       <div className="page-header editor-page-header">
         <div className="editor-header-main">
-          <button className="btn btn-text editor-back-button" type="button" aria-label="返回" onClick={requestReturn}>
-            <span aria-hidden="true">←</span>
-            <span>返回</span>
-          </button>
           <div className="editor-title-block">
             <h1 className="page-title">{readOnly ? '查看' : '编辑'} {frontmatter.name}</h1>
             <p className="page-subtitle">{pagePath}</p>
@@ -503,6 +499,10 @@ export function EditorView() {
         </div>
         <div className="flex gap-2 editor-header-actions">
           <button className="btn btn-ghost" type="button" disabled={readOnly} onClick={() => ui.enterSub('ai', skill?.path || frontmatter.name)}>AI 辅助</button>
+          <button className="btn btn-text editor-back-button" type="button" aria-label="返回" onClick={requestReturn}>
+            <span aria-hidden="true">←</span>{' '}
+            <span>返回</span>
+          </button>
         </div>
       </div>
 
