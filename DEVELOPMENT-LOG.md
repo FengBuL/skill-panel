@@ -1,67 +1,68 @@
 ---
-project: Skill Panel
-task: REL-3.8.3-CANDIDATE-MACOS
-version: 3.8.3
-updated_at: 2026-07-16
+项目: Skill Panel
+任务: REL-3.8.3-CANDIDATE-MACOS
+版本: 3.8.3
+更新时间: 2026-07-16
 ---
 
-# Development Log
+# 开发日志
 
 ## 2026-07-16 REL-3.8.3-CANDIDATE-MACOS
 
-### Scope
+### 范围
 
-- Generate v3.8.3 macOS single-platform candidate.
-- Defer Windows candidate and Windows verification.
-- Preserve v3.8.2 history archive, tag, and installer package.
+- 生成 v3.8.3 macOS 单平台候选。
+- Windows 候选和 Windows 验证延期。
+- 保留 v3.8.2 历史归档、tag 和安装包，不重建、不替换。
 
-### Start Checks
+### 开工检查
 
-- Branch: `codex/agent-codex-v3.8`
-- Start HEAD: `53e7ed3136e89cae52638dfdd9372983a918a0c5`
-- Worktree at start: clean.
-- Recent history head: `53e7ed3 docs: close v3.8.2 release evidence`
-- Package versions at start: npm `3.8.2`, Tauri `3.8.2`, Cargo `3.8.2`.
+- 分支：`codex/agent-codex-v3.8`
+- 开始 HEAD：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
+- 工作区起始状态：干净。
+- 最近历史 HEAD：`53e7ed3 docs: close v3.8.2 release evidence`
+- 起始包版本：npm `3.8.2`，Tauri `3.8.2`，Cargo `3.8.2`。
 
-### Changes
+### 修改内容
 
-- Updated npm, Tauri, Cargo, and Cargo lock package version to `3.8.3`.
-- Updated packaging configuration test to assert npm, Tauri, and Cargo version alignment for the v3.8.3 macOS candidate.
-- Added release task state records, readiness notes, SOP, and SOP mindmap for Step 7 and Step 8 preparation.
+- npm、Tauri、Cargo、Cargo.lock 包版本更新为 `3.8.3`。
+- 打包配置测试新增 Cargo manifest 版本一致性断言，并改为 v3.8.3 macOS 候选口径。
+- 新增发布任务状态、发布就绪、SOP、SOP mindmap、第 8 步准备材料和候选 manifest。
 
-### Verification
+### 验证
 
-| Command | Result |
+| 命令 | 结果 |
 |---|---|
-| `npm test` | passed; 10 files, 67 tests |
-| `npm run typecheck` | passed |
-| `npm run build` | passed |
-| `npm run packaging:check` | passed; 1 file, 6 tests |
-| `npm run cargo:test` | passed; 54 lib tests, 0 bin tests, 4 integration tests |
-| `npm run visual:qa` | passed |
-| `npm run git:diff:check` | passed before candidate commit |
+| `npm test` | 通过；10 个测试文件，67 个测试用例 |
+| `npm run typecheck` | 通过 |
+| `npm run build` | 通过 |
+| `npm run packaging:check` | 通过；1 个测试文件，6 个测试用例 |
+| `npm run cargo:test` | 通过；lib 54 项，bin 0 项，integration 4 项 |
+| `npm run visual:qa` | 通过 |
+| `npm run git:diff:check` | 候选提交前通过；文档收口后再次通过 |
 
-### Candidate Evidence
+### 候选证据
 
-- Candidate code commit: `17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- Candidate App bundle: `output/releases/v3.8.3-candidate/Skill Panel.app`
-- Candidate App Zip: `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.app.zip`
-- Candidate App Zip SHA256: `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e`
-- Candidate DMG: `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.dmg`
-- Candidate DMG SHA256: `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584`
-- Build command: `PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`
-- macOS architecture: `arm64`
-- Bundle id: `com.fengbul.skillpanel`
-- App version: `3.8.3`
+- 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
+- 候选记录提交：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`
+- 候选 App bundle：`output/releases/v3.8.3-candidate/Skill Panel.app`
+- 候选 App Zip：`output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.app.zip`
+- 候选 App Zip SHA256：`023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e`
+- 候选 DMG：`output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.dmg`
+- 候选 DMG SHA256：`7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584`
+- 构建命令：`PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`
+- macOS 架构：`arm64`
+- bundle id：`com.fengbul.skillpanel`
+- 应用版本：`3.8.3`
 
-### Build Notes
+### 构建备注
 
-- `npm run tauri:build:macos` initially failed because `cargo metadata` was unavailable from the shell `PATH`.
-- Re-running with `PATH="$HOME/.cargo/bin:$PATH"` succeeded.
-- The candidate is ad-hoc/linker-signed only and has no notarization ticket.
+- 首次运行 `npm run tauri:build:macos` 因当前 shell `PATH` 找不到 `cargo metadata` 失败。
+- 加入 `PATH="$HOME/.cargo/bin:$PATH"` 后构建成功。
+- 候选包只有 ad-hoc/linker-signed 签名，DMG 没有公证票据。
 
-### Rollback Point
+### 回退点
 
-- Git rollback point: `53e7ed3136e89cae52638dfdd9372983a918a0c5`
-- Install baseline for Step 8: `output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`
-- Baseline SHA256: `10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`
+- Git 回退点：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
+- 第 8 步安装基线：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`
+- 基线 SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`

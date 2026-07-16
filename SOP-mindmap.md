@@ -1,25 +1,25 @@
 ---
-project: Skill Panel
-task: REL-3.8.3-CANDIDATE-MACOS
-version: 3.8.3
-platform_scope: macOS
-updated_at: 2026-07-16
+项目: Skill Panel
+任务: REL-3.8.3-CANDIDATE-MACOS
+版本: 3.8.3
+目标平台: macOS
+更新时间: 2026-07-16
 ---
 
-# SOP Mindmap
+# SOP 脑图
 
 ```mermaid
 mindmap
-  root((REL-3.8.3 macOS candidate))
-    Step 6
-      Historical evidence bounded
-      Missing evidence explicit
-    Step 7 macOS
-      Version 3.8.3
+  root((REL-3.8.3 macOS 候选))
+    第 6 步
+      历史证据已收口
+      缺失项已明示
+    第 7 步 macOS
+      版本 3.8.3
         npm
         Tauri
         Cargo
-      Verification
+      验证
         npm test
         typecheck
         build
@@ -27,22 +27,22 @@ mindmap
         cargo test
         visual qa
         diff check
-      Candidate commit
-      macOS App and DMG
+      候选提交
+      macOS App 和 DMG
         output/releases/v3.8.3-candidate
-    Platform scope
-      macOS proceeds
-      Windows deferred
-      Windows baseline gap blocks Windows candidate
-    Signing and notarization
-      Developer ID required for formal release
-      notarytool profile required for formal release
-      Internal acceptance candidate when unavailable
-    Step 8 preparation
-      v3.8.2 baseline DMG
-      v3.8.3 candidate DMG
-      Disposable test Skill
-      Upgrade checklist
-      Rollback checklist
-      Screenshots
+    平台范围
+      macOS 可继续
+      Windows 延期
+      Windows 基线缺口阻塞 Windows 候选
+    签名与公证
+      Developer ID 是正式发布要求
+      notarytool profile 是正式发布要求
+      条件缺失时作为内部验收候选
+    第 8 步准备
+      v3.8.2 基线 DMG
+      v3.8.3 候选 DMG
+      可丢弃测试 Skill
+      升级检查清单
+      回退检查清单
+      截图要求
 ```

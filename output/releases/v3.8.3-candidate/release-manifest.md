@@ -1,80 +1,81 @@
-# Skill Panel v3.8.3 macOS Candidate Manifest
+# Skill Panel v3.8.3 macOS 候选清单
 
-## Basic Info
+## 基本信息
 
-- Task: `REL-3.8.3-CANDIDATE-MACOS`
-- Candidate code commit: `17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- Branch: `codex/agent-codex-v3.8`
-- Version: `3.8.3`
-- Platform scope: macOS only.
-- Candidate status: macOS internal acceptance candidate.
-- Formal public release: blocked by missing signing or notarization conditions.
-- Build machine architecture: `arm64`
-- Bundle id: `com.fengbul.skillpanel`
+- 任务编号：`REL-3.8.3-CANDIDATE-MACOS`
+- 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
+- 候选记录提交：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`
+- 分支：`codex/agent-codex-v3.8`
+- 版本：`3.8.3`
+- 平台范围：仅 macOS。
+- 候选状态：macOS 内部验收候选。
+- 正式对外发布：已阻塞，原因是缺少签名或公证条件。
+- 构建机器架构：`arm64`
+- bundle id：`com.fengbul.skillpanel`
 
-## Build
+## 构建
 
-- First attempted command: `npm run tauri:build:macos`
-- First attempt result: failed because `cargo metadata` was unavailable from the current shell `PATH`.
-- Successful command: `PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`
-- Tauri output:
+- 首次尝试命令：`npm run tauri:build:macos`
+- 首次尝试结果：当前 shell `PATH` 中缺少 Cargo，`cargo metadata` 无法运行。
+- 成功命令：`PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`
+- Tauri 输出：
   - `src-tauri/target/release/bundle/macos/Skill Panel.app`
   - `src-tauri/target/release/bundle/dmg/Skill Panel_3.8.3_aarch64.dmg`
-- Candidate output directory: `output/releases/v3.8.3-candidate/`
+- 候选输出目录：`output/releases/v3.8.3-candidate/`
 
-## Files
+## 文件
 
-| File | Size bytes | SHA256 | Notes |
+| 文件 | 大小 bytes | SHA256 | 说明 |
 |---|---:|---|---|
-| `Skill Panel.app` | `13803520` | directory bundle | Copied from Tauri bundle output; `du -sk` reported `13480`. |
-| `Skill Panel_3.8.3_aarch64.app.zip` | `4952711` | `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e` | App bundle zip for file-level checksum. |
-| `Skill Panel_3.8.3_aarch64.dmg` | `4964044` | `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584` | Candidate installer DMG. |
+| `Skill Panel.app` | `13803520` | 目录包 | 从 Tauri bundle 输出复制；`du -sk` 为 `13480`。 |
+| `Skill Panel_3.8.3_aarch64.app.zip` | `4952711` | `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e` | App bundle 压缩包，用于文件级校验。 |
+| `Skill Panel_3.8.3_aarch64.dmg` | `4964044` | `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584` | 候选安装 DMG。 |
 
-## Package Metadata
+## 包元数据
 
-| Check | Result |
+| 检查 | 结果 |
 |---|---|
 | App `CFBundleIdentifier` | `com.fengbul.skillpanel` |
 | App `CFBundleShortVersionString` | `3.8.3` |
 | App `CFBundleVersion` | `3.8.3` |
-| Binary architecture | `arm64` |
-| DMG mount check | read-only attach succeeded |
-| DMG App version check | `3.8.3` |
-| DMG App bundle id check | `com.fengbul.skillpanel` |
-| DMG executable check | executable bit present |
+| 二进制架构 | `arm64` |
+| DMG 挂载检查 | 只读挂载成功 |
+| DMG 内 App 版本 | `3.8.3` |
+| DMG 内 App bundle id | `com.fengbul.skillpanel` |
+| DMG 内可执行文件 | 可执行位存在 |
 
-## Verification
+## 验证
 
-| Command | Result |
+| 命令 | 结果 |
 |---|---|
-| `npm test` | passed; 10 files, 67 tests |
-| `npm run typecheck` | passed |
-| `npm run build` | passed |
-| `npm run packaging:check` | passed; 1 file, 6 tests |
-| `npm run cargo:test` | passed; 54 lib tests, 0 bin tests, 4 integration tests |
-| `npm run visual:qa` | passed |
-| `npm run git:diff:check` | passed before candidate commit |
+| `npm test` | 通过；10 个测试文件，67 个测试用例 |
+| `npm run typecheck` | 通过 |
+| `npm run build` | 通过 |
+| `npm run packaging:check` | 通过；1 个测试文件，6 个测试用例 |
+| `npm run cargo:test` | 通过；lib 54 项，bin 0 项，integration 4 项 |
+| `npm run visual:qa` | 通过 |
+| `npm run git:diff:check` | 候选提交前通过；文档收口后再次通过 |
 
-## Signing And Notarization
+## 签名与公证
 
-| Check | Result |
+| 检查 | 结果 |
 |---|---|
-| Developer ID Application certificate | unavailable on current machine |
-| codesign identity | unavailable; `0 valid identities found` |
-| notarization profile | unavailable; notarytool required credentials |
-| `codesign --verify --deep --strict --verbose=4` | failed: `code has no resources but signature indicates they must be present` |
-| `codesign -dv --verbose=4` | `Signature=adhoc`; `TeamIdentifier=not set` |
-| `spctl -a -vv -t install` | `accepted`, with `source=no usable signature` and `override=security disabled`; this is not Gatekeeper release evidence |
-| `xcrun stapler validate` | failed; DMG has no stapled ticket |
+| Developer ID Application 证书 | 当前机器不可用 |
+| codesign identity | 不可用；`0 valid identities found` |
+| 公证 profile | 不可用；notarytool 需要凭据 |
+| `codesign --verify --deep --strict --verbose=4` | 未通过：`code has no resources but signature indicates they must be present` |
+| `codesign -dv --verbose=4` | `Signature=adhoc`；`TeamIdentifier=not set` |
+| `spctl -a -vv -t install` | 返回 `accepted`，同时包含 `source=no usable signature` 和 `override=security disabled`；不能作为 Gatekeeper 发布证据 |
+| `xcrun stapler validate` | 未通过；DMG 没有 stapled ticket |
 
-## Rollback Point
+## 回退点
 
-- Git rollback point: `53e7ed3136e89cae52638dfdd9372983a918a0c5`
-- Step 8 baseline DMG: `output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`
-- Step 8 baseline SHA256: `10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`
+- Git 回退点：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
+- 第 8 步基线 DMG：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`
+- 第 8 步基线 SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`
 
-## Step 8 Status
+## 第 8 步状态
 
-- Step 8 manual upgrade, data retention, and installer rollback validation has not been executed in this task.
-- Candidate can enter Step 8 on the local macOS machine as an internal acceptance candidate.
-- Any unsigned-app warning dialogs must be captured in Step 8 screenshots.
+- 本轮任务没有执行第 8 步人工升级、数据保留和安装包回退验收。
+- 候选包可作为内部验收候选进入本机 macOS 第 8 步。
+- 第 8 步截图需记录任何未签名应用警告弹窗。
