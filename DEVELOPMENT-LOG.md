@@ -137,3 +137,60 @@
 
 - candidate-2 8B 安装、升级、回退和数据保留验证通过。
 - macOS Developer ID 签名、公证、Gatekeeper 完整验证和 Windows 验证仍为发布阻塞项。
+
+## 2026-07-18 REL-3.8.3-GOVERNANCE 启动记录
+
+### 已完成
+
+- 建立本地保护分支并备份设置、审计记录、应用包、截图和未提交改动。
+- 完成 candidate-2 8B，证据提交为 `2046733`。
+- 建立并推送 `main`，GitHub 默认分支已切换为 `main`。
+- 规范仓库目录确认为 `/Users/shovy/Documents/skill-panel`。
+- 修复 Obsidian 项目路径，自动化改为 Git → Obsidian 单向摘要并保持暂停。
+
+### 当前批次
+
+- 分支：`codex/repository-governance`
+- main 基线：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`
+- 范围：治理规则、自动检查、架构说明、任务模板、旧入口清理、文档收口和维护。
+- 首要检查：`npm run repo:doctor`
+
+### 旧入口清理
+
+- AppShell 实现从 `src/AppShell.tsx` 收敛到 `src/layout/AppShell.tsx`。
+- 删除无生产和测试引用的 `src/SkillPanelWorkspace.tsx`。
+- 保留覆盖当前导航和编辑流程的 `src/App.test.tsx` 与 `src/App.editor.test.tsx`。
+- `repo:doctor` 增加历史源码回流检查。
+- 模块索引已更新为当前应用壳、国际化和测试职责。
+- 验证结果：前端 86 项、打包 6 项、Rust lib 56 项、Rust integration 4 项、视觉 QA 17 个场景全部通过。
+
+### 文档收口
+
+- PRD 和 UI 规范已导入 `docs/product/`，Git 成为产品规格权威来源。
+- Obsidian `skill panel/` 中 11 份治理前副本已移动到 `归档/2026-07-18治理前/`。
+- Obsidian 活动项目目录只保留 `Git状态摘要.md`，日常总结保留阅读入口、SOP 和复盘。
+- 同步自动化只允许 Git → `Git状态摘要.md`，继续保持暂停。
+- `repo:doctor` 已覆盖活动产品文档、旧稳定分支和旧固定 worktree 路径。
+
+### 维护收口
+
+- `git worktree prune` 已移除 `skill-panel-ci-fix` 和 `skill-panel-workbuddy-v3.9` 两条失效登记。
+- 已停止旧 WorkBuddy 原型 HTTP 服务和旧截图 headless Chrome 进程。
+- 历史 `skill-panel-v3-integration` 工作区干净且无编译进程，`cargo clean` 删除 7961 个文件并释放 2.6 GiB。
+- Remembering Conversations 工具已按 lockfile 安装依赖，`better-sqlite3` 内存查询通过，数据库与模板测试 13 项通过。
+- 该工具 npm 审计报告 2 项 moderate、6 项 high、2 项 critical，上游升级留作独立兼容性任务。
+- `~/.codex/logs_2.sqlite` quick check 通过，122347 个空闲页约 478 MiB；两个活动 Codex 进程持有数据库，本批次不执行在线压缩。
+
+### CI 首轮修复
+
+- PR #2 的 macOS 与 Windows 首轮均在 `repo:doctor` 失败。
+- 原因：Actions 默认浅克隆没有 `origin/main` 引用，祖先检查缺少必要 Git 历史。
+- 修复：checkout 设置 `fetch-depth: 0`，保留 `HEAD` 必须派生自 `origin/main` 的门禁。
+
+### CI 第二轮修复
+
+- macOS 完整 CI 与 App/DMG 打包通过，用时 4 分 21 秒。
+- Windows 在 `npm run cargo:test` 失败，原因是 package script 使用 POSIX `export`。
+- 新增 Node 跨平台 Cargo 启动器与 3 项平台选择测试，Windows 从 PATH 调用 Cargo，macOS 优先使用 rustup Cargo。
+- 第三轮 Windows 在前端平台测试失败：Windows runner 的 `path.join` 改写了模拟 macOS 路径。
+- 非 Windows Cargo 路径改用 `path.posix.join`，测试结果不再受执行主机路径格式影响。

@@ -1,42 +1,38 @@
-# 国际化与旧版工作区兼容 v3.8.1
+# 国际化 v3.8.1
 
 ## 模块简介
 
-负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。
+负责 i18n 运行时、语言资源和语言切换测试。文件名保留历史命名，模块职责以本文为准。
 
 ## 检索关键词
 
-`i18n`、`resources`、`SkillPanelWorkspace`、`runtime`、`legacy`
+`i18n`、`resources`、`runtime`、`language`
 
 ## 代码规模
 
-- 源码文件数：9
-- 代码总行数：10599
+- 源码文件数：6
+- 代码总行数：1533
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/i18n/core.ts` | 120 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/index.ts` | 21 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/resources.ts` | 764 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/runtime.tsx` | 321 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n.test.ts` | 101 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/useI18n.test.tsx` | 212 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/SkillPanelWorkspace.tsx` | 5933 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/App.test.tsx` | 2009 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/App.editor.test.tsx` | 1118 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
+| `src/i18n/core.ts` | 119 | 负责语言资源读取和翻译键解析。 |
+| `src/i18n/index.ts` | 20 | 提供国际化模块出口。 |
+| `src/i18n/resources.ts` | 763 | 保存中文和英文资源。 |
+| `src/i18n/runtime.tsx` | 320 | 提供国际化上下文和运行时状态。 |
+| `src/i18n.test.ts` | 100 | 覆盖资源和翻译行为。 |
+| `src/i18n/useI18n.test.tsx` | 211 | 覆盖 Hook 和语言切换行为。 |
 
 ## 对外契约
 
 - i18n resources 提供 zh 和 en 文案
-- 旧版工作区保留测试覆盖
-- 当前稳定入口仍为 AppShell
+- 当前稳定入口为 `src/layout/AppShell.tsx`
 
 ## 修改规则
 
 - 新增可见文案优先进入资源文件
-- 旧版兼容代码改动需要跑相关测试
+- 国际化运行时改动需要跑相关测试
 - 稳定入口变更需要单独计划
 
 ## 解耦要求

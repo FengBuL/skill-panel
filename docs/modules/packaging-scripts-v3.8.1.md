@@ -2,28 +2,29 @@
 
 ## 模块简介
 
-负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。
+负责 npm/Tauri 配置、跨平台 Rust 测试启动、本地 macOS 更新、Windows 迁移包和发布配置。
 
 ## 检索关键词
 
-`package`、`Cargo`、`tauri.conf`、`migration`、`macOS`、`release`
+`package`、`Cargo`、`tauri.conf`、`cross-platform`、`migration`、`release`
 
 ## 代码规模
 
-- 源码文件数：7
-- 代码总行数：281
+- 源码文件数：8
+- 代码总行数：334
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `package.json` | 51 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `package.json` | 52 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `vite.config.ts` | 20 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/Cargo.toml` | 33 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 |
 | `src-tauri/tauri.conf.json` | 67 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/build.rs` | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/update-local-macos-app.sh` | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/create-migration-package.ps1` | 71 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `scripts/run-cargo-tests.mjs` | 51 | 跨平台选择 Cargo 并运行统一 Rust 测试集合。 |
 
 ## 对外契约
 
@@ -31,6 +32,7 @@
 - 迁移包读取 package.json 版本
 - 本地更新脚本复制构建产物
 - Rust 使用 `trash` 依赖承接系统废纸篓行为
+- `npm run cargo:test` 通过 Node 启动器兼容 Windows、macOS 和 Linux
 
 ## 修改规则
 

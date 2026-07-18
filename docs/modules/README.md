@@ -28,7 +28,7 @@
 - [日志与依赖分析](./logs-and-deps-v3.8.1.md)
 - [前端状态与 Hooks](./state-hooks-v3.8.1.md)
 - [类型契约与命令边界](./types-contracts-v3.8.1.md)
-- [国际化与旧版工作区兼容](./i18n-legacy-workspace-v3.8.1.md)
+- [国际化](./i18n-legacy-workspace-v3.8.1.md)
 - [Tauri 命令层](./tauri-command-layer-v3.8.1.md)
 - [Skill 数据、扫描和版本历史](./tauri-skill-data-v3.8.1.md)
 - [后端设置与文件监听](./tauri-settings-watchers-v3.8.1.md)

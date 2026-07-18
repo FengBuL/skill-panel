@@ -2,31 +2,37 @@
 
 ## 模块简介
 
-负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。
+负责 Vitest、治理检查、打包配置测试、Playwright 视觉检查和测试初始化。
 
 ## 检索关键词
 
-`Vitest`、`Playwright`、`QA`、`packaging`、`visual`
+`Vitest`、`Playwright`、`QA`、`repo:doctor`、`visual`
 
 ## 代码规模
 
-- 源码文件数：4
-- 代码总行数：1427
+- 源码文件数：9
+- 代码总行数：2356
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `src/AppShell.test.tsx` | 763 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |
-| `src/packaging.config.test.ts` | 70 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `scripts/repo-doctor.mjs` | 176 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
+| `scripts/repo-doctor.test.mjs` | 85 | 覆盖仓库治理检查契约。 |
+| `scripts/run-cargo-tests.test.mjs` | 35 | 覆盖 Windows、macOS 和 Unix Cargo 命令选择。 |
+| `src/App.test.tsx` | 116 | 覆盖当前应用壳导航与创建流程。 |
+| `src/App.editor.test.tsx` | 225 | 覆盖当前编辑、保存、冲突和恢复流程。 |
+| `src/AppShell.test.tsx` | 952 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |
+| `src/packaging.config.test.ts` | 72 | 负责版本和打包配置检查。 |
 | `src/test/setup.ts` | 1 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
-| `scripts/visual-qa.mjs` | 593 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `scripts/visual-qa.mjs` | 694 | 负责 Playwright 视觉检查、截图和报告。 |
 
 ## 对外契约
 
 - npm test 覆盖前端行为
 - visual:qa 输出截图和报告
 - packaging.config.test 校验版本一致
+- repo:doctor 校验仓库基线和当前应用入口
 - Detail 受保护来源复制到可编辑目录有前端行为测试
 - Detail 归档持久化、复制确认、删除确认和受保护来源删除禁用有前端行为测试
 - Library 卡片单击选中、双击进入完整 Detail、Enter 进入完整 Detail、右侧“查看完整详情”和返回状态保留有前端行为测试
