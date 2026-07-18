@@ -180,3 +180,9 @@
 - Remembering Conversations 工具已按 lockfile 安装依赖，`better-sqlite3` 内存查询通过，数据库与模板测试 13 项通过。
 - 该工具 npm 审计报告 2 项 moderate、6 项 high、2 项 critical，上游升级留作独立兼容性任务。
 - `~/.codex/logs_2.sqlite` quick check 通过，122347 个空闲页约 478 MiB；两个活动 Codex 进程持有数据库，本批次不执行在线压缩。
+
+### CI 首轮修复
+
+- PR #2 的 macOS 与 Windows 首轮均在 `repo:doctor` 失败。
+- 原因：Actions 默认浅克隆没有 `origin/main` 引用，祖先检查缺少必要 Git 历史。
+- 修复：checkout 设置 `fetch-depth: 0`，保留 `HEAD` 必须派生自 `origin/main` 的门禁。
