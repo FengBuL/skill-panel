@@ -245,3 +245,73 @@
 - macOS App/DMG CI：6 分 19 秒通过。
 - Windows NSIS CI：10 分 33 秒通过。
 - main 合并提交：`2529c67`。
+
+## 2026-07-19 REL-3.8.3-SOURCE-RELEASE 启动记录
+
+### 发布决策
+
+- v3.8.3 采用开源源码正式发布口径。
+- 公开 GitHub 仓库源码、annotated tag `v3.8.3` 和 GitHub Release 构成正式发布结果。
+- macOS ARM App/DMG 作为未签名、未公证 Preview 提供，并明确 Gatekeeper 风险。
+- Windows NSIS 只在 CI 构建成功时作为未验收 Preview 保留。
+- Apple 证书、公证凭据和 Windows 人工设备不阻塞源码、tag 和 GitHub Release。
+- 本任务不处理或索取证书、密钥和 secrets。
+
+### 启动基线
+
+- 分支：`codex/rel-3.8.3-source-release`。
+- main 基线：`f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3`。
+- 工作区启动状态：干净。
+- `npm run repo:doctor`：通过。
+- 应用版本：npm、Tauri、Cargo 均为 `3.8.3`。
+- 当前机器代码签名 identity：`0 valid identities found`，记录为 macOS Preview 限制。
+
+### 本地验证与最终产物
+
+- 发布内容提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`。
+- `npm run repo:doctor`：通过。
+- `npm test`：12 个文件、89 项通过。
+- `npm run typecheck`、`npm run build` 和 `npm run git:diff:check`：通过。
+- `npm run packaging:check`：6 项通过。
+- `npm run cargo:test`：Rust lib 56 项、integration 4 项通过。
+- `npm run visual:qa`：17 个场景通过，报告为 `output/qa/v3.8.3/visual-qa-report.json`。
+- macOS ARM App/DMG 构建完成；DMG 可只读挂载，版本为 `3.8.3`，bundle id 为 `com.fengbul.skillpanel`，架构为 `arm64`。
+- 临时 `HOME` 启动烟测中进程保持运行 5 秒。
+- App 只有 ad-hoc 签名，严格签名校验失败；没有公证票据。该结果符合未签名、未公证 Preview 声明。
+- 源码归档 SHA256：`969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846`。
+- rollback bundle SHA256：`6f44879c4e11ce1af66dbda6f53fdf55771d898463c449d6e8c23cb2708c0159`，`git bundle verify` 通过。
+- App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
+- DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
+- 最终 tag 会落在受保护 `main` 的发布 PR 合并提交；GitHub 自动源码归档以该 tag 为准。
+
+### PR 首轮 CI
+
+- PR：`#6 release: publish Skill Panel v3.8.3 source release`。
+- GitHub Actions run：`29652247904`。
+- macOS App/DMG：5 分 55 秒通过。
+- Windows NSIS：10 分 49 秒通过。
+- Windows artifact id：`8431901676`，原始文件为 `Skill Panel_3.8.3_x64-setup.exe`。
+- 发布附件重命名为 `Skill Panel_3.8.3_x64-setup-unverified-preview.exe`。
+- Windows Preview SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`。
+- Windows 结果只证明 CI 构建成功，不包含人工安装、Credential Store、系统废纸篓、升级和回退验收。
+- Actions 报告 Node.js 20 弃用提示，job 自动使用 Node.js 24 执行；提示未影响本次结果，后续作为 workflow 维护项处理。
+
+### PR 第二轮 CI 与测试隔离修复
+
+- 第二轮 run：`29652676732`。
+- macOS 在 Rust 测试 `append_audit_log_accepts_json_detail` 失败，其余 55 项通过。
+- 根因：该测试没有取得 HOME 环境锁，并行用例会临时改写 HOME 并删除测试目录。
+- 修复：用例改用独立临时 HOME、共享锁和明确错误信息；生产审计命令没有变化。
+- 本地 `npm run cargo:test`：56 个 lib 测试和 4 个 integration 测试通过。
+- 两个审计日志用例以 16 个测试线程重复执行 5 轮，5/5 通过。
+- 第二轮 Windows job 已取消，最终头提交重新执行双平台 CI。
+
+### 最终源码与回退归档
+
+- 最终源码归档提交：`8da6036ef2d0698de29ca06b3810718cb95f339a`。
+- 源码归档 SHA256：`e61bcffb2fea2e8a675166523146bf110036f9ebf4dbaddfec8b483e77d37497`。
+- 完整 rollback bundle 提交：`8da6036ef2d0698de29ca06b3810718cb95f339a`。
+- 完整 rollback bundle SHA256：`a80d24a2debc1f49a96b0ae6a62726eef4397ab9b35036c766071064ba34a6d6`。
+- bundle 大小：152,914,292 bytes；超过 GitHub 仓库单文件限制，不进入 Git 树。
+- 本机冷归档：`/Users/shovy/Documents/Skill-Panel-Archive/releases/v3.8.3/skill-panel-v3.8.3-rollback.bundle`。
+- `git bundle verify`：通过，记录完整历史。

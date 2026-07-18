@@ -4,9 +4,10 @@
 
 | 目录 | 版本阶段 | 状态 |
 |---|---|---|
-| `releases/v3.8.2/` | v3.8.2 | 最新正式版本及回退基线 |
+| `releases/v3.8.2/` | v3.8.2 | 上一正式版本及回退基线 |
 | `releases/v3.8.3-candidate/` | v3.8.3 candidate-1 | 历史失败候选，禁止覆盖 |
 | `releases/v3.8.3-candidate-2/` | v3.8.3 candidate-2 | macOS 8A 与 8B 通过的内部候选 |
+| `releases/v3.8.3/` | v3.8.3 | 正式源码发布归档和未签名 Preview 产物 |
 
 每个发布目录内的 manifest、`FILES.txt` 和 `SHA256SUMS.txt` 共同定义产物身份。
 
