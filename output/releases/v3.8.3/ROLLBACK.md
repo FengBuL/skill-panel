@@ -1,5 +1,12 @@
 # Skill Panel v3.8.3 回退说明
 
+## 完整 Git bundle
+
+- GitHub Release 附件：`skill-panel-v3.8.3-rollback.bundle`。
+- 本机冷归档：`/Users/shovy/Documents/Skill-Panel-Archive/releases/v3.8.3/skill-panel-v3.8.3-rollback.bundle`。
+- SHA256：`06cfa88e723e6495c8f2f87f0b538b201f4dd2c6946cb164aff8cf1f9eaf2ad6`。
+- 文件大小超过 GitHub 仓库单文件限制，因此只作为 Release 附件和冷归档保存。
+
 ## 回退材料
 
 - 完整 Git bundle：`skill-panel-v3.8.3-rollback.bundle`

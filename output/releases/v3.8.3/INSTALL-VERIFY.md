@@ -3,7 +3,8 @@
 ## 发布身份
 
 - 版本：`3.8.3`
-- 固定源码提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`
+- macOS Preview 构建源码提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`
+- 最终源码归档提交：见 `release-manifest.json`
 - 正式 tag：`v3.8.3`
 - 正式发布对象：开源源码、Git tag、GitHub Release
 - macOS 附件状态：未签名、未公证 Preview

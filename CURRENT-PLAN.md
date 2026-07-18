@@ -56,7 +56,7 @@ PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 
 - 发布内容提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`。
 - 最终 tag 提交：等待发布 PR 合并后记录。
-- 源码归档 SHA256：`969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846`。
+- 自制源码归档从最终发布内容提交生成，具体提交和 SHA256 以发布目录清单为准。
 - macOS ARM App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
 - macOS ARM DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
 - 完整验证：前端 89 项、打包 6 项、Rust 60 项、视觉 QA 17 个场景通过。
@@ -64,3 +64,4 @@ PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 - GitHub Actions：run `29652247904`，macOS App/DMG 与 Windows NSIS 均通过。
 - Windows NSIS Preview SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`；只确认 CI 构建，未执行人工安装、升级和回退。
 - 第二轮 run `29652676732` 暴露审计日志测试共享 HOME 的并行竞态；生产命令未变，测试已改为独立临时 HOME 并取得全局锁。
+- 完整 rollback bundle 超过 GitHub 仓库单文件限制，保存在本机冷归档并作为 GitHub Release 附件上传，Git 树只保存哈希和恢复说明。
