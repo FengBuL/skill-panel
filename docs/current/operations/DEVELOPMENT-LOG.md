@@ -237,3 +237,11 @@
 - Rust：lib 56 项、integration 4 项通过。
 - 视觉 QA：17 个场景通过，报告位于 `output/qa/v3.8.3/visual-qa-report.json`。
 - Obsidian 七份镜像与 Git 源逐字一致；18 份现行 Markdown 本地链接全部有效。
+
+### 合并
+
+- 整理提交：`d69f710`。
+- PR：`#4 docs: 按版本整理项目接手结构`。
+- macOS App/DMG CI：6 分 19 秒通过。
+- Windows NSIS CI：10 分 33 秒通过。
+- main 合并提交：`2529c67`。

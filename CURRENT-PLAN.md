@@ -21,6 +21,7 @@
 | Obsidian 整理 | 已完成 | 保留项目总览、现行镜像、个人复盘和开发方法 |
 | 自动化映射更新 | 已完成 | 新源路径与 `01-现行开发` 映射已生效，自动化保持暂停 |
 | 完整验证 | 已完成 | repo doctor、链接、镜像、前端、构建、打包、Rust 和视觉 QA 全部通过 |
+| PR 与 main 合并 | 已完成 | PR #4 已合并，merge commit `2529c67` |
 
 ## 目录规则
 
@@ -56,3 +57,5 @@ npm run git:diff:check
 - `npm run cargo:test`：Rust lib 56 项、integration 4 项通过。
 - `npm run visual:qa`：17 个场景通过，报告位于 `output/qa/v3.8.3/visual-qa-report.json`。
 - `git diff --check`：通过。
+- GitHub CI：macOS App/DMG 6 分 19 秒通过，Windows NSIS 10 分 33 秒通过。
+- main 合并：PR #4，merge commit `2529c67`。
