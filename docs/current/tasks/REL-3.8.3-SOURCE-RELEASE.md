@@ -40,3 +40,12 @@
 - 截图：`output/qa/v3.8.3/` 与 candidate-2 8B 证据。
 - 主要人工等待点：发布口径已确认；GitHub Release 创建后核对公开附件。
 - 完成条件：正式 tag、GitHub Release、发布归档、分支和 Obsidian 全部一致。
+
+## 完成记录
+
+- 状态：已完成。
+- 发布合并提交：`4d71c4578dda284d1ab5c1c54ca0e1be5f10a5ba`。
+- tag：`v3.8.3`。
+- GitHub Release：`https://github.com/FengBuL/skill-panel/releases/tag/v3.8.3`。
+- 最终 CI：PR run `29653105230` 与 main run `29653488657` 双平台通过。
+- 分支：本地和远端只保留 `main`。

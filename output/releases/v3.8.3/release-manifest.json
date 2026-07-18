@@ -6,7 +6,7 @@
   "releaseContentCommit": "1e38b0d6c41960a315b2e5fbd330e0b85678b265",
   "sourceArchiveCommit": "8da6036ef2d0698de29ca06b3810718cb95f339a",
   "rollbackBundleCommit": "8da6036ef2d0698de29ca06b3810718cb95f339a",
-  "tagCommit": "pending release PR merge",
+  "tagCommit": "4d71c4578dda284d1ab5c1c54ca0e1be5f10a5ba",
   "sourceBaseline": "f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3",
   "tag": "v3.8.3",
   "tagPolicy": "annotated tag created from the protected main release merge; GitHub-generated source archives follow the tag commit",
@@ -25,19 +25,19 @@
       "status": "complete Git recovery bundle; stored outside the Git tree and uploaded as a GitHub Release asset"
     },
     {
-      "file": "Skill Panel_3.8.3_aarch64-unsigned-preview.app.zip",
+      "file": "skill-panel-v3.8.3-macos-arm64-unsigned-preview.app.zip",
       "bytes": 4952438,
       "sha256": "3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb",
       "status": "unsigned macOS ARM Preview"
     },
     {
-      "file": "Skill Panel_3.8.3_aarch64-unsigned-preview.dmg",
+      "file": "skill-panel-v3.8.3-macos-arm64-unsigned-preview.dmg",
       "bytes": 4964013,
       "sha256": "ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94",
       "status": "unsigned macOS ARM Preview"
     },
     {
-      "file": "Skill Panel_3.8.3_x64-setup-unverified-preview.exe",
+      "file": "skill-panel-v3.8.3-windows-x64-setup-unverified-preview.exe",
       "bytes": 3226303,
       "sha256": "b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b",
       "status": "Windows NSIS CI Preview; no human install, upgrade, or rollback acceptance"
@@ -63,7 +63,11 @@
     "ciMacos": "passed in 5m55s",
     "ciWindows": "passed in 10m49s",
     "ciSecondRun": "run 29652676732 exposed and reproduced a HOME isolation race in one Rust test",
-    "auditHomeIsolationFix": "full Rust suite passed; focused parallel stress passed 5/5"
+    "auditHomeIsolationFix": "full Rust suite passed; focused parallel stress passed 5/5",
+    "finalPrCiRunUrl": "https://github.com/FengBuL/skill-panel/actions/runs/29653105230",
+    "finalPrCi": "macOS and Windows passed",
+    "mainPushCiRunUrl": "https://github.com/FengBuL/skill-panel/actions/runs/29653488657",
+    "mainPushCi": "macOS and Windows passed"
   },
   "candidateEvidence": {
     "candidate2Commit": "57b29aeef5149e109ac016375968416c65e880cb",

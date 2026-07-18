@@ -26,10 +26,10 @@
 | 状态与规则统一 | 已完成 | 活动文档没有候选/正式状态冲突和失效路径 |
 | 完整验证 | 已完成 | repo doctor、前端、类型、构建、打包、Rust、视觉 QA 全部通过 |
 | 最终产物 | 已完成 | 源码归档、rollback bundle、macOS Preview、清单和 SHA256 已生成并校验 |
-| CI 验证 | 修复后复核中 | PR #6 首轮双平台通过；最终头提交需在审计测试隔离修复后再次通过 |
-| Git 收口 | 待执行 | PR 合并、历史分支归档与清理、`origin/HEAD` 指向 `main` |
-| 正式发布 | 待执行 | tag `v3.8.3` 和 GitHub Release 已创建 |
-| Obsidian 收口 | 待执行 | 总览、Git 摘要、版本地图、开发台账和 v3.8.3 索引一致 |
+| CI 验证 | 已完成 | PR 与 main push 的 macOS App/DMG、Windows NSIS workflow 通过 |
+| Git 收口 | 已完成 | PR 已合并，历史分支已归档清理，`origin/HEAD` 指向 `main` |
+| 正式发布 | 已完成 | tag `v3.8.3` 和 GitHub Release 已创建 |
+| Obsidian 收口 | 已完成 | 总览、Git 摘要、版本地图、开发台账和 v3.8.3 索引一致 |
 
 ## 验证命令
 
@@ -55,7 +55,7 @@ PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 ## 当前证据
 
 - 发布内容提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`。
-- 最终 tag 提交：等待发布 PR 合并后记录。
+- 最终 tag 提交：`4d71c4578dda284d1ab5c1c54ca0e1be5f10a5ba`。
 - 自制源码归档从最终发布内容提交生成，具体提交和 SHA256 以发布目录清单为准。
 - macOS ARM App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
 - macOS ARM DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
@@ -65,3 +65,6 @@ PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 - Windows NSIS Preview SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`；只确认 CI 构建，未执行人工安装、升级和回退。
 - 第二轮 run `29652676732` 暴露审计日志测试共享 HOME 的并行竞态；生产命令未变，测试已改为独立临时 HOME 并取得全局锁。
 - 完整 rollback bundle 超过 GitHub 仓库单文件限制，保存在本机冷归档并作为 GitHub Release 附件上传，Git 树只保存哈希和恢复说明。
+- 最终 PR CI：run `29653105230`，macOS 5 分 19 秒、Windows 11 分 7 秒通过。
+- main push CI：run `29653488657`，macOS 5 分 34 秒、Windows 10 分 1 秒通过。
+- 分支清理前完整 bundle：`/Users/shovy/Documents/Skill-Panel-Archive/git-bundles/pre-v3.8.3-branch-cleanup-20260719.bundle`，SHA256 `67fe996548eb8095bbf92ca7c41f46e4b22a9a19ad9c9f55304a4c5266344a76`。
