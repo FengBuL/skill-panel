@@ -10,8 +10,10 @@ const ACTIVE_DOCS = [
   'README.md',
   'PROJECT_STATE.md',
   'CURRENT-PLAN.md',
-  'docs/product/PRD.md',
-  'docs/product/UI-SPECIFICATION.md',
+  'docs/current/product/PRD.md',
+  'docs/current/product/UI-SPECIFICATION.md',
+  'docs/current/architecture.md',
+  'docs/current/README.md',
 ];
 const RETIRED_SOURCES = [
   'src/AppShell.tsx',

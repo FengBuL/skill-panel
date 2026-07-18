@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outputDir = path.join(rootDir, 'output', 'playwright');
+const outputDir = path.join(rootDir, 'output', 'qa', 'v3.8.3');
 const baseUrl = 'http://127.0.0.1:1420';
 
 const longMarkdown = `# Visual QA Skill
@@ -676,7 +676,10 @@ async function main() {
 
     const reportPath = path.join(outputDir, 'visual-qa-report.json');
     await writeFile(reportPath, `${JSON.stringify({ generatedAt: new Date().toISOString(), results }, null, 2)}\n`);
-    await writeFile(path.join(rootDir, 'docs', 'visual-qa-checklist.md'), buildMarkdownReport(results));
+    await writeFile(
+      path.join(rootDir, 'docs', 'current', 'quality', 'visual-qa-checklist.md'),
+      buildMarkdownReport(results),
+    );
 
     const failed = results.filter((result) => !result.passed);
     if (failed.length > 0) {

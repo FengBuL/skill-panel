@@ -1,176 +1,90 @@
 # Skill Panel
 
-Skill Panel is a cross-platform desktop app shell for managing local AI skills. This repository starts with a Tauri + React + TypeScript + Rust foundation that supports Windows and macOS.
+Skill Panel 是一款管理本机 AI Skill 的跨平台桌面应用，技术栈为 Tauri 2、React 19、TypeScript 和 Rust。
 
-## Repository Baseline
+## 接手入口
 
-- Canonical repository: `/Users/shovy/Documents/skill-panel`
-- Default branch: `main`
-- Development baseline: `3.8.3` candidate-2, accepted for internal use
-- Latest formal release: `3.8.2`
-- Current frontend entry: `src/main.tsx` -> `src/layout/AppShell.tsx`
-- Architecture reference: `docs/architecture/current.md`
-- Product references: `docs/product/PRD.md` and `docs/product/UI-SPECIFICATION.md`
+| 项目 | 当前值 |
+|---|---|
+| 规范仓库 | `/Users/shovy/Documents/skill-panel` |
+| 默认分支 | `main` |
+| 当前开发版本 | `3.8.3` candidate-2，内部验收通过 |
+| 最新正式版本 | `3.8.2`，tag `v3.8.2` |
+| 当前应用入口 | `src/main.tsx` -> `src/layout/AppShell.tsx` |
+| 当前项目状态 | [PROJECT_STATE.md](./PROJECT_STATE.md) |
+| 当前开发计划 | [CURRENT-PLAN.md](./CURRENT-PLAN.md) |
+| 文档与版本地图 | [docs/README.md](./docs/README.md) |
+| 产物与证据地图 | [output/README.md](./output/README.md) |
 
-Run `npm run repo:doctor` at the beginning of a new task to detect stale branches, paths, versions, and entrypoints.
+新同事按以下顺序接手：
 
-## Latest Formal Release
+1. 阅读本文件、`PROJECT_STATE.md`、`CURRENT-PLAN.md` 和 `AGENTS.md`。
+2. 阅读 [现行文档入口](./docs/current/README.md)，确认产品、架构、UI 和发布边界。
+3. 执行 `npm install`，随后执行 `npm run repo:doctor`。
+4. 开发前从最新 `main` 创建任务分支，并填写 [任务卡](./docs/current/templates/task-card.md)。
+5. 提交前运行与修改范围匹配的测试，涉及共享行为时运行完整验证集。
 
-- Version: `3.8.2`
-- Release commit: `65140b081962a0177b56c1cf14c572515f320e4e`
-- Release tag: `v3.8.2` -> `2b53d5487bf5c54acf4cfb13ad7fd517bfc60ac4`
-- Release scope: Notion-style UI migration across Library, Dashboard, Detail, Editor, AI Assistant, Logs, Dependencies, Settings, New Skill, and empty/error states.
-- Verification on 2026-07-13: frontend tests 40/40, packaging checks 6/6, Rust tests 44/44, typecheck and production build passed. The current visual QA rerun passed 11/11 scenarios, including Dashboard visibility.
-- Release archive: `output/releases/v3.8.2/` contains the macOS DMG, app zip, source archive, rollback bundle, SHA256SUMS, install verification record, and rollback notes. macOS signing/notarization and Windows installer verification remain separate release tasks.
+## 当前状态
 
-## Navigation Model
+- `3.8.3` candidate-2 已通过 macOS 真实 Skill、分页、安装、升级、回退和数据保留验收。
+- `3.8.2` 是最新正式版本，发布归档位于 `output/releases/v3.8.2/`。
+- macOS 正式发布仍需 Developer ID 签名、公证和 Gatekeeper 完整验证。
+- Windows NSIS 和 macOS App/DMG 的治理 CI 已通过；Windows 当前候选验收仍延期。
+- Git 保存产品规格、架构、规则、状态、计划和验证证据；Obsidian保存现行镜像、阅读入口与个人复盘。
 
-- The top navigation contains Dashboard, Library, Logs, Dependencies, and Settings.
-- Library is the default entry and remains active for Detail, Editor, Create, AI Assistant, and Preview task pages.
-- Editor requires a selected Skill context, is entered from Detail or after Create, and remains a contextual task page under Library.
-- Navigation ownership and product requirements are maintained in the Obsidian `PRD.md` and `UI-SPECIFICATION.md` documents.
+## 目录结构
 
-## Stack
+```text
+skill-panel/
+├── AGENTS.md                 # Agent 执行规则
+├── README.md                 # 项目接手总入口
+├── PROJECT_STATE.md          # 当前事实状态
+├── CURRENT-PLAN.md           # 当前唯一执行计划
+├── src/                      # React 前端
+├── src-tauri/                # Rust 后端与 Tauri 配置
+├── scripts/                  # 治理、测试、构建辅助脚本
+├── docs/
+│   ├── current/              # 后续开发使用的现行文档
+│   └── versions/             # 按版本阶段保存的历史文档
+└── output/
+    ├── qa/v3.8.3/            # 当前版本视觉 QA 证据
+    └── releases/             # 按版本和候选批次保存的发布产物
+```
 
-- Tauri 2 desktop runtime
-- React 19 and TypeScript frontend
-- Rust backend commands under `src-tauri`
-- Vite for local frontend development
-- Vitest and Testing Library for frontend tests
+`dist/`、`node_modules/` 和 `src-tauri/target/` 是可重新生成的本地产物，不承担版本说明职责。
 
-## Scripts
-
-Install dependencies:
+## 常用命令
 
 ```bash
 npm install
-```
-
-Run the frontend shell:
-
-```bash
-npm run dev
-```
-
-Check the repository baseline:
-
-```bash
 npm run repo:doctor
-```
-
-Run the desktop app:
-
-```bash
+npm run dev
 npm run tauri:dev
-```
-
-Build the frontend:
-
-```bash
+npm test
+npm run typecheck
 npm run build
+npm run packaging:check
+npm run cargo:test
+npm run visual:qa
+npm run git:diff:check
 ```
 
-Run frontend tests:
+打包命令：
 
 ```bash
-npm.cmd test
+npm run tauri:build:windows
+npm run tauri:build:windows:msi
+npm run tauri:build:macos
 ```
 
-Run Rust tests:
+## 开发规则
 
-```bash
-npm.cmd run cargo:test
-```
+- 产品范围以 [PRD](./docs/current/product/PRD.md) 为准。
+- 页面与交互以 [UI 规范](./docs/current/product/UI-SPECIFICATION.md) 和 [UI 样式指南](./docs/current/product/ui-style-guide.md) 为准。
+- 模块边界以 [当前架构](./docs/current/architecture.md) 为准。
+- 发布判断以 [发布就绪状态](./docs/current/operations/RELEASE-READINESS.md) 为准。
+- 历史文档只用于追溯，不直接作为新任务实现基线。
 
-Run packaging configuration checks:
+## 历史迁移工具
 
-```bash
-npm.cmd run packaging:check
-```
-
-Build the Windows NSIS installer:
-
-```bash
-npm.cmd run tauri:build:windows
-```
-
-Build the optional Windows MSI package:
-
-```bash
-npm.cmd run tauri:build:windows:msi
-```
-
-Build macOS bundles:
-
-```bash
-npm.cmd run tauri:build:macos
-```
-
-GitHub Actions can build both desktop targets:
-
-```text
-.github/workflows/desktop-build.yml
-```
-
-The workflow uploads a Windows NSIS installer and macOS app/dmg artifacts.
-
-## Test Commands
-
-Use these commands from the repository root when validating a development slice:
-
-```bash
-npm.cmd test
-npm.cmd run typecheck
-npm.cmd run build
-npm.cmd run packaging:check
-```
-
-Run Rust tests from a Visual Studio Developer Command Prompt, or from a shell that has loaded the MSVC build environment:
-
-```bash
-npm.cmd run cargo:test
-```
-
-The Rust command depends on the local Rust toolchain metadata and the Windows MSVC linker. On Windows, install Rust stable for `x86_64-pc-windows-msvc` and Visual Studio Build Tools with the C++ workload before running Rust tests or Tauri builds.
-
-## Packaging
-
-Desktop packaging is configured in `src-tauri/tauri.conf.json` for Windows and macOS:
-
-- Windows targets: NSIS by default; MSI is available through `npm.cmd run tauri:build:windows:msi` when WiX and its Windows feature dependencies are installed.
-- macOS targets: `.app` and `.dmg`.
-- Application name: `Skill Panel`.
-- Bundle identifier: `com.fengbul.skillpanel`.
-
-The repository includes a lightweight generated placeholder icon set under `src-tauri/icons` so Tauri builds can run on Windows and macOS. Replace it with final brand artwork later. To regenerate icons from a source image, place it at `src-tauri/icons/source.png`, then run:
-
-```bash
-npm.cmd run tauri:icons
-```
-
-The generated files should live under `src-tauri/icons`.
-
-## Historical Migration Package
-
-The following v3.0.0 workflow is retained for historical recovery only:
-
-```bash
-npm.cmd run tauri:build:windows
-powershell -ExecutionPolicy Bypass -File scripts/create-migration-package.ps1
-```
-
-The script writes `output/migration/Skill-Panel-v3.0.0-migration.zip`. The package includes the Windows installer, a portable executable, the current app settings file, and local `.codex/skills` plus `.agents/skills` folders when they exist.
-
-The detailed migration guide is in `docs/migration-guide-v2.md`.
-
-## Project Layout
-
-- `src/` contains the React frontend and i18n resources.
-- `src-tauri/` contains the Rust backend and Tauri configuration.
-- `docs/architecture/current.md` defines the active entrypoint and module boundaries.
-- `docs/plans/` contains active and archived implementation plans.
-- `docs/templates/` contains task and prototype handoff templates.
-
-## Internationalization
-
-All visible UI text in the shell is read from `src/i18n/resources.ts`. The first shell supports `zh-CN` and `en-US`, with a language selector in the app header.
+v3.0.0 Windows 迁移脚本保留在 `scripts/create-migration-package.ps1`。使用背景和历史步骤见 [v3.0 迁移指南](./docs/versions/v3.0/migration-guide.md)。

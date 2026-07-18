@@ -1,93 +1,54 @@
 ---
 项目: Skill Panel
-版本: 3.8.3
-发布任务: REL-3.8.3-GOVERNANCE
-目标平台: macOS
-状态: 仓库治理已进入 main，v3.8.3 candidate-2 8A 与 8B 通过
+当前开发版本: 3.8.3
+最新正式版本: 3.8.2
+当前任务: DOC-STRUCTURE-01
+状态: 项目目录与接手文档整理完成，等待 PR 合并
 更新时间: 2026-07-18
 ---
 
 # 项目状态
 
-## 当前发布任务
+## 版本状态
 
-- 任务编号：`REL-3.8.3-GOVERNANCE`
-- 范围：macOS 单平台候选。
-- 默认分支：`main`
-- 治理合并：PR #2，merge commit `d56fbaa4f7d78a170e31ad9da8d01ef659626ea1`
+| 项目 | 状态 | 证据 |
+|---|---|---|
+| 最新正式版本 | `3.8.2` | tag `v3.8.2`，发布文件位于 `output/releases/v3.8.2/` |
+| 当前开发版本 | `3.8.3` candidate-2 | macOS 8A 与 8B 已通过，产物位于 `output/releases/v3.8.3-candidate-2/` |
+| candidate-1 | 历史失败候选 | 固定演示数据和分页缺失，保留于 `output/releases/v3.8.3-candidate/` |
+| macOS 正式发布 | 阻塞 | 缺少 Developer ID 签名、公证和 Gatekeeper 完整验证 |
+| Windows 当前候选 | 延期 | 历史正式包和治理 CI 记录保留，当前版本未完成人工候选验收 |
+
+## 仓库状态
+
 - 规范仓库：`/Users/shovy/Documents/skill-panel`
-- 当前 main：`d56fbaa4f7d78a170e31ad9da8d01ef659626ea1`
-- 开始 HEAD：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
-- 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- 候选证据提交：`2046733`
-- 版本：`3.8.3`
-- bundle id：`com.fengbul.skillpanel`
-- macOS 架构：`arm64`
-- 候选状态：candidate-2 已通过 8A 人工验收和 8B 安装升级、回退、数据保留验证；正式对外发布仍受签名和公证条件阻塞。
-- 应用入口：`src/main.tsx` → `src/layout/AppShell.tsx`。
-- 文档同步：Git → Obsidian 单向摘要。
-- CI：Windows NSIS 与 macOS App/DMG 均通过；`main` 已启用 PR、双平台检查、对话解决、禁止强推和禁止删除保护。
+- 默认分支：`main`
+- 本轮整理基线：`7ce545d`
+- 当前工作分支：`codex/project-handover-structure`
+- 应用版本：npm、Tauri、Cargo 均为 `3.8.3`
+- 应用入口：`src/main.tsx` -> `src/layout/AppShell.tsx`
+- CI 门槛：Windows NSIS、macOS App/DMG、PR 审核和对话解决。
+- 文档同步：Git -> Obsidian 单向同步。
 
-## 第 7 步门槛
+## 当前任务
 
-- 第 6 步已按“历史证据已收口，缺失项已明示”关闭。
-- Windows 基线缺失只阻塞 Windows 候选。
-- macOS 可独立生成候选。
-- `output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg` 作为第 8 步 macOS 升级与回退基线。
-- 真实升级和安装包回退将在第 8 步使用 v3.8.3 候选包验证。
-- macOS 签名和公证属于正式对外发布门槛。
-- 缺少签名条件时，候选状态为 macOS 内部验收候选，正式发布保持阻塞。
+- 任务编号：`DOC-STRUCTURE-01`
+- 目标：按现行资料和版本阶段整理 Git 与 Obsidian，为直接接手提供单一入口。
+- 范围：文档目录、QA 证据目录、路径引用、治理检查和 Obsidian 镜像。
+- 应用代码：业务逻辑不变。
+- 完成状态：目录清晰、版本归属明确、现行链接有效、自动检查与测试全部通过。
 
-## 签名与公证
+## 关键证据
 
-- Developer ID Application 证书：本机只读检查未发现可用证书。
-- codesign identity：`security find-identity -v -p codesigning` 返回 `0 valid identities found`。
-- 公证 profile：`xcrun notarytool history` 返回需要凭据。
-- 正式发布状态：已阻塞，原因是缺少签名或公证条件。
-
-## 发布产物
-
-| 项目 | 路径 | SHA256 | 大小 | 状态 |
-|---|---|---|---:|---|
-| v3.8.2 基线 DMG | `output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg` | `10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d` | `4320791` | 第 8 步基线 |
-| v3.8.3 candidate-1 App Zip | `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.app.zip` | `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e` | `4952711` | 历史失败候选 |
-| v3.8.3 candidate-1 App bundle | `output/releases/v3.8.3-candidate/Skill Panel.app` | 目录包 | `13480 KiB` | 历史失败候选 |
-| v3.8.3 candidate-1 DMG | `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.dmg` | `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584` | `4964044` | 历史失败候选 |
-| v3.8.3 candidate-2 DMG | `output/releases/v3.8.3-candidate-2/Skill Panel_3.8.3_aarch64.dmg` | `a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688` | `4964023` | 8A 与 8B 通过，内部候选保留 |
+- candidate-2 代码与记录：`03865b3`、`57b29ae`、`2046733`。
+- candidate-2 DMG SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
+- v3.8.2 基线 DMG SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`。
+- 8B 证据：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
+- 版本文档地图：`docs/versions/README.md`。
 
 ## 已知风险
 
-- Windows 候选和 Windows 验证延期。
-- macOS 正式对外发布需等待 Developer ID 签名、公证和 Gatekeeper 验证。
-- candidate-1 第 8 步人工安装验收失败记录保留为历史证据。
-- candidate-2 8A 与 8B 已通过；本机最终安装版本为 `3.8.3`。
-- 签名与公证条件完成前禁止正式 tag 和正式发布。
-- `~/.codex/logs_2.sqlite` 仍有约 478 MiB 空闲页；数据库由活动 Codex 进程打开，需在退出 Codex 后通过受支持维护流程压缩。
-- 会话检索工具依赖已恢复，npm 审计仍报告 10 项上游依赖漏洞，升级需要单独兼容性任务。
-
-## 2026-07-16 L3 失败状态
-
-- 失败候选代码 commit：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。
-- 失败候选记录 commit：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`。
-- 当前修复任务：`REL-3.8.3-L3-REAL-DATA-PAGE-01`。
-- 最后验证基线保留：candidate-1 的完整自动验证记录保留为历史证据，不再作为发布放行证据。
-
-## 2026-07-17 candidate-2 8A 人工验收
-
-- 任务编号：`REL-3.8.3-L3-CANDIDATE-2-8B`。
-- 当前 HEAD：`57b29aeef5149e109ac016375968416c65e880cb`。
-- candidate-2 DMG：`output/releases/v3.8.3-candidate-2/Skill Panel_3.8.3_aarch64.dmg`。
-- candidate-2 SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
-- 8A 用户确认：安装版能够加载本机真实 Skill，没有显示固定演示 Skill，Library 分页正常，超过 100 个 Skill 可以进入中间页和最后一页，搜索、筛选和页码重置正常，Library → Detail → Editor → Detail → Library 流程正常，暂未发现新的 8A 问题。
-- 8A 结论：人工验收通过。
-- 8B 状态：2026-07-18 已通过。
-
-## 2026-07-18 candidate-2 8B 记录
-
-- 安全备份：`~/.codex/skill-panel-acceptance-backups/REL-3.8.3-GOVERNANCE-20260718-123946/`。
-- 仓库证据：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
-- 验证序列：v3.8.2 基线安装、candidate-2 升级、v3.8.2 回退、用户确认后重新安装 candidate-2。
-- Library 证据：120 个真实 Skill、20 页分页、末页 `115–120 / 120`。
-- 数据证据：设置文件 SHA256 保持一致；两个默认 Skill 根目录共 228 个 `SKILL.md` 的数量与组合 SHA256 保持一致。
-- 最终安装版本：`3.8.3`。
-- 8B 结论：通过。
+- macOS 正式发布条件尚未满足。
+- Windows 当前版本候选验收尚未执行。
+- `3.8.3` 尚无正式 tag。
+- 历史文档中的路径和分支名称反映当时环境，使用前先查看对应版本目录的 `README.md`。

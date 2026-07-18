@@ -13,7 +13,7 @@ source_commit: 15a67962e4bf6f65c74720af794c3e2fb9a7d9d6
 
 Skill Panel 采用轻量桌面工作台风格：信息密度高、层级清楚、装饰克制、反馈明确。Library 是主要入口，编辑器服务已有 Skill 的维护，AI 能力位于当前任务上下文中。
 
-设计实现参考 `ui-style-guide.md`、`src/styles/tokens.css`、`docs/architecture/current.md` 和已验收的原型交接材料。
+设计实现参考 `docs/current/product/ui-style-guide.md`、`src/styles/tokens.css`、`docs/current/architecture.md` 和已验收的原型交接材料。
 
 ## 设计 Token
 
@@ -73,7 +73,7 @@ Library 是默认主入口。顶部导航保持 64px 单层结构，不增加 Ed
 - Dependencies 保持顶部入口；真实依赖分析仍按 P1 交付，未接真实数据时显示明确的未开放或示例状态。
 - New Skill 保持页面内次级按钮，不进入顶部导航。
 - AI 辅助保持在 Editor 任务上下文内，独立页面与侧栏使用同一份草稿和 diff 状态。
-- 顶部导航变化需要同步 `docs/product/PRD.md`、`AGENTS.md`、应用壳模块文档和视觉 QA 基准。
+- 顶部导航变化需要同步 `docs/current/product/PRD.md`、`AGENTS.md`、当前架构说明和视觉 QA 基准。
 
 ### Library
 
@@ -146,18 +146,18 @@ Library 是默认主入口。顶部导航保持 64px 单层结构，不增加 Ed
 
 ## 视觉验收证据
 
-当前 `npm run visual:qa` 覆盖 Library、详情抽屉、Dashboard、Editor、Create、Settings、Logs、空白和失败状态。清单位于代码项目 `docs/visual-qa-checklist.md`。
+当前 `npm run visual:qa` 覆盖 Library、详情抽屉、Dashboard、Editor、Create、Settings、Logs、空白和失败状态。清单位于代码项目 `docs/current/quality/visual-qa-checklist.md`。
 
 2026-07-18 报告覆盖 17 个场景，包含 Dependencies 独立页面与主要响应式尺寸，17/17 通过。
 
 导航验收同时确认：顶部只有五个主导航项；进入 Detail、Editor、Create、AI Assistant 或 Preview 后 Library 保持高亮；Editor 缺少 Skill 上下文时显示安全空状态。
 
-验收时固定同一 commit、URL、端口、视口、数据 fixture 和语言。截图保存到项目 `output/playwright/` 或批次 `output/migrations/<批次>/`。
+验收时固定同一 commit、URL、端口、视口、数据 fixture 和语言。截图保存到项目 `output/qa/v3.8.3/` 或批次专用目录。
 
 ### 当前视觉基线
 
 - 当前开发版本：v3.8.3 candidate-2。
 - main 基线：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`。
-- 视觉报告：`output/playwright/visual-qa-report.json`。
+- 视觉报告：`output/qa/v3.8.3/visual-qa-report.json`。
 - 2026-07-18 复跑结果：17/17 场景通过。
 - 迁移归档：`docs/design-migration-results/skill-panel-redesign-notion/`。

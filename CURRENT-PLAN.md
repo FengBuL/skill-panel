@@ -1,55 +1,40 @@
 ---
 项目: Skill Panel
-任务: REL-3.8.3-GOVERNANCE
+任务: DOC-STRUCTURE-01
 版本: 3.8.3
-目标平台: macOS
 更新时间: 2026-07-18
 ---
 
 # 当前计划
 
-## 仓库治理批次
+## 目标
 
-| 步骤 | 状态 | 说明 |
+整理 Git 与 Obsidian 项目资料，使新同事可以从单一入口确认当前版本、正式版本、历史阶段、涉及文件、验证证据和后续开发规则。
+
+## 执行状态
+
+| 步骤 | 状态 | 输出 |
 |---|---|---|
-| 保护现有工作 | 已完成 | 候选、混合分支、应用包、设置和验收证据均已备份。 |
-| candidate-2 8B | 已完成 | 升级、回退、重新安装和数据指纹验证通过。 |
-| 建立规范主线 | 已完成 | 远端默认分支已切换为 `main`，规范目录为 `/Users/shovy/Documents/skill-panel`。 |
-| 路径与自动化 | 已完成 | Obsidian 新路径已生效，自动化改为 Git → Obsidian 单向摘要并保持暂停。 |
-| 规则和自动检查 | 已完成 | `repo:doctor`、双线规则、任务卡、交接模板、架构说明和 CI 检查已进入 `main`。 |
-| 旧入口清理 | 已完成 | AppShell 实现已收敛到 `src/layout/AppShell.tsx`，无引用旧工作区已删除，86 个前端测试和 17 个视觉场景通过。 |
-| 文档收口 | 已完成 | PRD 与 UI 规范已进入 Git；Obsidian 11 份旧副本已归档，活动区保留阅读入口与 Git 状态摘要。 |
-| 维护收口 | 已完成 | 清理 2 条失效 worktree 登记，释放 2.6 GiB 历史 Rust 缓存，恢复会话检索依赖；活动日志数据库维护延期。 |
-| 最终验证与合并 | 已完成 | PR #2 已合并；前端 89 项、打包 6 项、Rust 56+4 项、视觉 17 项通过，Windows NSIS 与 macOS App/DMG CI 通过。 |
+| 文件与版本盘点 | 已完成 | Git 标签、提交历史、文档时间和发布目录已核对 |
+| Git 目录设计 | 已完成 | `docs/current`、`docs/versions`、`output/qa` 分层已确定 |
+| Git 文件迁移 | 已完成 | 现行文档、版本资料和 v3.8.3 QA 证据已归入新目录 |
+| Obsidian 整理 | 已完成 | 保留项目总览、现行镜像、个人复盘和开发方法 |
+| 自动化映射更新 | 已完成 | 新源路径与 `01-现行开发` 映射已生效，自动化保持暂停 |
+| 完整验证 | 已完成 | repo doctor、链接、镜像、前端、构建、打包、Rust 和视觉 QA 全部通过 |
 
-## 批次状态
+## 目录规则
 
-| 步骤 | 状态 | 说明 |
-|---|---|---|
-| 只读开工检查 | 已完成 | 分支和 HEAD 与任务输入一致；工作区起始状态干净。 |
-| 版本统一 | 已完成 | npm、Tauri、Cargo、Cargo.lock 包版本均为 `3.8.3`。 |
-| 版本一致性测试 | 已完成 | 打包配置测试已覆盖 npm、Tauri、Cargo manifest 版本一致性。 |
-| 第 7 步文档 | 已完成 | 已记录 macOS 单平台门槛和 Windows 延期。 |
-| 完整验证 | 已完成 | `npm test`、typecheck、build、packaging check、Cargo tests、visual QA、diff check 全部通过。 |
-| 候选代码提交 | 已完成 | `17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。 |
-| macOS App 和 DMG 构建 | 已完成 | 已存放于 `output/releases/v3.8.3-candidate/`。 |
-| 第 8 步准备 | 已完成 | 已记录基线、候选包、检查清单、回退步骤和截图要求。 |
-| 第 8 步 candidate-1 安装验收 | 验证失败 | 用户在 2026-07-16 发现安装版显示虚拟 Skill 数据，Library 无分页，超过 100 个 Skill 无法访问剩余内容。历史失败候选保留。 |
-| L3 修复批次 | 已完成 | 任务 `REL-3.8.3-L3-REAL-DATA-PAGE-01`；继续使用版本 `3.8.3`；candidate-2 产物位于 `output/releases/v3.8.3-candidate-2/`。 |
-| candidate-2 8A 人工验收 | 已通过 | 用户确认真实 Skill、分页、搜索筛选、页码重置和 Library → Detail → Editor → Detail → Library 流程正常；暂未发现新的 8A 问题。 |
-| candidate-2 8B 安装升级与回退验收 | 已通过 | 已完成安全备份、v3.8.2 基线安装、candidate-2 升级、v3.8.2 回退和用户确认后的 candidate-2 最终安装；设置与源 Skill 指纹保持一致。 |
-
-## 门槛规则
-
-- 第 7 步目标平台为 macOS。
-- Windows 延期，不能写成 Windows 已验证。
-- Windows 基线缺失只阻塞 Windows 候选。
-- macOS 候选生成使用 v3.8.2 macOS DMG 作为第 8 步基线。
-- 没有 Developer ID 签名和公证时，macOS 正式发布保持阻塞。
+- 根目录只保留项目入口、当前状态、当前计划、Agent 规则、源码和工程配置。
+- `docs/current/` 只保存后续开发会直接读取和维护的文档。
+- `docs/versions/<版本>/` 保存该阶段的设计、计划、模块说明、审计和迁移资料。
+- `output/releases/` 保存发布包和候选包，目录名必须包含版本或候选编号。
+- `output/qa/<版本>/` 保存视觉报告和截图。
+- Obsidian 活动区只保留项目总览、当前状态及主要规则镜像。
 
 ## 验证命令
 
 ```bash
+npm run repo:doctor
 npm test
 npm run typecheck
 npm run build
@@ -59,43 +44,15 @@ npm run visual:qa
 npm run git:diff:check
 ```
 
-## 候选记录
+## 验证结果
 
-- 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- 构建命令：`PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos`
-- 输出目录：`output/releases/v3.8.3-candidate/`
-- 回退点：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg` 和本任务开始前 Git HEAD `53e7ed3136e89cae52638dfdd9372983a918a0c5`。
-
-## 候选产物
-
-| 文件 | 大小 bytes | SHA256 |
-|---|---:|---|
-| `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.app.zip` | `4952711` | `023eefb46efb83baf94f8471538389602ff529fbb2b6fba936ca02aea713fe1e` |
-| `output/releases/v3.8.3-candidate/Skill Panel_3.8.3_aarch64.dmg` | `4964044` | `7a89a7335f8a8b0cc250cb8f28a544e0a1f27a396932dc95d170ffca2202b584` |
-
-## 2026-07-16 第 8 步失败更正
-
-- 失败候选代码 commit：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`。
-- 失败候选记录 commit：`cc2a155b69f92bb8e35d15e919f29166f5ac9c16`。
-- 失败现象：安装版没有加载本机真实 Skill，Library 只显示少量 Skill 且缺少分页。
-- 原候选目录和 SHA256 必须保留：`output/releases/v3.8.3-candidate/`。
-- 修复通过后仅生成 candidate-2，禁止创建正式 tag，禁止正式发布。
-
-## 2026-07-17 至 2026-07-18 candidate-2 8A 和 8B
-
-- 8A 结论：人工验收通过。
-- 8B 任务编号：`REL-3.8.3-L3-CANDIDATE-2-8B`。
-- 当前 HEAD：`57b29aeef5149e109ac016375968416c65e880cb`。
-- v3.8.2 基线 DMG：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`。
-- v3.8.2 SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`。
-- candidate-2 DMG：`output/releases/v3.8.3-candidate-2/Skill Panel_3.8.3_aarch64.dmg`。
-- candidate-2 SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
-- 8B 备份：`~/.codex/skill-panel-acceptance-backups/REL-3.8.3-GOVERNANCE-20260718-123946/`。
-- 8B 证据：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
-- v3.8.2 基线、candidate-2 升级和 v3.8.2 回退均完成启动与版本验证。
-- candidate-2 升级与最终安装均显示 120 个真实 Skill、20 页分页，末页范围为 `115–120 / 120`。
-- `settings.json` SHA256 全程保持 `c7b887458ed8fd4f31342f90facf6c2c8b237646b188ae70e1131d67b238fdb6`。
-- `~/.codex/skills` 的 12 个 `SKILL.md` 与 `~/.agents/skills` 的 216 个 `SKILL.md` 数量和组合 SHA256 全程一致。
-- 用户已确认重新安装 candidate-2；本机最终安装版本为 `3.8.3`。
-- 8B 结论：安装、升级、回退和数据保留验证通过。
-- 发布限制：即使 8B 通过，macOS 正式对外发布仍需签名和公证条件；未解决前禁止正式 tag 和发布。
+- Obsidian 七份规则镜像与 Git 源逐字一致。
+- 18 份现行 Markdown 的本地链接全部有效。
+- `npm run repo:doctor`：通过。
+- `npm test`：12 个测试文件、89 项测试通过。
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm run packaging:check`：6 项测试通过。
+- `npm run cargo:test`：Rust lib 56 项、integration 4 项通过。
+- `npm run visual:qa`：17 个场景通过，报告位于 `output/qa/v3.8.3/visual-qa-report.json`。
+- `git diff --check`：通过。
