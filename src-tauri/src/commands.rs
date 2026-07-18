@@ -266,13 +266,18 @@ mod tests {
 
     #[test]
     fn append_audit_log_accepts_json_detail() {
+        let _home_env_lock = lock_home_env();
+        let home = temp_root("audit-json-home");
+        let _home_env_guard = HomeEnvGuard::set(&home);
         let entry = crate::models::AuditLogEntry {
             action: "test.audit".to_string(),
             timestamp: "2026-07-05T00:00:00Z".to_string(),
             detail: serde_json::json!({ "count": 1 }),
         };
 
-        assert!(append_audit_log(entry).is_ok());
+        append_audit_log(entry).expect("audit log should accept JSON detail");
+
+        fs::remove_dir_all(home).ok();
     }
 
     #[test]

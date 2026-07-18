@@ -295,3 +295,13 @@
 - Windows Preview SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`。
 - Windows 结果只证明 CI 构建成功，不包含人工安装、Credential Store、系统废纸篓、升级和回退验收。
 - Actions 报告 Node.js 20 弃用提示，job 自动使用 Node.js 24 执行；提示未影响本次结果，后续作为 workflow 维护项处理。
+
+### PR 第二轮 CI 与测试隔离修复
+
+- 第二轮 run：`29652676732`。
+- macOS 在 Rust 测试 `append_audit_log_accepts_json_detail` 失败，其余 55 项通过。
+- 根因：该测试没有取得 HOME 环境锁，并行用例会临时改写 HOME 并删除测试目录。
+- 修复：用例改用独立临时 HOME、共享锁和明确错误信息；生产审计命令没有变化。
+- 本地 `npm run cargo:test`：56 个 lib 测试和 4 个 integration 测试通过。
+- 两个审计日志用例以 16 个测试线程重复执行 5 轮，5/5 通过。
+- 第二轮 Windows job 已取消，最终头提交重新执行双平台 CI。
