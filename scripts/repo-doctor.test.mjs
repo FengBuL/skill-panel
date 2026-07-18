@@ -58,11 +58,14 @@ describe('repo doctor', () => {
         {
           path: 'README.md',
           content:
-            'Use branch codex/skill-panel-app and /notes/skill panel/PROJECT_STATE.md.',
+            'Use branch codex/skill-panel-app and codex/agent-codex-v3.8 from /Users/shovy/Documents/skill-panel-codex-v3.8 or /Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype, then read /notes/skill panel/PROJECT_STATE.md.',
         },
       ]),
     ).toEqual([
       'README.md contains retired branch codex/skill-panel-app',
+      'README.md contains retired branch codex/agent-codex-v3.8',
+      'README.md contains retired fixed worktree /Users/shovy/Documents/skill-panel-codex-v3.8',
+      'README.md contains retired fixed worktree /Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype',
       'README.md contains the retired Obsidian project path',
     ]);
   });

@@ -10,6 +10,8 @@ const ACTIVE_DOCS = [
   'README.md',
   'PROJECT_STATE.md',
   'CURRENT-PLAN.md',
+  'docs/product/PRD.md',
+  'docs/product/UI-SPECIFICATION.md',
 ];
 const RETIRED_SOURCES = [
   'src/AppShell.tsx',
@@ -55,14 +57,30 @@ export function checkEntrypoints({ mainSource, appSource }) {
 
 export function checkActiveDocs(documents) {
   const failures = [];
+  const retiredBranches = [
+    'codex/skill-panel-app',
+    'codex/agent-codex-v3.8',
+  ];
+  const retiredFixedWorktrees = [
+    '/Users/shovy/Documents/skill-panel-codex-v3.8',
+    '/Users/shovy/Documents/skill-panel-workbuddy-v3.8.1-prototype',
+  ];
   const retiredObsidianPath =
     /\/notes\/skill panel\/(?:PROJECT_STATE|CURRENT-PLAN|DEVELOPMENT-LOG)\.md/;
 
   for (const document of documents) {
-    if (document.content.includes('codex/skill-panel-app')) {
-      failures.push(
-        `${document.path} contains retired branch codex/skill-panel-app`,
-      );
+    for (const branch of retiredBranches) {
+      if (document.content.includes(branch)) {
+        failures.push(`${document.path} contains retired branch ${branch}`);
+      }
+    }
+
+    for (const worktree of retiredFixedWorktrees) {
+      if (document.content.includes(worktree)) {
+        failures.push(
+          `${document.path} contains retired fixed worktree ${worktree}`,
+        );
+      }
     }
 
     if (retiredObsidianPath.test(document.content)) {

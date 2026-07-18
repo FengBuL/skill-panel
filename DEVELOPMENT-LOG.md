@@ -163,3 +163,11 @@
 - `repo:doctor` 增加历史源码回流检查。
 - 模块索引已更新为当前应用壳、国际化和测试职责。
 - 验证结果：前端 86 项、打包 6 项、Rust lib 56 项、Rust integration 4 项、视觉 QA 17 个场景全部通过。
+
+### 文档收口
+
+- PRD 和 UI 规范已导入 `docs/product/`，Git 成为产品规格权威来源。
+- Obsidian `skill panel/` 中 11 份治理前副本已移动到 `归档/2026-07-18治理前/`。
+- Obsidian 活动项目目录只保留 `Git状态摘要.md`，日常总结保留阅读入口、SOP 和复盘。
+- 同步自动化只允许 Git → `Git状态摘要.md`，继续保持暂停。
+- `repo:doctor` 已覆盖活动产品文档、旧稳定分支和旧固定 worktree 路径。

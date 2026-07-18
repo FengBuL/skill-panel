@@ -32,6 +32,7 @@ index.html
 - `src/types/`：前后端数据契约。
 - `src-tauri/src/`：文件系统、设置、Keychain、扫描、日志和版本历史。
 - `docs/modules/`：模块索引、边界和修改规则。
+- `docs/product/`：当前 PRD 和 UI 规范。
 
 ## 原型边界
 

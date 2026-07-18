@@ -10,6 +10,7 @@ Skill Panel is a cross-platform desktop app shell for managing local AI skills. 
 - Latest formal release: `3.8.2`
 - Current frontend entry: `src/main.tsx` -> `src/layout/AppShell.tsx`
 - Architecture reference: `docs/architecture/current.md`
+- Product references: `docs/product/PRD.md` and `docs/product/UI-SPECIFICATION.md`
 
 Run `npm run repo:doctor` at the beginning of a new task to detect stale branches, paths, versions, and entrypoints.
 
