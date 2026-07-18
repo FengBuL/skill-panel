@@ -283,3 +283,15 @@
 - App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
 - DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
 - 最终 tag 会落在受保护 `main` 的发布 PR 合并提交；GitHub 自动源码归档以该 tag 为准。
+
+### PR 首轮 CI
+
+- PR：`#6 release: publish Skill Panel v3.8.3 source release`。
+- GitHub Actions run：`29652247904`。
+- macOS App/DMG：5 分 55 秒通过。
+- Windows NSIS：10 分 49 秒通过。
+- Windows artifact id：`8431901676`，原始文件为 `Skill Panel_3.8.3_x64-setup.exe`。
+- 发布附件重命名为 `Skill Panel_3.8.3_x64-setup-unverified-preview.exe`。
+- Windows Preview SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`。
+- Windows 结果只证明 CI 构建成功，不包含人工安装、Credential Store、系统废纸篓、升级和回退验收。
+- Actions 报告 Node.js 20 弃用提示，job 自动使用 Node.js 24 执行；提示未影响本次结果，后续作为 workflow 维护项处理。

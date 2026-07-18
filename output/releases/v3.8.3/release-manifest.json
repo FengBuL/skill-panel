@@ -33,6 +33,12 @@
       "bytes": 4964013,
       "sha256": "ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94",
       "status": "unsigned macOS ARM Preview"
+    },
+    {
+      "file": "Skill Panel_3.8.3_x64-setup-unverified-preview.exe",
+      "bytes": 3226303,
+      "sha256": "b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b",
+      "status": "Windows NSIS CI Preview; no human install, upgrade, or rollback acceptance"
     }
   ],
   "verification": {
@@ -50,7 +56,10 @@
     "macosTempHomeSmoke": "passed: process alive after 5 seconds",
     "macosSigning": "ad-hoc only; strict codesign failed as documented",
     "macosNotarization": "not notarized; no stapled ticket",
-    "windows": "CI build required; no human acceptance claim"
+    "windows": "GitHub Actions run 29652247904 passed; no human acceptance claim",
+    "ciRunUrl": "https://github.com/FengBuL/skill-panel/actions/runs/29652247904",
+    "ciMacos": "passed in 5m55s",
+    "ciWindows": "passed in 10m49s"
   },
   "candidateEvidence": {
     "candidate2Commit": "57b29aeef5149e109ac016375968416c65e880cb",
