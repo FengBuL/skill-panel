@@ -202,3 +202,38 @@
 - 合并提交：`d56fbaa4f7d78a170e31ad9da8d01ef659626ea1`。
 - `main` 保护：要求 PR、Windows NSIS、macOS App/DMG 和对话解决；管理员受同一规则约束；禁止强推与分支删除。
 - 已删除远端治理分支、已合并本地分支和 `skill-panel-codex-v3.8` worktree。
+
+## 2026-07-18 DOC-STRUCTURE-01 项目接手结构整理
+
+### 目标
+
+- 明确当前开发版本、最新正式版本和每个历史阶段的文件归属。
+- 让新同事从仓库 README 和 Obsidian 项目总览直接接手。
+- 保持应用源码、发布产物和用户数据不受目录整理影响。
+
+### Git 目录
+
+- 根目录收敛为项目入口、当前状态、当前计划、Agent 规则、源码和工程配置。
+- 现行产品、架构、流程、质量和任务模板进入 `docs/current/`。
+- v2.0.0、v2.0.1、v3.0.0、v3.7.x、v3.8.1、v3.8.2 和 v3.8.3 历史资料进入 `docs/versions/`。
+- 治理前 Obsidian 副本进入 `docs/archive/obsidian-pre-governance/`。
+- 视觉 QA 证据从 `output/playwright/` 迁移至 `output/qa/v3.8.3/`。
+- 建立 `docs/README.md`、`docs/current/README.md`、`docs/versions/README.md` 和 `output/README.md`。
+
+### Obsidian 目录
+
+- 建立 `00-Skill-Panel项目总览.md` 单一阅读入口。
+- 活动资料分为 `01-现行开发`、`02-复盘` 和 `03-开发方法`。
+- 七份主要规则和版本地图继续由 Git 单向同步。
+- 旧项目副本、旧发布流程副本和历史审计材料退出 Obsidian 活动目录。
+- 同步自动化已更新目标路径和文件映射，状态保持暂停。
+
+### 验证
+
+- `npm run repo:doctor`：通过。
+- 前端测试：12 个文件、89 项通过。
+- typecheck 和生产构建：通过。
+- 打包配置：6 项通过。
+- Rust：lib 56 项、integration 4 项通过。
+- 视觉 QA：17 个场景通过，报告位于 `output/qa/v3.8.3/visual-qa-report.json`。
+- Obsidian 七份镜像与 Git 源逐字一致；18 份现行 Markdown 本地链接全部有效。
