@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function resolveCargoCommand({
@@ -10,7 +10,7 @@ export function resolveCargoCommand({
   fileExists,
 }) {
   if (platform !== 'win32') {
-    const rustupCargo = join(homeDirectory, '.cargo', 'bin', 'cargo');
+    const rustupCargo = posix.join(homeDirectory, '.cargo', 'bin', 'cargo');
     if (fileExists(rustupCargo)) {
       return rustupCargo;
     }

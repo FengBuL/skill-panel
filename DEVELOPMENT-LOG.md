@@ -192,3 +192,5 @@
 - macOS 完整 CI 与 App/DMG 打包通过，用时 4 分 21 秒。
 - Windows 在 `npm run cargo:test` 失败，原因是 package script 使用 POSIX `export`。
 - 新增 Node 跨平台 Cargo 启动器与 3 项平台选择测试，Windows 从 PATH 调用 Cargo，macOS 优先使用 rustup Cargo。
+- 第三轮 Windows 在前端平台测试失败：Windows runner 的 `path.join` 改写了模拟 macOS 路径。
+- 非 Windows Cargo 路径改用 `path.posix.join`，测试结果不再受执行主机路径格式影响。
