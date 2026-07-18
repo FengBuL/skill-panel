@@ -3,7 +3,7 @@
 任务: REL-3.8.3-CANDIDATE-MACOS
 版本: 3.8.3
 目标平台: macOS
-更新时间: 2026-07-16
+更新时间: 2026-07-18
 ---
 
 # SOP 脑图
@@ -52,4 +52,20 @@ mindmap
       candidate-2 修复批次
       禁止 tag
       禁止发布
+    candidate-2 8A
+      人工验收通过
+      真实 Skill 可加载
+      无固定演示 Skill
+      Library 分页正常
+      搜索筛选正常
+      Detail Editor 流程正常
+    candidate-2 8B
+      验证通过
+      安全备份已完成
+      v3.8.2 基线已验证
+      candidate-2 升级已验证
+      v3.8.2 回退已验证
+      数据指纹保持一致
+      最终安装 3.8.3
+      签名公证仍阻塞正式发布
 ```

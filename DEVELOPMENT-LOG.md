@@ -2,7 +2,7 @@
 项目: Skill Panel
 任务: REL-3.8.3-CANDIDATE-MACOS
 版本: 3.8.3
-更新时间: 2026-07-16
+更新时间: 2026-07-17
 ---
 
 # 开发日志
@@ -90,3 +90,50 @@
 - Library 增加真实分页，默认每页 6 个，搜索、筛选和分类先完成后分页。
 - 文件监听重扫失败时保留当前真实数据并显示失败提示。
 - Dashboard、Detail、Editor、Dependencies、ValidationResult、AI Assistant 已审计虚构数据来源。
+
+## 2026-07-17 REL-3.8.3-L3-CANDIDATE-2-8B 启动记录
+
+### 8A 人工验收
+
+- 用户确认 candidate-2 安装版能够加载本机真实 Skill。
+- 用户确认没有显示固定演示 Skill。
+- 用户确认 Library 分页正常，超过 100 个 Skill 可以进入中间页和最后一页。
+- 用户确认搜索、筛选和页码重置正常。
+- 用户确认 Library → Detail → Editor → Detail → Library 流程正常。
+- 用户反馈暂未发现新的 8A 问题。
+- 8A 结论：人工验收通过。
+
+### 8B 输入
+
+- 任务编号：`REL-3.8.3-L3-CANDIDATE-2-8B`。
+- 当前 HEAD：`57b29aeef5149e109ac016375968416c65e880cb`。
+- candidate-2 DMG：`output/releases/v3.8.3-candidate-2/Skill Panel_3.8.3_aarch64.dmg`。
+- candidate-2 SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
+- v3.8.2 基线 DMG：`output/releases/v3.8.2/Skill Panel_3.8.2_aarch64.dmg`。
+- v3.8.2 SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`。
+- 8B 当前状态：待开始第一阶段安全备份。
+- 数据保护要求：不移动、不删除原文件；不读取或输出 API Key、Token 或真实 Skill 内容；如需创建测试 Skill，需先征得用户确认并使用名称 `skill-panel-l3-upgrade-test`。
+- 发布限制：签名、公证和 Windows 相关阻塞仍存在；未解决前禁止正式 tag 和发布。
+
+## 2026-07-18 REL-3.8.3-L3-CANDIDATE-2-8B 验证记录
+
+### 安装序列
+
+- 建立应用数据、偏好文件、未提交文档和 Git 回退分支备份。
+- 从 v3.8.2 DMG 安装并启动基线。
+- 从 candidate-2 DMG 升级到 v3.8.3。
+- 从 v3.8.2 DMG 完成安装包回退。
+- 用户确认后重新安装 candidate-2，最终版本为 `3.8.3`。
+
+### 数据与界面证据
+
+- `settings.json` SHA256 全程保持 `c7b887458ed8fd4f31342f90facf6c2c8b237646b188ae70e1131d67b238fdb6`。
+- `~/.codex/skills` 的 12 个 `SKILL.md` 数量与组合 SHA256 保持一致。
+- `~/.agents/skills` 的 216 个 `SKILL.md` 数量与组合 SHA256 保持一致。
+- candidate-2 显示 120 个真实 Skill、20 页分页和末页 `115–120 / 120`。
+- 证据目录：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
+
+### 结论
+
+- candidate-2 8B 安装、升级、回退和数据保留验证通过。
+- macOS Developer ID 签名、公证、Gatekeeper 完整验证和 Windows 验证仍为发布阻塞项。
