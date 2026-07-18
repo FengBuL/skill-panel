@@ -44,7 +44,7 @@
 ## Windows 边界
 
 - GitHub Actions run `29652247904` 的 Windows NSIS job 通过。
-- 附件：`Skill Panel_3.8.3_x64-setup-unverified-preview.exe`。
+- 附件：`skill-panel-v3.8.3-windows-x64-setup-unverified-preview.exe`。
 - SHA256：`b0f71d3c34759a06607e8c8aacdfb5f42747f01eec43d866a20fdc9ccb01c13b`。
 - 当前没有 Windows 人工安装、Credential Store、系统废纸篓、升级和回退验收。
 - Windows 附件必须显示 Preview 或未验收说明。

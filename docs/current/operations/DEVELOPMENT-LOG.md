@@ -1,8 +1,8 @@
 ---
 项目: Skill Panel
-任务: REL-3.8.3-CANDIDATE-MACOS
+任务: REL-3.8.3-SOURCE-RELEASE
 版本: 3.8.3
-更新时间: 2026-07-17
+更新时间: 2026-07-19
 ---
 
 # 开发日志
@@ -315,3 +315,17 @@
 - bundle 大小：152,914,292 bytes；超过 GitHub 仓库单文件限制，不进入 Git 树。
 - 本机冷归档：`/Users/shovy/Documents/Skill-Panel-Archive/releases/v3.8.3/skill-panel-v3.8.3-rollback.bundle`。
 - `git bundle verify`：通过，记录完整历史。
+
+### 正式发布与仓库收口
+
+- 发布 PR #6 已合并，合并提交为 `4d71c4578dda284d1ab5c1c54ca0e1be5f10a5ba`。
+- 最终 PR CI run `29653105230`：macOS 5 分 19 秒、Windows 11 分 7 秒通过。
+- main push CI run `29653488657`：macOS 5 分 34 秒、Windows 10 分 1 秒通过。
+- annotated tag `v3.8.3` 已推送并解析到发布合并提交。
+- GitHub Release 已于 2026-07-19 01:24:13 +08:00 公开：`https://github.com/FengBuL/skill-panel/releases/tag/v3.8.3`。
+- 源码、macOS ARM Preview、Windows NSIS Preview、SHA256、恢复文档和完整 rollback bundle 已上传。
+- GitHub 会改写附件名中的空格，三个 Preview 统一改用无空格文件名并重新上传。
+- 分支清理前完整 bundle 包含 77 个 refs，大小 158,491,935 bytes，SHA256 为 `67fe996548eb8095bbf92ca7c41f46e4b22a9a19ad9c9f55304a4c5266344a76`。
+- 旧本地分支 19 条、旧远端分支 4 条已删除；本地与远端只保留 `main`。
+- `origin/HEAD` 与 GitHub 默认分支均为 `main`。
+- 早期 stash `pre-v3-local-docs-and-prototypes-2026-07-01` 保留，未删除用户历史工作。

@@ -2,8 +2,8 @@
 项目: Skill Panel
 当前发布版本: 3.8.3
 上一正式版本: 3.8.2
-当前任务: REL-3.8.3-SOURCE-RELEASE
-状态: 开源源码正式发布收口中
+当前任务: 无，v3.8.3 已完成正式源码发布
+状态: v3.8.3 开源源码正式版已发布
 更新时间: 2026-07-19
 ---
 
@@ -13,9 +13,9 @@
 
 | 项目 | 状态 | 证据 |
 |---|---|---|
-| v3.8.3 源码发布 | 收口中 | 公开 GitHub 源码、tag `v3.8.3` 和 GitHub Release |
+| v3.8.3 源码发布 | 已完成 | tag `v3.8.3`、GitHub Release 和公开源码 |
 | macOS ARM | Preview | candidate-2 8A 与 8B 通过；最终包未签名、未公证 |
-| Windows | CI Preview | CI 构建通过后保留安装器；人工安装、升级和回退未验收 |
+| Windows | CI Preview | NSIS 已由 CI 构建并发布；人工安装、升级和回退未验收 |
 | v3.8.2 | 上一正式版本 | tag `v3.8.2`，发布目录 `output/releases/v3.8.2/` |
 
 ## 发布口径
@@ -29,8 +29,10 @@
 
 - 规范仓库：`/Users/shovy/Documents/skill-panel`
 - 默认分支：`main`
-- 发布收口分支：`codex/rel-3.8.3-source-release`
-- 发布前 main：`f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3`
+- 当前稳定分支：`main`
+- 发布合并提交：`4d71c4578dda284d1ab5c1c54ca0e1be5f10a5ba`
+- 正式 tag：`v3.8.3`
+- GitHub Release：`https://github.com/FengBuL/skill-panel/releases/tag/v3.8.3`
 - 应用版本：npm、Tauri、Cargo 均为 `3.8.3`
 - 应用入口：`src/main.tsx` -> `src/layout/AppShell.tsx`
 - CI：Windows NSIS 与 macOS App/DMG 构建
@@ -43,14 +45,14 @@
 - candidate-2 DMG SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
 - 数据保护：设置和 Skill 文件数量、组合指纹在升级与回退期间保持一致。
 
-## 当前收口内容
+## 发布结果
 
-- 从最终源码提交重新执行完整验证和 macOS ARM Preview 构建。
-- 建立 `output/releases/v3.8.3/` 正式源码发布归档。
-- 创建并推送 annotated tag `v3.8.3`。
-- 创建 GitHub Release 并上传源码发布附件和 Preview 安装包。
-- 归档历史引用，清理已合并、废弃和失效分支。
-- 同步 Git 文档和 Obsidian 项目总览。
+- PR #6 合并到 `main`，发布合并提交为 `4d71c45`。
+- 最终 PR CI run `29653105230` 与 main push CI run `29653488657` 的 macOS、Windows job 全部通过。
+- annotated tag `v3.8.3` 已推送，GitHub Release 已公开。
+- macOS ARM 未签名 Preview、Windows 未人工验收 Preview、源码归档、SHA256 和完整 rollback bundle 已上传。
+- 本地与远端只保留 `main` 分支，`origin/HEAD` 指向 `origin/main`。
+- 清理前 77 个 refs 已保存到本机完整 Git bundle。
 
 ## 保留限制
 

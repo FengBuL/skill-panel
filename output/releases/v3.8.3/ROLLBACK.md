@@ -22,10 +22,12 @@ cd skill-panel-v3.8.3-restored
 git checkout codex/rel-3.8.3-source-release
 ```
 
+`codex/rel-3.8.3-source-release` 是 bundle 内部保留的归档分支，线上仓库已经完成分支清理。
+
 bundle 中的发布源码提交为：
 
 ```text
-1e38b0d6c41960a315b2e5fbd330e0b85678b265
+8da6036ef2d0698de29ca06b3810718cb95f339a
 ```
 
 ## 回退到 v3.8.2
