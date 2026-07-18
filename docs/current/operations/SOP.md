@@ -1,12 +1,26 @@
 ---
 项目: Skill Panel
-任务: REL-3.8.3-CANDIDATE-MACOS
+任务: REL-3.8.3-SOURCE-RELEASE
 版本: 3.8.3
-目标平台: macOS
-更新时间: 2026-07-17
+发布对象: 开源源码、Git tag、GitHub Release、Preview 安装包
+更新时间: 2026-07-19
 ---
 
 # SOP
+
+## 第 9 步开源源码发布收口
+
+1. 固定最终源码提交并确认 npm、Tauri、Cargo 版本均为 `3.8.3`。
+2. 运行完整验证、视觉 QA 和仓库治理检查。
+3. 从固定源码提交生成源码归档、Git rollback bundle 和 macOS ARM Preview。
+4. macOS Preview 明确标注未签名、未公证和 Gatekeeper 风险。
+5. Windows NSIS 只在 CI 构建成功时作为未验收 Preview 保留。
+6. 发布 PR 合并到 `main` 后创建 annotated tag `v3.8.3`。
+7. 创建 GitHub Release，上传清单、校验值、源码归档、rollback bundle 和 Preview 产物。
+8. 归档并清理历史分支，修正远程默认引用。
+9. 更新 Git 状态文档和 Obsidian 摘要。
+
+本次发布不会读取或索取 Apple 证书、公证凭据和任何 secrets。
 
 ## 第 7 步 macOS 候选流程
 
@@ -39,8 +53,8 @@ npm run git:diff:check
 - macOS 可独立生成候选。
 - v3.8.2 macOS DMG 是第 8 步基线。
 - 第 8 步使用 v3.8.3 候选 DMG 执行真实升级、数据保留和安装包回退验证。
-- macOS 签名和公证是正式对外发布门槛。
-- 缺少签名和公证前置条件时，候选状态为 macOS 内部验收候选，正式发布保持阻塞。
+- macOS 签名和公证是可信 macOS 安装包分发门槛。
+- 开源源码、Git tag 和 GitHub Release可以在明确 Preview 限制后发布。
 
 ## 第 8 步准备
 
@@ -132,4 +146,4 @@ npm run git:diff:check
 - candidate-2 显示 120 个真实 Skill、20 页分页和末页 `115–120 / 120`。
 - 用户确认最终保留 candidate-2，本机版本为 `3.8.3`。
 - 证据目录：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
-- 8B 结论：通过；签名、公证和 Windows 验证继续作为独立发布阻塞项。
+- 8B 结论：通过；签名、公证限制 macOS Preview 的可信分发声明，Windows 人工验收状态继续保持未完成。

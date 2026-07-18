@@ -1,12 +1,12 @@
 # 当前架构
 
-更新时间：2026-07-18
+更新时间：2026-07-19
 
 ## 基线
 
 - 默认分支：`main`
-- 当前开发版本：`3.8.3`
-- 最新正式版本：`3.8.2`
+- 当前发布版本：`3.8.3`
+- 上一正式版本：`3.8.2`
 - 前端入口：`src/main.tsx`
 - 应用壳入口：`src/layout/AppShell.tsx`
 - Tauri 入口：`src-tauri/src/main.rs` 和 `src-tauri/src/lib.rs`
@@ -31,7 +31,8 @@ index.html
 - `src/store/`：跨页面前端状态。
 - `src/types/`：前后端数据契约。
 - `src-tauri/src/`：文件系统、设置、Keychain、扫描、日志和版本历史。
-- `docs/modules/`：模块索引、边界和修改规则。
+- `docs/current/architecture.md`：当前模块边界和源码责任。
+- `docs/versions/v3.8.1/modules/`：v3.8.1 模块说明历史快照，只用于追溯。
 - `docs/current/product/`：当前 PRD、UI 规范和样式指南。
 - `docs/versions/`：按版本阶段保存的历史设计、计划、模块说明和审计资料。
 

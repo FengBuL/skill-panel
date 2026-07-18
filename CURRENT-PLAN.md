@@ -1,36 +1,35 @@
 ---
 项目: Skill Panel
-任务: DOC-STRUCTURE-01
+任务: REL-3.8.3-SOURCE-RELEASE
 版本: 3.8.3
-更新时间: 2026-07-18
+更新时间: 2026-07-19
 ---
 
 # 当前计划
 
 ## 目标
 
-整理 Git 与 Obsidian 项目资料，使新同事可以从单一入口确认当前版本、正式版本、历史阶段、涉及文件、验证证据和后续开发规则。
+完成 v3.8.3 开源源码正式发布，统一代码、文档、Git 引用、发布产物和 Obsidian 状态，为后续重大原型变更建立唯一冻结基线。
+
+## 发布范围
+
+- 正式内容：公开源码、annotated tag `v3.8.3`、GitHub Release、发布说明和回退材料。
+- macOS：ARM App/DMG 作为未签名 Preview，明确 Gatekeeper 与未公证限制。
+- Windows：CI 构建成功时保留 NSIS Preview，明确人工验收尚未完成。
+- 排除内容：Apple 证书、公证凭据、Windows 人工设备验收。
 
 ## 执行状态
 
-| 步骤 | 状态 | 输出 |
+| 步骤 | 状态 | 完成条件 |
 |---|---|---|
-| 文件与版本盘点 | 已完成 | Git 标签、提交历史、文档时间和发布目录已核对 |
-| Git 目录设计 | 已完成 | `docs/current`、`docs/versions`、`output/qa` 分层已确定 |
-| Git 文件迁移 | 已完成 | 现行文档、版本资料和 v3.8.3 QA 证据已归入新目录 |
-| Obsidian 整理 | 已完成 | 保留项目总览、现行镜像、个人复盘和开发方法 |
-| 自动化映射更新 | 已完成 | 新源路径与 `01-现行开发` 映射已生效，自动化保持暂停 |
-| 完整验证 | 已完成 | repo doctor、链接、镜像、前端、构建、打包、Rust 和视觉 QA 全部通过 |
-| PR 与 main 合并 | 已完成 | PR #4 已合并，merge commit `2529c67` |
-
-## 目录规则
-
-- 根目录只保留项目入口、当前状态、当前计划、Agent 规则、源码和工程配置。
-- `docs/current/` 只保存后续开发会直接读取和维护的文档。
-- `docs/versions/<版本>/` 保存该阶段的设计、计划、模块说明、审计和迁移资料。
-- `output/releases/` 保存发布包和候选包，目录名必须包含版本或候选编号。
-- `output/qa/<版本>/` 保存视觉报告和截图。
-- Obsidian 活动区只保留项目总览、当前状态及主要规则镜像。
+| 基线和发布口径核验 | 已完成 | `main` 干净、版本一致、范围已由用户确认 |
+| 状态与规则统一 | 进行中 | 活动文档没有候选/正式状态冲突和失效路径 |
+| 完整验证 | 待执行 | repo doctor、前端、类型、构建、打包、Rust、视觉 QA 全部通过 |
+| 最终产物 | 待执行 | 正式源码归档、rollback bundle、macOS Preview、清单和 SHA256 |
+| CI 验证 | 待执行 | PR 的 macOS App/DMG 与 Windows NSIS workflow 通过 |
+| Git 收口 | 待执行 | PR 合并、历史分支归档与清理、`origin/HEAD` 指向 `main` |
+| 正式发布 | 待执行 | tag `v3.8.3` 和 GitHub Release 已创建 |
+| Obsidian 收口 | 待执行 | 总览、Git 摘要、版本地图、开发台账和 v3.8.3 索引一致 |
 
 ## 验证命令
 
@@ -43,19 +42,12 @@ npm run packaging:check
 npm run cargo:test
 npm run visual:qa
 npm run git:diff:check
+PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 ```
 
-## 验证结果
+## 数据安全
 
-- Obsidian 七份规则镜像与 Git 源逐字一致。
-- 18 份现行 Markdown 的本地链接全部有效。
-- `npm run repo:doctor`：通过。
-- `npm test`：12 个测试文件、89 项测试通过。
-- `npm run typecheck`：通过。
-- `npm run build`：通过。
-- `npm run packaging:check`：6 项测试通过。
-- `npm run cargo:test`：Rust lib 56 项、integration 4 项通过。
-- `npm run visual:qa`：17 个场景通过，报告位于 `output/qa/v3.8.3/visual-qa-report.json`。
-- `git diff --check`：通过。
-- GitHub CI：macOS App/DMG 6 分 19 秒通过，Windows NSIS 10 分 33 秒通过。
-- main 合并：PR #4，merge commit `2529c67`。
+- 不读取或修改真实 Skill 内容。
+- 不读取、记录或索取证书、密钥和 secrets。
+- Preview 启动烟测使用临时 `HOME`。
+- 安装升级与回退沿用 candidate-2 8B 已确认指纹证据，不重复操作真实用户文件。

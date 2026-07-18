@@ -1,10 +1,10 @@
 ---
 项目: Skill Panel
-当前开发版本: 3.8.3
-最新正式版本: 3.8.2
-当前任务: DOC-STRUCTURE-01
-状态: 项目目录与接手文档整理完成，PR #4 已合并
-更新时间: 2026-07-18
+当前发布版本: 3.8.3
+上一正式版本: 3.8.2
+当前任务: REL-3.8.3-SOURCE-RELEASE
+状态: 开源源码正式发布收口中
+更新时间: 2026-07-19
 ---
 
 # 项目状态
@@ -13,45 +13,47 @@
 
 | 项目 | 状态 | 证据 |
 |---|---|---|
-| 最新正式版本 | `3.8.2` | tag `v3.8.2`，发布文件位于 `output/releases/v3.8.2/` |
-| 当前开发版本 | `3.8.3` candidate-2 | macOS 8A 与 8B 已通过，产物位于 `output/releases/v3.8.3-candidate-2/` |
-| candidate-1 | 历史失败候选 | 固定演示数据和分页缺失，保留于 `output/releases/v3.8.3-candidate/` |
-| macOS 正式发布 | 阻塞 | 缺少 Developer ID 签名、公证和 Gatekeeper 完整验证 |
-| Windows 当前候选 | 延期 | 历史正式包和治理 CI 记录保留，当前版本未完成人工候选验收 |
+| v3.8.3 源码发布 | 收口中 | 公开 GitHub 源码、tag `v3.8.3` 和 GitHub Release |
+| macOS ARM | Preview | candidate-2 8A 与 8B 通过；最终包未签名、未公证 |
+| Windows | CI Preview | CI 构建通过后保留安装器；人工安装、升级和回退未验收 |
+| v3.8.2 | 上一正式版本 | tag `v3.8.2`，发布目录 `output/releases/v3.8.2/` |
+
+## 发布口径
+
+- v3.8.3 的正式发布对象是公开源码、Git tag 和 GitHub Release。
+- macOS ARM 安装包作为未签名 Preview 附件，不声明 Apple 公证或 Gatekeeper 可信分发。
+- Windows 安装包只在 CI 构建成功时作为 Preview 附件，不声明人工安装、升级或回退通过。
+- Apple 证书、公证凭据和 Windows 设备不构成本次源码发布阻塞。
 
 ## 仓库状态
 
 - 规范仓库：`/Users/shovy/Documents/skill-panel`
 - 默认分支：`main`
-- 本轮整理基线：`7ce545d`
-- 整理提交：`d69f710`
-- main 合并提交：`2529c67`
-- 合并记录：PR #4 `docs: 按版本整理项目接手结构`
+- 发布收口分支：`codex/rel-3.8.3-source-release`
+- 发布前 main：`f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3`
 - 应用版本：npm、Tauri、Cargo 均为 `3.8.3`
 - 应用入口：`src/main.tsx` -> `src/layout/AppShell.tsx`
-- CI 门槛：Windows NSIS、macOS App/DMG、PR 审核和对话解决。
-- 文档同步：Git -> Obsidian 单向同步。
+- CI：Windows NSIS 与 macOS App/DMG 构建
 
-## 当前任务
+## 已完成证据
 
-- 任务编号：`DOC-STRUCTURE-01`
-- 目标：按现行资料和版本阶段整理 Git 与 Obsidian，为直接接手提供单一入口。
-- 范围：文档目录、QA 证据目录、路径引用、治理检查和 Obsidian 镜像。
-- 应用代码：业务逻辑不变。
-- 完成状态：目录清晰、版本归属明确、现行链接有效、自动检查与测试全部通过。
-
-## 关键证据
-
-- candidate-2 代码与记录：`03865b3`、`57b29ae`、`2046733`。
+- candidate-2 修复与记录：`03865b3`、`57b29ae`、`2046733`。
+- macOS 8A：真实 Skill、分页、搜索、筛选和 Library -> Detail -> Editor 流程通过。
+- macOS 8B：v3.8.2 安装、升级到 v3.8.3、数据保留、回退和最终安装通过。
 - candidate-2 DMG SHA256：`a51cfae2aaec4a7325954d7af28815a513febea1346a5d21ce9034c378cd8688`。
-- v3.8.2 基线 DMG SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`。
-- 8B 证据：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
-- 版本文档地图：`docs/versions/README.md`。
-- 项目接手结构：PR #4，merge commit `2529c67`。
+- 数据保护：设置和 Skill 文件数量、组合指纹在升级与回退期间保持一致。
 
-## 已知风险
+## 当前收口内容
 
-- macOS 正式发布条件尚未满足。
-- Windows 当前版本候选验收尚未执行。
-- `3.8.3` 尚无正式 tag。
-- 历史文档中的路径和分支名称反映当时环境，使用前先查看对应版本目录的 `README.md`。
+- 从最终源码提交重新执行完整验证和 macOS ARM Preview 构建。
+- 建立 `output/releases/v3.8.3/` 正式源码发布归档。
+- 创建并推送 annotated tag `v3.8.3`。
+- 创建 GitHub Release 并上传源码发布附件和 Preview 安装包。
+- 归档历史引用，清理已合并、废弃和失效分支。
+- 同步 Git 文档和 Obsidian 项目总览。
+
+## 保留限制
+
+- macOS Preview 没有 Developer ID 签名和 Apple 公证，可能触发 Gatekeeper。
+- Windows Preview 未完成人工安装、Credential Store、系统废纸篓、升级和回退验收。
+- candidate-1 继续作为失败证据保留，禁止覆盖。

@@ -1,10 +1,10 @@
 ---
 title: Skill Panel UI Specification
 date: 2026-07-10
-updated: 2026-07-18
+updated: 2026-07-19
 tags: [SkillPanel, UI, 视觉规范]
 status: active
-source_commit: 15a67962e4bf6f65c74720af794c3e2fb9a7d9d6
+source_commit: f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3
 ---
 
 # Skill Panel UI Specification
@@ -156,8 +156,8 @@ Library 是默认主入口。顶部导航保持 64px 单层结构，不增加 Ed
 
 ### 当前视觉基线
 
-- 当前开发版本：v3.8.3 candidate-2。
-- main 基线：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`。
+- 当前发布版本：v3.8.3。
+- 发布收口前 main：`f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3`。
 - 视觉报告：`output/qa/v3.8.3/visual-qa-report.json`。
 - 2026-07-18 复跑结果：17/17 场景通过。
 - 迁移归档：`docs/design-migration-results/skill-panel-redesign-notion/`。

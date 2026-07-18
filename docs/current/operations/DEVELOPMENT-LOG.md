@@ -245,3 +245,23 @@
 - macOS App/DMG CI：6 分 19 秒通过。
 - Windows NSIS CI：10 分 33 秒通过。
 - main 合并提交：`2529c67`。
+
+## 2026-07-19 REL-3.8.3-SOURCE-RELEASE 启动记录
+
+### 发布决策
+
+- v3.8.3 采用开源源码正式发布口径。
+- 公开 GitHub 仓库源码、annotated tag `v3.8.3` 和 GitHub Release 构成正式发布结果。
+- macOS ARM App/DMG 作为未签名、未公证 Preview 提供，并明确 Gatekeeper 风险。
+- Windows NSIS 只在 CI 构建成功时作为未验收 Preview 保留。
+- Apple 证书、公证凭据和 Windows 人工设备不阻塞源码、tag 和 GitHub Release。
+- 本任务不处理或索取证书、密钥和 secrets。
+
+### 启动基线
+
+- 分支：`codex/rel-3.8.3-source-release`。
+- main 基线：`f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3`。
+- 工作区启动状态：干净。
+- `npm run repo:doctor`：通过。
+- 应用版本：npm、Tauri、Cargo 均为 `3.8.3`。
+- 当前机器代码签名 identity：`0 valid identities found`，记录为 macOS Preview 限制。
