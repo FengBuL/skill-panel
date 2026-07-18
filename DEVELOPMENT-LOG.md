@@ -194,3 +194,11 @@
 - 新增 Node 跨平台 Cargo 启动器与 3 项平台选择测试，Windows 从 PATH 调用 Cargo，macOS 优先使用 rustup Cargo。
 - 第三轮 Windows 在前端平台测试失败：Windows runner 的 `path.join` 改写了模拟 macOS 路径。
 - 非 Windows Cargo 路径改用 `path.posix.join`，测试结果不再受执行主机路径格式影响。
+
+### 最终合并
+
+- PR：`#2 chore: establish Skill Panel repository governance`。
+- 第四轮 CI：macOS App/DMG 5 分 28 秒通过；Windows NSIS 8 分 20 秒通过。
+- 合并提交：`d56fbaa4f7d78a170e31ad9da8d01ef659626ea1`。
+- `main` 保护：要求 PR、Windows NSIS、macOS App/DMG 和对话解决；管理员受同一规则约束；禁止强推与分支删除。
+- 已删除远端治理分支、已合并本地分支和 `skill-panel-codex-v3.8` worktree。

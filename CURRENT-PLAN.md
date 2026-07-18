@@ -16,10 +16,11 @@
 | candidate-2 8B | 已完成 | 升级、回退、重新安装和数据指纹验证通过。 |
 | 建立规范主线 | 已完成 | 远端默认分支已切换为 `main`，规范目录为 `/Users/shovy/Documents/skill-panel`。 |
 | 路径与自动化 | 已完成 | Obsidian 新路径已生效，自动化改为 Git → Obsidian 单向摘要并保持暂停。 |
-| 规则和自动检查 | 进行中 | 增加 `repo:doctor`、双线规则、任务卡、交接模板、架构说明和 CI 检查。 |
+| 规则和自动检查 | 已完成 | `repo:doctor`、双线规则、任务卡、交接模板、架构说明和 CI 检查已进入 `main`。 |
 | 旧入口清理 | 已完成 | AppShell 实现已收敛到 `src/layout/AppShell.tsx`，无引用旧工作区已删除，86 个前端测试和 17 个视觉场景通过。 |
 | 文档收口 | 已完成 | PRD 与 UI 规范已进入 Git；Obsidian 11 份旧副本已归档，活动区保留阅读入口与 Git 状态摘要。 |
 | 维护收口 | 已完成 | 清理 2 条失效 worktree 登记，释放 2.6 GiB 历史 Rust 缓存，恢复会话检索依赖；活动日志数据库维护延期。 |
+| 最终验证与合并 | 已完成 | PR #2 已合并；前端 89 项、打包 6 项、Rust 56+4 项、视觉 17 项通过，Windows NSIS 与 macOS App/DMG CI 通过。 |
 
 ## 批次状态
 
