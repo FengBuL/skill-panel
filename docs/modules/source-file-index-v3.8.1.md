@@ -8,8 +8,10 @@
 | --- | --- | --- | ---: | --- |
 | `package.json` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 51 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/create-migration-package.ps1` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 71 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `scripts/repo-doctor.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 158 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
+| `scripts/repo-doctor.test.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 82 | 覆盖仓库治理检查契约。 |
 | `scripts/update-local-macos-app.sh` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `scripts/visual-qa.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 612 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
+| `scripts/visual-qa.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 694 | 负责 Playwright 视觉检查、截图和报告。 |
 | `src-tauri/build.rs` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/Cargo.toml` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 33 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 |
 | `src-tauri/src/ai_proxy.rs` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 476 | 负责 Keychain/Credential Store、厂商允许列表、AI 发送确认、脱敏和后端代理。 |
@@ -28,11 +30,10 @@
 | `src-tauri/src/watcher.rs` | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 46 | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 |
 | `src-tauri/tauri.conf.json` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 67 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `src-tauri/tests/skill_contract.rs` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 127 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
-| `src/App.editor.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 1118 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/App.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 2008 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/App.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 11 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 463 | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 |
-| `src/AppShell.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 109 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
+| `src/App.editor.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 225 | 覆盖当前编辑、保存、冲突和恢复流程。 |
+| `src/App.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 116 | 覆盖当前应用壳导航与创建流程。 |
+| `src/App.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 10 | 为测试和嵌入场景提供应用入口。 |
+| `src/AppShell.test.tsx` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 952 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |
 | `src/common/EmptyState.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 65 | 提供统一空状态、扫描中和无搜索结果展示。 |
 | `src/common/ErrorBoundary.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 59 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
 | `src/common/SkillExport.tsx` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 37 | 提供 Button、Toggle、Segment、搜索框、空状态、错误边界、导出控件等可复用组件。 |
@@ -94,12 +95,12 @@
 | `src/hooks/useKeyboardNav.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 97 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/usePreferencePersistence.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 48 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
 | `src/hooks/useSkillQuery.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 149 | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |
-| `src/i18n.test.ts` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 101 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/core.ts` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 120 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/index.ts` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 21 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/resources.ts` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 764 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/runtime.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 321 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
-| `src/i18n/useI18n.test.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 212 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
+| `src/i18n.test.ts` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 100 | 覆盖语言资源和翻译行为。 |
+| `src/i18n/core.ts` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 119 | 负责语言资源读取和翻译键解析。 |
+| `src/i18n/index.ts` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 20 | 提供国际化模块出口。 |
+| `src/i18n/resources.ts` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 763 | 保存中文和英文资源。 |
+| `src/i18n/runtime.tsx` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 320 | 提供国际化上下文和运行时状态。 |
+| `src/i18n/useI18n.test.tsx` | 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 211 | 覆盖 Hook 和语言切换行为。 |
 | `src/lib/ai.test.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 89 | 覆盖 diff 工具、前端脱敏语义和 AI 发送确认参数。 |
 | `src/lib/ai.ts` | AI 助手与 Diff 写回 | [ai-assistant-v3.8.1.md](./ai-assistant-v3.8.1.md) | 182 | 负责 AI Rail、API Key 检查、脱敏预览、确认参数、事件监听和 diff 工具。 |
 | `src/lib/redaction.ts` | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 33 | 提供前端 API Key、token、JWT、路径、邮箱和 URL 敏感参数脱敏工具。 |
@@ -111,7 +112,7 @@
 | `src/lib/skills.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 7 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/lib/tauriEvents.ts` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 15 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/library/SkillCard.tsx` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 89 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
-| `src/layout/AppShell.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 1 | 提供 AppShell 的稳定布局目录导出入口。 |
+| `src/layout/AppShell.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 99 | 负责应用启动入口、顶栏、主视图切换和全局监听。 |
 | `src/layout/TopBar.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 1 | 提供 TopBar 的稳定布局目录导出入口。 |
 | `src/main.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 13 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/node-fs.d.ts` | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 4 | 负责前后端共享数据形状、命令名称列表、契约测试和 TypeScript 类型守卫。 |
@@ -135,7 +136,6 @@
 | `src/pages/Settings/Settings.css` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 155 | 负责 Settings 左侧导航、设置表单、卡片和安全说明样式。 |
 | `src/router.tsx` | 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 42 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/settings/Settings.tsx` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 15 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
-| `src/SkillPanelWorkspace.tsx` | 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 5933 | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 |
 | `src/store/settingsStore.ts` | 设置与偏好 | [settings-v3.8.1.md](./settings-v3.8.1.md) | 80 | 负责主题、扫描、待关注规则、AI 厂商、Key 保存、脱敏、diff 确认和预算设置。 |
 | `src/store/skillStore.ts` | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 143 | 负责 Skill 列表、筛选、分页、批量选择、详情抽屉和进入编辑器。 |
 | `src/store/uiStore.ts` | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 77 | 负责 UI 状态、Detail 子视图、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 |

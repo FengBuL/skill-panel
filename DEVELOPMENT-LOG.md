@@ -154,3 +154,12 @@
 - main 基线：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`
 - 范围：治理规则、自动检查、架构说明、任务模板、旧入口清理、文档收口和维护。
 - 首要检查：`npm run repo:doctor`
+
+### 旧入口清理
+
+- AppShell 实现从 `src/AppShell.tsx` 收敛到 `src/layout/AppShell.tsx`。
+- 删除无生产和测试引用的 `src/SkillPanelWorkspace.tsx`。
+- 保留覆盖当前导航和编辑流程的 `src/App.test.tsx` 与 `src/App.editor.test.tsx`。
+- `repo:doctor` 增加历史源码回流检查。
+- 模块索引已更新为当前应用壳、国际化和测试职责。
+- 验证结果：前端 86 项、打包 6 项、Rust lib 56 项、Rust integration 4 项、视觉 QA 17 个场景全部通过。

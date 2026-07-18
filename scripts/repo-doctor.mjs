@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +10,10 @@ const ACTIVE_DOCS = [
   'README.md',
   'PROJECT_STATE.md',
   'CURRENT-PLAN.md',
+];
+const RETIRED_SOURCES = [
+  'src/AppShell.tsx',
+  'src/SkillPanelWorkspace.tsx',
 ];
 
 export function checkVersionAlignment({
@@ -69,6 +73,12 @@ export function checkActiveDocs(documents) {
   return failures;
 }
 
+export function checkLegacySources(paths) {
+  return RETIRED_SOURCES
+    .filter((path) => paths.includes(path))
+    .map((path) => `retired source file still exists: ${path}`);
+}
+
 function readJson(path) {
   return JSON.parse(readFileSync(resolve(REPO_ROOT, path), 'utf8'));
 }
@@ -121,6 +131,9 @@ export function runRepoDoctor() {
       appSource: readText('src/App.tsx'),
     }),
     ...checkActiveDocs(documents),
+    ...checkLegacySources(
+      RETIRED_SOURCES.filter((path) => existsSync(resolve(REPO_ROOT, path))),
+    ),
     ...checkMainAncestry(),
   ];
 }

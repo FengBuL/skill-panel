@@ -10,24 +10,23 @@
 
 ## 代码规模
 
-- 源码文件数：11
-- 代码总行数：400
+- 源码文件数：10
+- 代码总行数：375
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
 | `src/main.tsx` | 13 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/AppShell.tsx` | 109 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
-| `src/layout/AppShell.tsx` | 1 | 提供 AppShell 的稳定布局目录导出入口。 |
+| `src/layout/AppShell.tsx` | 99 | 负责应用启动入口、顶栏、主视图切换、Detail/AI/Dependencies/EmptyStates 次级视图进入和全局监听。 |
 | `src/layout/TopBar.tsx` | 1 | 提供 TopBar 的稳定布局目录导出入口。 |
 | `src/router.tsx` | 42 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/App.tsx` | 11 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
-| `src/components/TopBar.tsx` | 68 | 负责原型单层顶部导航、主入口切换、Library 子视图高亮、Logs/Dependencies 入口和 New Skill 次级入口。 |
-| `src/components/TopBar.css` | 100 | 负责顶部导航的白底、细边框、品牌、导航链接和 New Skill 按钮布局。 |
+| `src/App.tsx` | 10 | 为测试和嵌入场景提供应用入口。 |
+| `src/components/TopBar.tsx` | 62 | 负责单层顶部导航、主入口切换、Library 子视图高亮、Logs/Dependencies 入口和 New Skill 次级入口。 |
+| `src/components/TopBar.css` | 94 | 负责顶部导航的白底、细边框、品牌、导航链接和 New Skill 按钮布局。 |
 | `src/components/Toast.tsx` | 32 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
 | `src/components/Toast.css` | 8 | 负责应用 Toast 容器的无阴影样式。 |
-| `src/lib/tauriEvents.ts` | 15 | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 |
+| `src/lib/tauriEvents.ts` | 14 | 负责浏览器与 Tauri 环境下的安全事件监听。 |
 
 ## 对外契约
 

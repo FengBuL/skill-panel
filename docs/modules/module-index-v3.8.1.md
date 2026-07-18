@@ -6,7 +6,7 @@
 
 | 模块 | 模块文档 | 简介 | 文件数 | 代码行数 | 关键词 |
 | --- | --- | --- | ---: | ---: | --- |
-| 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 | 11 | 400 | `入口` `AppShell` `导航` `TopBar` `路由` `Toast` `safeListen` |
+| 应用壳与导航 | [app-shell-v3.8.1.md](./app-shell-v3.8.1.md) | 负责应用启动入口、顶栏、主视图切换、次级视图进入和全局监听。 | 10 | 375 | `入口` `AppShell` `导航` `TopBar` `路由` `Toast` `safeListen` |
 | 共享 UI 与通用组件 | [shared-ui-v3.8.1.md](./shared-ui-v3.8.1.md) | 提供 Button、ActionButton、PageHeader、StatusPill、SearchBar、FilterBar、Toast 脱敏、错误边界、导出控件等可复用组件。 | 20 | 1233 | `Button` `ActionButton` `StatusPill` `Toast` `redaction` `共享组件` |
 | Skill Library | [library-v3.8.1.md](./library-v3.8.1.md) | 负责 Skill Library 主页面、顶部搜索筛选、Notion 风格卡片网格、右侧详情面板和进入详情页。 | 9 | 961 | `Library` `SkillCard` `筛选` `Notion` `卡片网格` |
 | Dashboard 仪表盘 | [dashboard-v3.8.1.md](./dashboard-v3.8.1.md) | 负责展示扫描结果概览、数量指标、状态汇总和快速入口。 | 3 | 369 | `Dashboard` `指标` `概览` `统计` |
@@ -18,11 +18,11 @@
 | 日志与依赖分析 | [logs-and-deps-v3.8.1.md](./logs-and-deps-v3.8.1.md) | 负责调用日志展示、AI 调用记录、日志脱敏、依赖关系分析和日志读取。 | 10 | 955 | `Logs` `call logs` `依赖` `analyze_deps` `tokens` `脱敏` |
 | 前端状态与 Hooks | [state-hooks-v3.8.1.md](./state-hooks-v3.8.1.md) | 负责 UI 状态、偏好持久化、搜索防抖、拖拽、键盘导航和 Skill 查询。 | 7 | 688 | `zustand` `hooks` `偏好` `拖拽` `键盘` `查询` |
 | 类型契约与命令边界 | [types-contracts-v3.8.1.md](./types-contracts-v3.8.1.md) | 负责前后端共享数据形状、命令名称列表、AI 发送确认参数、契约测试和 TypeScript 类型守卫。 | 5 | 667 | `types` `commands` `contract` `SkillCommandMap` `ai_optimize` |
-| 国际化与旧版工作区兼容 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 负责 i18n 运行时、语言资源、旧版 SkillPanelWorkspace 兼容代码和相关测试。 | 9 | 10599 | `i18n` `resources` `SkillPanelWorkspace` `runtime` `legacy` |
+| 国际化 | [i18n-legacy-workspace-v3.8.1.md](./i18n-legacy-workspace-v3.8.1.md) | 负责 i18n 运行时、语言资源和语言切换测试。 | 6 | 1533 | `i18n` `resources` `runtime` `language` |
 | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 负责 Tauri 应用入口、命令注册、命令适配、应用版本、统一脱敏和前端可调用边界。 | 5 | 1282 | `Tauri` `commands` `invoke_handler` `app_version` `backend` `redaction` |
 | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 | 4 | 2371 | `skill_scanner` `skill_store` `version_store` `frontmatter` `snapshot` |
 | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 | 2 | 325 | `settings_store` `watcher` `scan-changed` `settings.json` |
-| 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 负责 Vitest、契约测试、打包配置测试、Playwright 视觉检查和测试初始化。 | 4 | 1120 | `Vitest` `Playwright` `QA` `packaging` `visual` |
+| 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 负责 Vitest、治理检查、打包配置测试、Playwright 视觉检查和测试初始化。 | 8 | 2300 | `Vitest` `Playwright` `QA` `repo:doctor` `visual` |
 | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 | 7 | 282 | `package` `Cargo` `tauri.conf` `migration` `macOS` `release` |
 | 样式系统与视觉规范 | [styles-system-v3.8.1.md](./styles-system-v3.8.1.md) | 负责全局 token、基础样式、v3.8.1 UI 样式规范和视觉一致性。 | 3 | 483 | `style` `tokens` `UI guide` `CSS` `视觉规范` |
 

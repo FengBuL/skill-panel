@@ -17,7 +17,7 @@
 | 建立规范主线 | 已完成 | 远端默认分支已切换为 `main`，规范目录为 `/Users/shovy/Documents/skill-panel`。 |
 | 路径与自动化 | 已完成 | Obsidian 新路径已生效，自动化改为 Git → Obsidian 单向摘要并保持暂停。 |
 | 规则和自动检查 | 进行中 | 增加 `repo:doctor`、双线规则、任务卡、交接模板、架构说明和 CI 检查。 |
-| 旧入口清理 | 待处理 | 删除无引用旧工作区，收敛 AppShell 路径并完成回归。 |
+| 旧入口清理 | 已完成 | AppShell 实现已收敛到 `src/layout/AppShell.tsx`，无引用旧工作区已删除，86 个前端测试和 17 个视觉场景通过。 |
 | 文档收口 | 待处理 | 整理 Obsidian 阅读入口和历史归档。 |
 | 维护收口 | 待处理 | 清理失效 worktree 记录并评估缓存和日志维护。 |
 

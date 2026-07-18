@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppShell } from './AppShell';
+import { AppShell } from './layout/AppShell';
 import { useSettingsStore } from './store/settingsStore';
 import { useSkillStore, type Skill } from './store/skillStore';
 import { useUIStore } from './store/uiStore';

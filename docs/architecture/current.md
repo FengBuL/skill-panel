@@ -18,7 +18,7 @@ index.html
   -> src/main.tsx
   -> src/layout/AppShell.tsx
   -> src/pages/*
-  -> src/components/*, src/hooks/*, src/stores/*
+  -> src/components/*, src/hooks/*, src/store/*
 ```
 
 `src/App.tsx` 为测试和嵌入场景提供同一应用壳。生产入口和测试入口都要引用 `src/layout/AppShell.tsx`。
@@ -28,7 +28,7 @@ index.html
 - `src/pages/`：页面组合、路由上下文和页面级交互。
 - `src/components/`：可复用界面组件。
 - `src/hooks/`：前端行为和生命周期复用。
-- `src/stores/`：跨页面前端状态。
+- `src/store/`：跨页面前端状态。
 - `src/types/`：前后端数据契约。
 - `src-tauri/src/`：文件系统、设置、Keychain、扫描、日志和版本历史。
 - `docs/modules/`：模块索引、边界和修改规则。

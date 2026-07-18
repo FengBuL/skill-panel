@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   checkActiveDocs,
   checkEntrypoints,
+  checkLegacySources,
   checkVersionAlignment,
 } from './repo-doctor.mjs';
 
@@ -63,6 +64,19 @@ describe('repo doctor', () => {
     ).toEqual([
       'README.md contains retired branch codex/skill-panel-app',
       'README.md contains the retired Obsidian project path',
+    ]);
+  });
+
+  it('rejects retired application source files', () => {
+    expect(
+      checkLegacySources([
+        'src/main.tsx',
+        'src/AppShell.tsx',
+        'src/SkillPanelWorkspace.tsx',
+      ]),
+    ).toEqual([
+      'retired source file still exists: src/AppShell.tsx',
+      'retired source file still exists: src/SkillPanelWorkspace.tsx',
     ]);
   });
 });
