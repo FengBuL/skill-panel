@@ -6,10 +6,12 @@
 
 | 源码路径 | 所属模块 | 模块文档 | 行数 | 简介 |
 | --- | --- | --- | ---: | --- |
-| `package.json` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 51 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
+| `package.json` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 52 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/create-migration-package.ps1` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 71 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
-| `scripts/repo-doctor.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 158 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
-| `scripts/repo-doctor.test.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 82 | 覆盖仓库治理检查契约。 |
+| `scripts/repo-doctor.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 176 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
+| `scripts/repo-doctor.test.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 85 | 覆盖仓库治理检查契约。 |
+| `scripts/run-cargo-tests.mjs` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 51 | 跨平台选择 Cargo 并运行统一 Rust 测试集合。 |
+| `scripts/run-cargo-tests.test.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 35 | 覆盖 Windows、macOS 和 Unix Cargo 命令选择。 |
 | `scripts/update-local-macos-app.sh` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 36 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |
 | `scripts/visual-qa.mjs` | 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 694 | 负责 Playwright 视觉检查、截图和报告。 |
 | `src-tauri/build.rs` | 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 4 | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包和发布配置。 |

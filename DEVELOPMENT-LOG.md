@@ -186,3 +186,9 @@
 - PR #2 的 macOS 与 Windows 首轮均在 `repo:doctor` 失败。
 - 原因：Actions 默认浅克隆没有 `origin/main` 引用，祖先检查缺少必要 Git 历史。
 - 修复：checkout 设置 `fetch-depth: 0`，保留 `HEAD` 必须派生自 `origin/main` 的门禁。
+
+### CI 第二轮修复
+
+- macOS 完整 CI 与 App/DMG 打包通过，用时 4 分 21 秒。
+- Windows 在 `npm run cargo:test` 失败，原因是 package script 使用 POSIX `export`。
+- 新增 Node 跨平台 Cargo 启动器与 3 项平台选择测试，Windows 从 PATH 调用 Cargo，macOS 优先使用 rustup Cargo。

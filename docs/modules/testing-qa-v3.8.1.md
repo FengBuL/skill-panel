@@ -10,15 +10,16 @@
 
 ## 代码规模
 
-- 源码文件数：8
-- 代码总行数：2300
+- 源码文件数：9
+- 代码总行数：2356
 
 ## 代码文件清单
 
 | 源码路径 | 行数 | 责任 |
 | --- | ---: | --- |
-| `scripts/repo-doctor.mjs` | 158 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
-| `scripts/repo-doctor.test.mjs` | 82 | 覆盖仓库治理检查契约。 |
+| `scripts/repo-doctor.mjs` | 176 | 检查版本、入口、活动文档、历史源码和 main 祖先关系。 |
+| `scripts/repo-doctor.test.mjs` | 85 | 覆盖仓库治理检查契约。 |
+| `scripts/run-cargo-tests.test.mjs` | 35 | 覆盖 Windows、macOS 和 Unix Cargo 命令选择。 |
 | `src/App.test.tsx` | 116 | 覆盖当前应用壳导航与创建流程。 |
 | `src/App.editor.test.tsx` | 225 | 覆盖当前编辑、保存、冲突和恢复流程。 |
 | `src/AppShell.test.tsx` | 952 | 负责 AppShell、Library、Detail、Editor、文件安全和 AI 相关前端行为测试。 |

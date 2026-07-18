@@ -22,8 +22,8 @@
 | Tauri 命令层 | [tauri-command-layer-v3.8.1.md](./tauri-command-layer-v3.8.1.md) | 负责 Tauri 应用入口、命令注册、命令适配、应用版本、统一脱敏和前端可调用边界。 | 5 | 1282 | `Tauri` `commands` `invoke_handler` `app_version` `backend` `redaction` |
 | Skill 数据、扫描和版本历史 | [tauri-skill-data-v3.8.1.md](./tauri-skill-data-v3.8.1.md) | 负责扫描 Skill 根目录、解析 frontmatter、读写 Skill、备份、版本快照和恢复。 | 4 | 2371 | `skill_scanner` `skill_store` `version_store` `frontmatter` `snapshot` |
 | 后端设置与文件监听 | [tauri-settings-watchers-v3.8.1.md](./tauri-settings-watchers-v3.8.1.md) | 负责设置文件读写、默认扫描目录、文件变化监听和 scan-changed 事件。 | 2 | 325 | `settings_store` `watcher` `scan-changed` `settings.json` |
-| 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 负责 Vitest、治理检查、打包配置测试、Playwright 视觉检查和测试初始化。 | 8 | 2300 | `Vitest` `Playwright` `QA` `repo:doctor` `visual` |
-| 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 负责 npm/Tauri 配置、本地 macOS 更新、Windows 迁移包、发布配置和后端依赖声明。 | 7 | 282 | `package` `Cargo` `tauri.conf` `migration` `macOS` `release` |
+| 测试与视觉 QA | [testing-qa-v3.8.1.md](./testing-qa-v3.8.1.md) | 负责 Vitest、治理检查、打包配置测试、Playwright 视觉检查和测试初始化。 | 9 | 2356 | `Vitest` `Playwright` `QA` `repo:doctor` `visual` |
+| 打包、迁移和本地更新 | [packaging-scripts-v3.8.1.md](./packaging-scripts-v3.8.1.md) | 负责 npm/Tauri 配置、跨平台 Rust 测试、本地更新、迁移包和发布配置。 | 8 | 334 | `package` `Cargo` `tauri.conf` `cross-platform` `migration` `release` |
 | 样式系统与视觉规范 | [styles-system-v3.8.1.md](./styles-system-v3.8.1.md) | 负责全局 token、基础样式、v3.8.1 UI 样式规范和视觉一致性。 | 3 | 483 | `style` `tokens` `UI guide` `CSS` `视觉规范` |
 
 ## 使用方法
