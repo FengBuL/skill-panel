@@ -424,7 +424,7 @@ Codex 完成稳定集成时，需要包含：
 Skill Panel 的开发文档总库位于：
 
 ```text
-/Users/shovy/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/skill panel
+/Users/shovy/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/skill panel项目总揽/skill panel
 ```
 
 每次开发开始前读取：
