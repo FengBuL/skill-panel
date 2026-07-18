@@ -20,7 +20,7 @@
 ## 决策
 
 - 已确认需求：源码、tag 和 GitHub Release 作为 v3.8.3 正式开源发布；macOS ARM 和 Windows 安装包按 Preview 边界处理。
-- 待验证假设：最终源码提交可以通过完整验证；macOS ARM 与 Windows NSIS CI 可以完成构建。
+- 待验证假设：最终源码提交可以通过完整验证；macOS ARM 与 Windows NSIS CI 可以完成构建；源码归档排除 `output/` 生成物。
 - 需要原型：否。
 - 原型触发原因：无。
 
