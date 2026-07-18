@@ -171,3 +171,12 @@
 - Obsidian 活动项目目录只保留 `Git状态摘要.md`，日常总结保留阅读入口、SOP 和复盘。
 - 同步自动化只允许 Git → `Git状态摘要.md`，继续保持暂停。
 - `repo:doctor` 已覆盖活动产品文档、旧稳定分支和旧固定 worktree 路径。
+
+### 维护收口
+
+- `git worktree prune` 已移除 `skill-panel-ci-fix` 和 `skill-panel-workbuddy-v3.9` 两条失效登记。
+- 已停止旧 WorkBuddy 原型 HTTP 服务和旧截图 headless Chrome 进程。
+- 历史 `skill-panel-v3-integration` 工作区干净且无编译进程，`cargo clean` 删除 7961 个文件并释放 2.6 GiB。
+- Remembering Conversations 工具已按 lockfile 安装依赖，`better-sqlite3` 内存查询通过，数据库与模板测试 13 项通过。
+- 该工具 npm 审计报告 2 项 moderate、6 项 high、2 项 critical，上游升级留作独立兼容性任务。
+- `~/.codex/logs_2.sqlite` quick check 通过，122347 个空闲页约 478 MiB；两个活动 Codex 进程持有数据库，本批次不执行在线压缩。
