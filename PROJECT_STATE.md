@@ -1,9 +1,9 @@
 ---
 项目: Skill Panel
 版本: 3.8.3
-发布任务: REL-3.8.3-CANDIDATE-MACOS
+发布任务: REL-3.8.3-GOVERNANCE
 目标平台: macOS
-状态: v3.8.3 candidate-2 8A 与 8B 通过，正式发布仍受签名和公证阻塞
+状态: main 已建立，v3.8.3 candidate-2 8A 与 8B 通过，仓库治理执行中
 更新时间: 2026-07-18
 ---
 
@@ -11,16 +11,21 @@
 
 ## 当前发布任务
 
-- 任务编号：`REL-3.8.3-CANDIDATE-MACOS`
+- 任务编号：`REL-3.8.3-GOVERNANCE`
 - 范围：macOS 单平台候选。
-- 分支：`codex/agent-codex-v3.8`
+- 默认分支：`main`
+- 当前治理分支：`codex/repository-governance`
+- 规范仓库：`/Users/shovy/Documents/skill-panel`
+- main 基线提交：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`
 - 开始 HEAD：`53e7ed3136e89cae52638dfdd9372983a918a0c5`
 - 候选代码提交：`17bde2b4130a564faf81b23cd2c7c4bcb433db8d`
-- 当前 HEAD：`57b29aeef5149e109ac016375968416c65e880cb`
+- 候选证据提交：`2046733`
 - 版本：`3.8.3`
 - bundle id：`com.fengbul.skillpanel`
 - macOS 架构：`arm64`
 - 候选状态：candidate-2 已通过 8A 人工验收和 8B 安装升级、回退、数据保留验证；正式对外发布仍受签名和公证条件阻塞。
+- 应用入口：`src/main.tsx` → `src/layout/AppShell.tsx`。
+- 文档同步：Git → Obsidian 单向摘要。
 
 ## 第 7 步门槛
 

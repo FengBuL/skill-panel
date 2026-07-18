@@ -2,7 +2,18 @@
 
 Skill Panel is a cross-platform desktop app shell for managing local AI skills. This repository starts with a Tauri + React + TypeScript + Rust foundation that supports Windows and macOS.
 
-## Current Release
+## Repository Baseline
+
+- Canonical repository: `/Users/shovy/Documents/skill-panel`
+- Default branch: `main`
+- Development baseline: `3.8.3` candidate-2, accepted for internal use
+- Latest formal release: `3.8.2`
+- Current frontend entry: `src/main.tsx` -> `src/layout/AppShell.tsx`
+- Architecture reference: `docs/architecture/current.md`
+
+Run `npm run repo:doctor` at the beginning of a new task to detect stale branches, paths, versions, and entrypoints.
+
+## Latest Formal Release
 
 - Version: `3.8.2`
 - Release commit: `65140b081962a0177b56c1cf14c572515f320e4e`
@@ -38,6 +49,12 @@ Run the frontend shell:
 
 ```bash
 npm run dev
+```
+
+Check the repository baseline:
+
+```bash
+npm run repo:doctor
 ```
 
 Run the desktop app:
@@ -132,9 +149,9 @@ npm.cmd run tauri:icons
 
 The generated files should live under `src-tauri/icons`.
 
-## Migration Package
+## Historical Migration Package
 
-To move Skill Panel v3.0.0 to another Windows computer, build the app and create a migration package:
+The following v3.0.0 workflow is retained for historical recovery only:
 
 ```bash
 npm.cmd run tauri:build:windows
@@ -149,7 +166,9 @@ The detailed migration guide is in `docs/migration-guide-v2.md`.
 
 - `src/` contains the React frontend and i18n resources.
 - `src-tauri/` contains the Rust backend and Tauri configuration.
-- `docs/project-plan.md` contains the project plan for the split development work.
+- `docs/architecture/current.md` defines the active entrypoint and module boundaries.
+- `docs/plans/` contains active and archived implementation plans.
+- `docs/templates/` contains task and prototype handoff templates.
 
 ## Internationalization
 

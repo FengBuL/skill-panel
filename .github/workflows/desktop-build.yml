@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - codex/skill-panel-app
+      - main
   pull_request:
 
 jobs:
@@ -58,6 +58,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check repository baseline
+        run: npm run repo:doctor
 
       - name: Run frontend tests
         run: npm test

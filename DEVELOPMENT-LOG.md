@@ -137,3 +137,20 @@
 
 - candidate-2 8B 安装、升级、回退和数据保留验证通过。
 - macOS Developer ID 签名、公证、Gatekeeper 完整验证和 Windows 验证仍为发布阻塞项。
+
+## 2026-07-18 REL-3.8.3-GOVERNANCE 启动记录
+
+### 已完成
+
+- 建立本地保护分支并备份设置、审计记录、应用包、截图和未提交改动。
+- 完成 candidate-2 8B，证据提交为 `2046733`。
+- 建立并推送 `main`，GitHub 默认分支已切换为 `main`。
+- 规范仓库目录确认为 `/Users/shovy/Documents/skill-panel`。
+- 修复 Obsidian 项目路径，自动化改为 Git → Obsidian 单向摘要并保持暂停。
+
+### 当前批次
+
+- 分支：`codex/repository-governance`
+- main 基线：`15a67962e4bf6f65c74720af794c3e2fb9a7d9d6`
+- 范围：治理规则、自动检查、架构说明、任务模板、旧入口清理、文档收口和维护。
+- 首要检查：`npm run repo:doctor`
