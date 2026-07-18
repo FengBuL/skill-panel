@@ -1,0 +1,4 @@
+3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb  Skill Panel_3.8.3_aarch64-unsigned-preview.app.zip
+ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94  Skill Panel_3.8.3_aarch64-unsigned-preview.dmg
+6f44879c4e11ce1af66dbda6f53fdf55771d898463c449d6e8c23cb2708c0159  skill-panel-v3.8.3-rollback.bundle
+969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846  skill-panel-v3.8.3-source.zip

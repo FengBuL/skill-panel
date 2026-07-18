@@ -23,9 +23,9 @@
 | 步骤 | 状态 | 完成条件 |
 |---|---|---|
 | 基线和发布口径核验 | 已完成 | `main` 干净、版本一致、范围已由用户确认 |
-| 状态与规则统一 | 进行中 | 活动文档没有候选/正式状态冲突和失效路径 |
-| 完整验证 | 待执行 | repo doctor、前端、类型、构建、打包、Rust、视觉 QA 全部通过 |
-| 最终产物 | 待执行 | 正式源码归档、rollback bundle、macOS Preview、清单和 SHA256 |
+| 状态与规则统一 | 已完成 | 活动文档没有候选/正式状态冲突和失效路径 |
+| 完整验证 | 已完成 | repo doctor、前端、类型、构建、打包、Rust、视觉 QA 全部通过 |
+| 最终产物 | 已完成 | 源码归档、rollback bundle、macOS Preview、清单和 SHA256 已生成并校验 |
 | CI 验证 | 待执行 | PR 的 macOS App/DMG 与 Windows NSIS workflow 通过 |
 | Git 收口 | 待执行 | PR 合并、历史分支归档与清理、`origin/HEAD` 指向 `main` |
 | 正式发布 | 待执行 | tag `v3.8.3` 和 GitHub Release 已创建 |
@@ -51,3 +51,13 @@ PATH="$HOME/.cargo/bin:$PATH" npm run tauri:build:macos
 - 不读取、记录或索取证书、密钥和 secrets。
 - Preview 启动烟测使用临时 `HOME`。
 - 安装升级与回退沿用 candidate-2 8B 已确认指纹证据，不重复操作真实用户文件。
+
+## 当前证据
+
+- 发布内容提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`。
+- 最终 tag 提交：等待发布 PR 合并后记录。
+- 源码归档 SHA256：`969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846`。
+- macOS ARM App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
+- macOS ARM DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
+- 完整验证：前端 89 项、打包 6 项、Rust 60 项、视觉 QA 17 个场景通过。
+- macOS Preview 校验：版本、bundle id、arm64 架构、DMG 挂载和临时 HOME 启动烟测通过；仅 ad-hoc 签名且没有公证票据。

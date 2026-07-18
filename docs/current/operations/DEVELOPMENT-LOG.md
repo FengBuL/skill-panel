@@ -265,3 +265,21 @@
 - `npm run repo:doctor`：通过。
 - 应用版本：npm、Tauri、Cargo 均为 `3.8.3`。
 - 当前机器代码签名 identity：`0 valid identities found`，记录为 macOS Preview 限制。
+
+### 本地验证与最终产物
+
+- 发布内容提交：`1e38b0d6c41960a315b2e5fbd330e0b85678b265`。
+- `npm run repo:doctor`：通过。
+- `npm test`：12 个文件、89 项通过。
+- `npm run typecheck`、`npm run build` 和 `npm run git:diff:check`：通过。
+- `npm run packaging:check`：6 项通过。
+- `npm run cargo:test`：Rust lib 56 项、integration 4 项通过。
+- `npm run visual:qa`：17 个场景通过，报告为 `output/qa/v3.8.3/visual-qa-report.json`。
+- macOS ARM App/DMG 构建完成；DMG 可只读挂载，版本为 `3.8.3`，bundle id 为 `com.fengbul.skillpanel`，架构为 `arm64`。
+- 临时 `HOME` 启动烟测中进程保持运行 5 秒。
+- App 只有 ad-hoc 签名，严格签名校验失败；没有公证票据。该结果符合未签名、未公证 Preview 声明。
+- 源码归档 SHA256：`969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846`。
+- rollback bundle SHA256：`6f44879c4e11ce1af66dbda6f53fdf55771d898463c449d6e8c23cb2708c0159`，`git bundle verify` 通过。
+- App Preview SHA256：`3fb0a5b4dd486573129768e1bdf26a0b5924fb321b0f0ce51ca83fce8ffd2afb`。
+- DMG Preview SHA256：`ed2b73c66cf1bd178f2d55e2b8f349379d5625e5cf2f80bf221e8d6e3b89be94`。
+- 最终 tag 会落在受保护 `main` 的发布 PR 合并提交；GitHub 自动源码归档以该 tag 为准。
