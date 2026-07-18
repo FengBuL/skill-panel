@@ -305,3 +305,13 @@
 - 本地 `npm run cargo:test`：56 个 lib 测试和 4 个 integration 测试通过。
 - 两个审计日志用例以 16 个测试线程重复执行 5 轮，5/5 通过。
 - 第二轮 Windows job 已取消，最终头提交重新执行双平台 CI。
+
+### 最终源码与回退归档
+
+- 最终源码归档提交：`8da6036ef2d0698de29ca06b3810718cb95f339a`。
+- 源码归档 SHA256：`e61bcffb2fea2e8a675166523146bf110036f9ebf4dbaddfec8b483e77d37497`。
+- 完整 rollback bundle 提交：`8da6036ef2d0698de29ca06b3810718cb95f339a`。
+- 完整 rollback bundle SHA256：`a80d24a2debc1f49a96b0ae6a62726eef4397ab9b35036c766071064ba34a6d6`。
+- bundle 大小：152,914,292 bytes；超过 GitHub 仓库单文件限制，不进入 Git 树。
+- 本机冷归档：`/Users/shovy/Documents/Skill-Panel-Archive/releases/v3.8.3/skill-panel-v3.8.3-rollback.bundle`。
+- `git bundle verify`：通过，记录完整历史。

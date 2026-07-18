@@ -4,6 +4,8 @@
   "releaseType": "open-source-source-release",
   "releaseDate": "2026-07-19",
   "releaseContentCommit": "1e38b0d6c41960a315b2e5fbd330e0b85678b265",
+  "sourceArchiveCommit": "8da6036ef2d0698de29ca06b3810718cb95f339a",
+  "rollbackBundleCommit": "8da6036ef2d0698de29ca06b3810718cb95f339a",
   "tagCommit": "pending release PR merge",
   "sourceBaseline": "f23ef8dcc4eb63c80e4508c9afb3e348a7d707b3",
   "tag": "v3.8.3",
@@ -12,15 +14,15 @@
   "artifacts": [
     {
       "file": "skill-panel-v3.8.3-source.zip",
-      "bytes": 4644708,
-      "sha256": "969b0a6c0410af08c93f40e1a225801f913a92bb107ea4da5f1263490ec0e846",
-      "status": "official source archive"
+      "bytes": 4647549,
+      "sha256": "e61bcffb2fea2e8a675166523146bf110036f9ebf4dbaddfec8b483e77d37497",
+      "status": "source archive from the final release content commit; GitHub tag archives remain authoritative"
     },
     {
       "file": "skill-panel-v3.8.3-rollback.bundle",
-      "bytes": 83488625,
-      "sha256": "6f44879c4e11ce1af66dbda6f53fdf55771d898463c449d6e8c23cb2708c0159",
-      "status": "complete Git recovery bundle"
+      "bytes": 152914292,
+      "sha256": "a80d24a2debc1f49a96b0ae6a62726eef4397ab9b35036c766071064ba34a6d6",
+      "status": "complete Git recovery bundle; stored outside the Git tree and uploaded as a GitHub Release asset"
     },
     {
       "file": "Skill Panel_3.8.3_aarch64-unsigned-preview.app.zip",
@@ -59,7 +61,9 @@
     "windows": "GitHub Actions run 29652247904 passed; no human acceptance claim",
     "ciRunUrl": "https://github.com/FengBuL/skill-panel/actions/runs/29652247904",
     "ciMacos": "passed in 5m55s",
-    "ciWindows": "passed in 10m49s"
+    "ciWindows": "passed in 10m49s",
+    "ciSecondRun": "run 29652676732 exposed and reproduced a HOME isolation race in one Rust test",
+    "auditHomeIsolationFix": "full Rust suite passed; focused parallel stress passed 5/5"
   },
   "candidateEvidence": {
     "candidate2Commit": "57b29aeef5149e109ac016375968416c65e880cb",
