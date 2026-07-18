@@ -3,7 +3,7 @@
 当前开发版本: 3.8.3
 最新正式版本: 3.8.2
 当前任务: DOC-STRUCTURE-01
-状态: 项目目录与接手文档整理完成，等待 PR 合并
+状态: 项目目录与接手文档整理完成，PR #4 已合并
 更新时间: 2026-07-18
 ---
 
@@ -24,7 +24,9 @@
 - 规范仓库：`/Users/shovy/Documents/skill-panel`
 - 默认分支：`main`
 - 本轮整理基线：`7ce545d`
-- 当前工作分支：`codex/project-handover-structure`
+- 整理提交：`d69f710`
+- main 合并提交：`2529c67`
+- 合并记录：PR #4 `docs: 按版本整理项目接手结构`
 - 应用版本：npm、Tauri、Cargo 均为 `3.8.3`
 - 应用入口：`src/main.tsx` -> `src/layout/AppShell.tsx`
 - CI 门槛：Windows NSIS、macOS App/DMG、PR 审核和对话解决。
@@ -45,6 +47,7 @@
 - v3.8.2 基线 DMG SHA256：`10a4596485037ae6e54f866000b35386e7dc61ab4cdba0cf9c3a1a2723401e1d`。
 - 8B 证据：`output/releases/v3.8.3-candidate-2/8b-evidence/`。
 - 版本文档地图：`docs/versions/README.md`。
+- 项目接手结构：PR #4，merge commit `2529c67`。
 
 ## 已知风险
 
